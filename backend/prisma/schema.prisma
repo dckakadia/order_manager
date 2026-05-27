@@ -1,0 +1,53 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Item {
+  id        Int      @id @default(autoincrement())
+  category  String   // e.g., "Base Model"
+  name      String
+  price     Float    @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Customer {
+  id               Int      @id @default(autoincrement())
+  name             String
+  phone            String?
+  email            String?
+  shippingAddress  String?
+  taxNumber        String?
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model Order {
+  id               Int      @id @default(autoincrement())
+  customerName     String?
+  phone            String?
+  email            String?
+  shippingAddress  String?
+  taxNumber        String?
+  
+  baseModel        String?
+  basePrice        Float    @default(0)
+  totalPrice       Float    @default(0)
+  
+  locationLat      Float?
+  locationLng      Float?
+  checkInTime      DateTime?
+  deliveryDate     DateTime?
+  
+  status           String   @default("Order Form Received")
+  
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
