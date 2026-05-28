@@ -4,8 +4,11 @@ import { Plus, Trash2 } from 'lucide-react';
 export default function ItemMaster() {
   const [items, setItems] = useState([]);
   const [name, setName] = useState('');
-  const [price, setPrice] = useState('');
-  const [category, setCategory] = useState('Base Model');
+  const [variant, setVariant] = useState('Silver');
+  const [silverPrice, setSilverPrice] = useState('');
+  const [goldPrice, setGoldPrice] = useState('');
+  const [platinumPrice, setPlatinumPrice] = useState('');
+  const [titaniumPrice, setTitaniumPrice] = useState('');
 
   const fetchItems = async () => {
     const res = await fetch('http://116.74.77.22:3000/api/items', { headers: { 'Authorization': `Bearer ${localStorage.getItem('ocean_spas_auth_token')}` } });
@@ -25,10 +28,20 @@ export default function ItemMaster() {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${localStorage.getItem('ocean_spas_auth_token')}`
       },
-      body: JSON.stringify({ category, name, price })
+      body: JSON.stringify({ 
+        variant, 
+        name, 
+        silverPrice: silverPrice ? Number(silverPrice) : 0, 
+        goldPrice: goldPrice ? Number(goldPrice) : 0, 
+        platinumPrice: platinumPrice ? Number(platinumPrice) : 0, 
+        titaniumPrice: titaniumPrice ? Number(titaniumPrice) : 0 
+      })
     });
     setName('');
-    setPrice('');
+    setSilverPrice('');
+    setGoldPrice('');
+    setPlatinumPrice('');
+    setTitaniumPrice('');
     fetchItems();
   };
 
@@ -48,13 +61,12 @@ export default function ItemMaster() {
         <h2>Add New Option</h2>
         <form onSubmit={handleAddItem}>
           <div className="form-group">
-            <label className="form-label">Category</label>
-            <select className="form-control" value={category} onChange={e => setCategory(e.target.value)}>
-              <option value="Base Model">Base Model</option>
-              <option value="Size">Size</option>
-              <option value="Color">Color</option>
-              <option value="Jet Config">Jet Configuration</option>
-              <option value="Upgrades">Jacuzzi Upgrades</option>
+            <label className="form-label">Variant</label>
+            <select className="form-control" value={variant} onChange={e => setVariant(e.target.value)}>
+              <option value="Silver">Silver</option>
+              <option value="Gold">Gold</option>
+              <option value="Platinum">Platinum</option>
+              <option value="Titanium">Titanium</option>
             </select>
           </div>
           
@@ -64,8 +76,23 @@ export default function ItemMaster() {
           </div>
           
           <div className="form-group">
-            <label className="form-label">Price Adjustment (₹ / $)</label>
-            <input type="number" className="form-control" required value={price} onChange={e => setPrice(e.target.value)} />
+            <label className="form-label">Silver Price (₹ / $)</label>
+            <input type="number" step="any" className="form-control" required value={silverPrice} onChange={e => setSilverPrice(e.target.value)} />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Gold Price (₹ / $)</label>
+            <input type="number" step="any" className="form-control" required value={goldPrice} onChange={e => setGoldPrice(e.target.value)} />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Platinum Price (₹ / $)</label>
+            <input type="number" step="any" className="form-control" required value={platinumPrice} onChange={e => setPlatinumPrice(e.target.value)} />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Titanium Price (₹ / $)</label>
+            <input type="number" step="any" className="form-control" required value={titaniumPrice} onChange={e => setTitaniumPrice(e.target.value)} />
           </div>
           
           <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>
@@ -80,9 +107,20 @@ export default function ItemMaster() {
           {items.map(item => (
             <div className="option-card" key={item.id}>
               <div className="option-card-main">
-                <span className="option-category-badge">{item.category}</span>
+                <span className="option-category-badge">{item.variant || item.category}</span>
                 <div className="option-name">{item.name}</div>
-                <div className="option-price">Price: ₹{item.price.toLocaleString('en-IN')}</div>
+                <div className="option-prices" style={{ fontSize: '0.85rem', color: 'var(--text-light)', marginTop: '0.5rem' }}>
+                  {item.silverPrice !== undefined ? (
+                    <>
+                      <div>Silver: ₹{Number(item.silverPrice).toLocaleString('en-IN')}</div>
+                      <div>Gold: ₹{Number(item.goldPrice).toLocaleString('en-IN')}</div>
+                      <div>Platinum: ₹{Number(item.platinumPrice).toLocaleString('en-IN')}</div>
+                      <div>Titanium: ₹{Number(item.titaniumPrice).toLocaleString('en-IN')}</div>
+                    </>
+                  ) : (
+                    <div>Price: ₹{item.price?.toLocaleString('en-IN')}</div>
+                  )}
+                </div>
               </div>
               <button onClick={() => handleDelete(item.id)} className="option-delete-btn" aria-label="Delete">
                 <Trash2 size={18} />
