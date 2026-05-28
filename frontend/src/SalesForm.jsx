@@ -11,8 +11,16 @@ export default function SalesForm() {
   const [selectedCustomerId, setSelectedCustomerId] = useState('');
   const [formData, setFormData] = useState({
     customerName: '', phone: '', email: '', shippingAddress: '', taxNumber: '',
-    baseModel: '', deliveryDate: '', notes: '', faucetPosition: 'No Faucet', orderBy: 'Manish', manualPrice: ''
+    baseModel: '', variant: '', deliveryDate: '', notes: '', faucetPosition: 'No Faucet', orderBy: 'Manish', manualPrice: ''
   });
+
+  const getVariantPrice = (modelId, variantName) => {
+    if (!modelId || !variantName) return '';
+    const m = items.find(x => x.id.toString() === modelId);
+    if (!m) return '';
+    const priceField = `${variantName.toLowerCase()}Price`;
+    return m[priceField] !== undefined && m[priceField] !== null ? m[priceField] : (m.price || 0);
+  };
 
   const [location, setLocation] = useState(null);
   const [submitted, setSubmitted] = useState(false);
@@ -107,6 +115,7 @@ export default function SalesForm() {
     const orderPayload = {
       ...formData,
       baseModel: selectedModel.name,
+      variant: formData.variant,
       basePrice: selectedModel.price,
       totalPrice: Number(formData.manualPrice),
       deliveryDate: formData.deliveryDate,
@@ -132,7 +141,7 @@ export default function SalesForm() {
         setSubmitted(false);
         // BUG FIX #6: Reset customer dropdown + all form state properly
         setSelectedCustomerId('');
-        setFormData({ customerName: '', phone: '', email: '', shippingAddress: '', taxNumber: '', baseModel: '', deliveryDate: '', notes: '', faucetPosition: 'No Faucet', orderBy: 'Manish', manualPrice: '' });
+        setFormData({ customerName: '', phone: '', email: '', shippingAddress: '', taxNumber: '', baseModel: '', variant: '', deliveryDate: '', notes: '', faucetPosition: 'No Faucet', orderBy: 'Manish', manualPrice: '' });
         setLocation(null);
       }, 3000);
     } catch {
@@ -262,35 +271,32 @@ export default function SalesForm() {
         <div className="glass-card" style={{ marginBottom: '1.5rem' }}>
           <h2>Configuration</h2>
           <div className="form-group">
-            <label className="form-label required">Base Model</label>
+            <label className="form-label required">Select Model</label>
             <select className="form-control" required value={formData.baseModel} onChange={e => {
               const modelId = e.target.value;
-              const m = baseModels.find(x => x.id.toString() === modelId);
-              setFormData({...formData, baseModel: modelId, manualPrice: m ? m.price : ''});
+              const price = getVariantPrice(modelId, formData.variant);
+              setFormData({...formData, baseModel: modelId, manualPrice: price});
             }} form="orderForm">
               <option value="">-- Select Model --</option>
               {baseModels.map(m => (
-                <option key={m.id} value={m.id}>{m.name} (₹{m.price.toLocaleString('en-IN')})</option>
+                <option key={m.id} value={m.id}>{m.name}</option>
               ))}
             </select>
           </div>
 
           <div className="form-group" style={{ marginTop: '1.5rem' }}>
-            <label className="form-label required">Committed Delivery Date</label>
-            <input type="date" className="form-control" required value={formData.deliveryDate} onChange={e => setFormData({...formData, deliveryDate: e.target.value})} form="orderForm" />
-          </div>
-
-          {/* BUG FIX / NEW FEATURE: Notes field added as per requirements */}
-          <div className="form-group" style={{ marginTop: '1.5rem' }}>
-            <label className="form-label">Notes</label>
-            <textarea
-              className="form-control"
-              rows={3}
-              form="orderForm"
-              placeholder="Any special instructions, customizations, or remarks..."
-              value={formData.notes}
-              onChange={e => setFormData({...formData, notes: e.target.value})}
-            ></textarea>
+            <label className="form-label required">Select Variant</label>
+            <select className="form-control" required value={formData.variant} onChange={e => {
+              const newVariant = e.target.value;
+              const price = getVariantPrice(formData.baseModel, newVariant);
+              setFormData({...formData, variant: newVariant, manualPrice: price});
+            }} form="orderForm">
+              <option value="">-- Select Variant --</option>
+              <option value="Silver">Silver</option>
+              <option value="Gold">Gold</option>
+              <option value="Platinum">Platinum</option>
+              <option value="Titanium">Titanium</option>
+            </select>
           </div>
 
           <div className="form-group" style={{ marginTop: '1.5rem' }}>
@@ -303,17 +309,34 @@ export default function SalesForm() {
           </div>
 
           <div className="form-group" style={{ marginTop: '1.5rem' }}>
+            <label className="form-label">Notes</label>
+            <textarea
+              className="form-control"
+              rows={3}
+              form="orderForm"
+              placeholder="Any special instructions, customizations, or remarks..."
+              value={formData.notes}
+              onChange={e => setFormData({...formData, notes: e.target.value})}
+            ></textarea>
+          </div>
+
+          <div className="form-group" style={{ marginTop: '1.5rem', background: '#F9FAFB', padding: '1rem', borderRadius: '8px' }}>
+            <label className="form-label required" style={{ marginBottom: '0.5rem', display: 'block' }}>Total Price (₹)</label>
+            <input type="number" step="any" className="form-control" required value={formData.manualPrice} onChange={e => setFormData({...formData, manualPrice: e.target.value})} form="orderForm" style={{ fontSize: '1.25rem', fontWeight: 'bold' }} />
+          </div>
+
+          <div className="form-group" style={{ marginTop: '1.5rem' }}>
+            <label className="form-label required">Committed Delivery Date</label>
+            <input type="date" className="form-control" required value={formData.deliveryDate} onChange={e => setFormData({...formData, deliveryDate: e.target.value})} form="orderForm" />
+          </div>
+
+          <div className="form-group" style={{ marginTop: '1.5rem' }}>
             <label className="form-label required">Order By</label>
             <select className="form-control" required value={formData.orderBy} onChange={e => setFormData({...formData, orderBy: e.target.value})} form="orderForm">
               <option value="Manish">Manish</option>
               <option value="Paresh">Paresh</option>
               <option value="Devin">Devin</option>
             </select>
-          </div>
-
-          <div className="form-group" style={{ marginTop: '1.5rem', background: '#F9FAFB', padding: '1rem', borderRadius: '8px' }}>
-            <label className="form-label required" style={{ marginBottom: '0.5rem', display: 'block' }}>Total Price (₹)</label>
-            <input type="number" step="any" className="form-control" required value={formData.manualPrice} onChange={e => setFormData({...formData, manualPrice: e.target.value})} form="orderForm" style={{ fontSize: '1.25rem', fontWeight: 'bold' }} />
           </div>
         </div>
 
@@ -352,7 +375,7 @@ export default function SalesForm() {
                 </div>
                 <div className="order-customer-name">{order.customerName}</div>
                 <div style={{ marginBottom: '8px', marginTop: '4px' }}>
-                  <span className="order-model">{order.baseModel}</span>
+                  <span className="order-model">{order.baseModel} {order.variant && `(${order.variant})`}</span>
                 </div>
                 <div style={{ fontSize: '13px', color: 'var(--text-light)', marginBottom: '8px' }}>
                   <strong>Notes:</strong> {order.notes || '—'}
@@ -410,6 +433,16 @@ export default function SalesForm() {
               <div className="form-group">
                 <label className="form-label required">Base Model</label>
                 <input type="text" className="form-control" required value={editingOrder.baseModel} onChange={e => setEditingOrder({...editingOrder, baseModel: e.target.value})} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Variant</label>
+                <select className="form-control" value={editingOrder.variant || ''} onChange={e => setEditingOrder({...editingOrder, variant: e.target.value})}>
+                  <option value="">-- None --</option>
+                  <option value="Silver">Silver</option>
+                  <option value="Gold">Gold</option>
+                  <option value="Platinum">Platinum</option>
+                  <option value="Titanium">Titanium</option>
+                </select>
               </div>
               <div className="form-group">
                 <label className="form-label">Delivery Date</label>

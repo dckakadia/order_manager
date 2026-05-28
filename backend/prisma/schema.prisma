@@ -42,6 +42,7 @@ model Order {
   taxNumber        String?
 
   baseModel        String?
+  variant          String?
   basePrice        Float    @default(0)
   totalPrice       Float    @default(0)
 

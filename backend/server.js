@@ -146,6 +146,7 @@ app.post('/api/orders', authMiddleware, async (req, res) => {
         shippingAddress: data.shippingAddress,
         taxNumber: data.taxNumber,
         baseModel: data.baseModel,
+        variant: data.variant || null,
         basePrice: parseFloat(data.basePrice) || 0,
         totalPrice: parseFloat(data.totalPrice) || 0,
         // NEW FEATURE: Save notes field
@@ -213,6 +214,7 @@ app.put('/api/orders/:id', authMiddleware, requireRole(['ADMIN']), async (req, r
     if (data.customerName !== undefined) updateData.customerName = data.customerName;
     if (data.phone !== undefined) updateData.phone = data.phone;
     if (data.baseModel !== undefined) updateData.baseModel = data.baseModel;
+    if (data.variant !== undefined) updateData.variant = data.variant;
     if (data.totalPrice !== undefined) updateData.totalPrice = parseFloat(data.totalPrice) || 0;
     if (data.deliveryDate !== undefined) updateData.deliveryDate = data.deliveryDate ? new Date(data.deliveryDate) : null;
     if (data.notes !== undefined) updateData.notes = data.notes;
