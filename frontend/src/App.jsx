@@ -33,8 +33,12 @@ function App() {
             <div className="nav-links">
               {token && (
                 <>
-                  <Link to="/sales" className="nav-link">Sales View</Link>
-                  <Link to="/customers" className="nav-link">Customer Master</Link>
+                  {(role === 'SALES' || role === 'ADMIN') && (
+                    <>
+                      <Link to="/sales" className="nav-link">Sales View</Link>
+                      <Link to="/customers" className="nav-link">Customer Master</Link>
+                    </>
+                  )}
                   
                   {(role === 'MANAGER' || role === 'ADMIN') && (
                     <>
@@ -60,11 +64,11 @@ function App() {
           </nav>
           
           <Routes>
-            <Route path="/" element={token ? <Navigate to="/sales" /> : <Navigate to="/login" />} />
+            <Route path="/" element={token ? (role === 'MANAGER' ? <Navigate to="/status" /> : (role === 'SALES' ? <Navigate to="/sales" /> : <Navigate to="/admin" />)) : <Navigate to="/login" />} />
             <Route path="/login" element={<Login />} />
             
-            <Route path="/sales" element={<ProtectedRoute allowedRoles={['SALES', 'MANAGER', 'ADMIN']}><SalesForm /></ProtectedRoute>} />
-            <Route path="/customers" element={<ProtectedRoute allowedRoles={['SALES', 'MANAGER', 'ADMIN']}><CustomerMaster /></ProtectedRoute>} />
+            <Route path="/sales" element={<ProtectedRoute allowedRoles={['SALES', 'ADMIN']}><SalesForm /></ProtectedRoute>} />
+            <Route path="/customers" element={<ProtectedRoute allowedRoles={['SALES', 'ADMIN']}><CustomerMaster /></ProtectedRoute>} />
             
             <Route path="/status" element={<ProtectedRoute allowedRoles={['MANAGER', 'ADMIN']}><LiveOrderStatus /></ProtectedRoute>} />
             <Route path="/dashboard" element={<ProtectedRoute allowedRoles={['MANAGER', 'ADMIN']}><ManagerDashboard /></ProtectedRoute>} />
