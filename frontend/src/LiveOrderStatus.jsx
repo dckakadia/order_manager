@@ -15,6 +15,14 @@ const STAGES = [
 
 export default function LiveOrderStatus() {
   const [orders, setOrders] = useState([]);
+  
+  const sortOrders = (ordersList) => {
+    return [...ordersList].sort((a, b) => {
+      if (!a.deliveryDate) return 1;
+      if (!b.deliveryDate) return -1;
+      return new Date(a.deliveryDate) - new Date(b.deliveryDate);
+    });
+  };
   const [error, setError] = useState('');
   const [editingOrder, setEditingOrder] = useState(null);
   const socket = useContext(SocketContext);
@@ -25,17 +33,17 @@ export default function LiveOrderStatus() {
       headers: { 'Authorization': `Bearer ${localStorage.getItem('ocean_spas_auth_token')}` }
     })
       .then(res => res.json())
-      .then(data => setOrders(data))
+      .then(data => setOrders(sortOrders(data)))
       .catch(() => setError('Failed to load orders.'));
 
     if (!socket) return;
 
     socket.on('new_order', (newOrder) => {
-      setOrders(prev => [newOrder, ...prev]);
+      setOrders(prev => sortOrders([newOrder, ...prev]));
     });
 
     socket.on('order_status_updated', (updatedOrder) => {
-      setOrders(prev => prev.map(o => o.id === updatedOrder.id ? updatedOrder : o));
+      setOrders(prev => sortOrders(prev.map(o => o.id === updatedOrder.id ? updatedOrder : o)));
     });
 
     socket.on('order_deleted', (id) => {
@@ -154,14 +162,16 @@ export default function LiveOrderStatus() {
                 <span className={`badge ${getBadgeClass(order.status)}`}>{order.status}</span>
               </div>
               <div className="order-customer-name">{order.customerName}</div>
-              <div className="order-phone">{order.phone}</div>
-              <div style={{ marginBottom: '8px' }}>
-                <span className="order-model">{order.baseModel}</span>
+              <div style={{ fontSize: '12px', color: 'var(--text-light)', marginBottom: '8px' }}>
+                Placed: {new Date(order.createdAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
               </div>
-              <div style={{ fontSize: '13px', color: 'var(--text-light)', marginBottom: '8px' }}>
-                <strong>Total:</strong> ₹{order.totalPrice?.toLocaleString('en-IN')}
-                <br />
-                <strong>Notes:</strong> {order.notes || '—'}
+              <div style={{ marginBottom: '8px' }}>
+                <span className="order-model">{order.baseModel} {order.variant && `(${order.variant})`}</span>
+              </div>
+              <div style={{ fontSize: '13px', color: 'var(--text)', marginBottom: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <div><strong>Faucet Position:</strong> {order.faucetPosition || 'Not Specified'}</div>
+                <div><strong>Order By:</strong> {order.orderBy || 'Not Specified'}</div>
+                <div><strong>Notes:</strong> {order.notes || '—'}</div>
               </div>
               
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', paddingTop: '12px', borderTop: '1px solid var(--border)' }}>
