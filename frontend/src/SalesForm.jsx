@@ -1,6 +1,10 @@
 import { useState, useEffect, useContext } from 'react';
 import { SocketContext } from './App';
 import { MapPin, Share2, CheckCircle2, Pencil, Trash2, XCircle, X } from 'lucide-react';
+import { Geolocation } from '@capacitor/geolocation';
+import { Share } from '@capacitor/share';
+import { Filesystem, Directory } from '@capacitor/filesystem';
+import html2canvas from 'html2canvas';
 
 const API_BASE = 'http://116.74.77.22:3000';
 
@@ -129,17 +133,24 @@ export default function SalesForm() {
   const baseModels = items.filter(i => i.category === 'Base Model' || i.category === 'Model' || !i.category);
   const selectedModel = baseModels.find(m => m.id.toString() === formData.baseModel);
 
-  const handleCheckIn = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition((position) => {
-        setLocation({
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-          time: new Date().toISOString()
-        });
-      }, () => alert('Unable to get location. Please allow location access.'));
-    } else {
-      alert('Geolocation is not supported by this browser.');
+  const handleCheckIn = async () => {
+    try {
+      const permissions = await Geolocation.checkPermissions();
+      if (permissions.location !== 'granted') {
+        const req = await Geolocation.requestPermissions();
+        if (req.location !== 'granted') {
+          alert('Location access denied');
+          return;
+        }
+      }
+      const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: true });
+      setLocation({
+        lat: pos.coords.latitude,
+        lng: pos.coords.longitude,
+        time: new Date().toISOString()
+      });
+    } catch (err) {
+      alert('Error fetching location. Make sure GPS is enabled.');
     }
   };
 
@@ -187,15 +198,35 @@ export default function SalesForm() {
   };
 
   const handleShare = async () => {
-    const text = `Ocean Spas Order\n\nCustomer: ${formData.customerName}\nModel: ${selectedModel?.name}\nTotal Price: ₹${Number(formData.manualPrice).toLocaleString('en-IN')}\nNotes: ${formData.notes || 'None'}`;
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: 'Ocean Spas Order Details', text });
-      } catch (err) {
-        console.error('Error sharing:', err);
+    try {
+      const receiptElement = document.getElementById('receipt-capture');
+      if (!receiptElement) return;
+      
+      const canvas = await html2canvas(receiptElement, { scale: 2 });
+      const base64Data = canvas.toDataURL('image/png').split(',')[1];
+      
+      const fileName = `order_${Date.now()}.png`;
+      const savedFile = await Filesystem.writeFile({
+        path: fileName,
+        data: base64Data,
+        directory: Directory.Cache
+      });
+      
+      await Share.share({
+        title: 'Ocean Spas Order',
+        text: 'Here are the order details from Ocean Spas.',
+        url: savedFile.uri,
+        dialogTitle: 'Share Order Receipt'
+      });
+    } catch (err) {
+      console.error('Share error:', err);
+      // Fallback
+      const text = `Ocean Spas Order\n\nCustomer: ${formData.customerName}\nModel: ${selectedModel?.name}\nTotal Price: ₹${Number(formData.manualPrice).toLocaleString('en-IN')}\nNotes: ${formData.notes || 'None'}`;
+      if (navigator.share) {
+        navigator.share({ title: 'Ocean Spas Order Details', text }).catch(() => {});
+      } else {
+        window.open(`mailto:?subject=Order Details&body=${encodeURIComponent(text)}`);
       }
-    } else {
-      window.open(`mailto:?subject=Order Details&body=${encodeURIComponent(text)}`);
     }
   };
 
@@ -256,6 +287,30 @@ export default function SalesForm() {
 
   return (
     <div className="grid-2">
+      {/* Hidden Receipt for Share */}
+      <div id="receipt-capture" style={{ position: 'absolute', top: '-9999px', left: '-9999px', background: '#fff', padding: '30px', width: '500px', fontFamily: 'sans-serif', borderRadius: '12px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+          <h2 style={{ color: '#0f172a', margin: '0 0 8px 0', fontSize: '24px' }}>OCEAN SPAS</h2>
+          <p style={{ color: '#64748b', margin: 0 }}>Order Receipt</p>
+        </div>
+        <table style={{ width: '100%', borderCollapse: 'collapse', color: '#1e293b' }}>
+          <tbody>
+            <tr><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0', fontWeight: 'bold' }}>Customer</td><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0' }}>{formData.customerName}</td></tr>
+            <tr><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0', fontWeight: 'bold' }}>Phone</td><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0' }}>{formData.phone}</td></tr>
+            <tr><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0', fontWeight: 'bold' }}>Model</td><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0' }}>{selectedModel?.name}</td></tr>
+            <tr><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0', fontWeight: 'bold' }}>Variant</td><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0' }}>{formData.variant || 'None'}</td></tr>
+            <tr><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0', fontWeight: 'bold' }}>Faucet</td><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0' }}>{formData.faucetPosition}</td></tr>
+            <tr><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0', fontWeight: 'bold' }}>Delivery</td><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0' }}>{formData.deliveryDate ? new Date(formData.deliveryDate).toLocaleDateString('en-IN') : 'Not Set'}</td></tr>
+            <tr><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0', fontWeight: 'bold' }}>Order By</td><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0' }}>{formData.orderBy}</td></tr>
+            <tr><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0', fontWeight: 'bold' }}>Notes</td><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0' }}>{formData.notes || 'None'}</td></tr>
+            <tr><td style={{ padding: '16px 8px', fontWeight: 'bold', fontSize: '20px' }}>Total Price</td><td style={{ padding: '16px 8px', fontWeight: 'bold', fontSize: '22px', color: '#10b981' }}>₹{Number(formData.manualPrice || 0).toLocaleString('en-IN')}</td></tr>
+          </tbody>
+        </table>
+        <div style={{ textAlign: 'center', marginTop: '30px', color: '#64748b', fontSize: '12px' }}>
+          Thank you for choosing Ocean Spas!
+        </div>
+      </div>
+
       <div className="glass-card">
         <h2>Customer Details</h2>
         {submitError && <div className="badge badge-start" style={{ display: 'block', marginBottom: '1rem', padding: '0.5rem' }}>{submitError}</div>}
