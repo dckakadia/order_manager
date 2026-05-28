@@ -99,7 +99,7 @@ export default function ManagerDashboard() {
       </div>
 
       {/* Pipeline Breakdown */}
-      <div className="glass-card" style={{ padding: '2rem' }}>
+      <div className="glass-card">
         <h2 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <Package size={20} /> Production Pipeline Breakdown
         </h2>

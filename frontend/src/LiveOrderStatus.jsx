@@ -75,7 +75,7 @@ export default function LiveOrderStatus() {
   };
 
   return (
-    <div className="glass-card" style={{ padding: '2rem' }}>
+    <div className="glass-card">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <h2>Live Order Board</h2>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--secondary)' }}>
