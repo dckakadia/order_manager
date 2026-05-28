@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-ro
 import { io } from 'socket.io-client';
 import { createContext, useEffect, useState } from 'react';
 import SalesForm from './SalesForm';
+import LiveOrderStatus from './LiveOrderStatus';
 import ManagerDashboard from './ManagerDashboard';
 import ItemMaster from './ItemMaster';
 import CustomerMaster from './CustomerMaster';
@@ -36,7 +37,10 @@ function App() {
                   <Link to="/customers" className="nav-link">Customer Master</Link>
                   
                   {(role === 'MANAGER' || role === 'ADMIN') && (
-                    <Link to="/manager" className="nav-link">Manager Dashboard</Link>
+                    <>
+                      <Link to="/status" className="nav-link">Live Order Status</Link>
+                      <Link to="/dashboard" className="nav-link">Metrics Dashboard</Link>
+                    </>
                   )}
                   
                   {role === 'ADMIN' && (
@@ -62,7 +66,8 @@ function App() {
             <Route path="/sales" element={<ProtectedRoute allowedRoles={['SALES', 'MANAGER', 'ADMIN']}><SalesForm /></ProtectedRoute>} />
             <Route path="/customers" element={<ProtectedRoute allowedRoles={['SALES', 'MANAGER', 'ADMIN']}><CustomerMaster /></ProtectedRoute>} />
             
-            <Route path="/manager" element={<ProtectedRoute allowedRoles={['MANAGER', 'ADMIN']}><ManagerDashboard /></ProtectedRoute>} />
+            <Route path="/status" element={<ProtectedRoute allowedRoles={['MANAGER', 'ADMIN']}><LiveOrderStatus /></ProtectedRoute>} />
+            <Route path="/dashboard" element={<ProtectedRoute allowedRoles={['MANAGER', 'ADMIN']}><ManagerDashboard /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute allowedRoles={['ADMIN']}><ItemMaster /></ProtectedRoute>} />
           </Routes>
         </div>
