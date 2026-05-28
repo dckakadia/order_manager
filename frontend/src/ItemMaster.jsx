@@ -4,7 +4,6 @@ import { Plus, Trash2 } from 'lucide-react';
 export default function ItemMaster() {
   const [items, setItems] = useState([]);
   const [name, setName] = useState('');
-  const [variant, setVariant] = useState('Silver');
   const [silverPrice, setSilverPrice] = useState('');
   const [goldPrice, setGoldPrice] = useState('');
   const [platinumPrice, setPlatinumPrice] = useState('');
@@ -29,7 +28,6 @@ export default function ItemMaster() {
         'Authorization': `Bearer ${localStorage.getItem('ocean_spas_auth_token')}`
       },
       body: JSON.stringify({ 
-        variant, 
         name, 
         silverPrice: silverPrice ? Number(silverPrice) : 0, 
         goldPrice: goldPrice ? Number(goldPrice) : 0, 
@@ -60,16 +58,6 @@ export default function ItemMaster() {
       <div className="glass-card">
         <h2>Add New Option</h2>
         <form onSubmit={handleAddItem}>
-          <div className="form-group">
-            <label className="form-label">Variant</label>
-            <select className="form-control" value={variant} onChange={e => setVariant(e.target.value)}>
-              <option value="Silver">Silver</option>
-              <option value="Gold">Gold</option>
-              <option value="Platinum">Platinum</option>
-              <option value="Titanium">Titanium</option>
-            </select>
-          </div>
-          
           <div className="form-group">
             <label className="form-label">Name</label>
             <input type="text" className="form-control" required value={name} onChange={e => setName(e.target.value)} />
@@ -107,10 +95,10 @@ export default function ItemMaster() {
           {items.map(item => (
             <div className="option-card" key={item.id}>
               <div className="option-card-main">
-                <span className="option-category-badge">{item.variant || item.category}</span>
+                <span className="option-category-badge">{item.category || 'Model'}</span>
                 <div className="option-name">{item.name}</div>
                 <div className="option-prices" style={{ fontSize: '0.85rem', color: 'var(--text-light)', marginTop: '0.5rem' }}>
-                  {item.silverPrice !== undefined ? (
+                  {item.silverPrice !== undefined && item.silverPrice !== null ? (
                     <>
                       <div>Silver: ₹{Number(item.silverPrice).toLocaleString('en-IN')}</div>
                       <div>Gold: ₹{Number(item.goldPrice).toLocaleString('en-IN')}</div>

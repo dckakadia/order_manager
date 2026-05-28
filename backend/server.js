@@ -69,9 +69,17 @@ app.get('/api/items', authMiddleware, async (req, res) => {
 
 app.post('/api/items', authMiddleware, requireRole(['ADMIN']), async (req, res) => {
   try {
-    const { category, name, price } = req.body;
+    const { category, name, price, silverPrice, goldPrice, platinumPrice, titaniumPrice } = req.body;
     const item = await prisma.item.create({
-      data: { category, name, price: parseFloat(price) || 0 }
+      data: { 
+        category: category || 'Model', 
+        name, 
+        price: parseFloat(price) || 0,
+        silverPrice: silverPrice !== undefined && silverPrice !== null ? parseFloat(silverPrice) : null,
+        goldPrice: goldPrice !== undefined && goldPrice !== null ? parseFloat(goldPrice) : null,
+        platinumPrice: platinumPrice !== undefined && platinumPrice !== null ? parseFloat(platinumPrice) : null,
+        titaniumPrice: titaniumPrice !== undefined && titaniumPrice !== null ? parseFloat(titaniumPrice) : null
+      }
     });
     res.json(item);
   } catch (error) {
