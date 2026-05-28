@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import { createContext, useEffect, useState } from 'react';
 import SalesForm from './SalesForm';
@@ -10,11 +10,65 @@ import Login from './Login';
 
 export const SocketContext = createContext();
 
-function App() {
-  const [socket, setSocket] = useState(null);
-  
+function Navigation() {
+  const location = useLocation();
   const token = localStorage.getItem('ocean_spas_auth_token');
   const role = localStorage.getItem('ocean_spas_role');
+
+  return (
+    <nav className="nav-header">
+      <h2>🌊 Ocean Spas Order Manager</h2>
+      <div className="nav-links">
+        {token && (
+          <>
+            {(role === 'SALES' || role === 'ADMIN') && (
+              <>
+                <Link to="/sales" className={`nav-link ${location.pathname === '/sales' ? 'active' : ''}`}>Sales View</Link>
+                <Link to="/customers" className={`nav-link ${location.pathname === '/customers' ? 'active' : ''}`}>Customer Master</Link>
+              </>
+            )}
+            
+            {role === 'MANAGER' && (
+              <Link to="/status" className={`nav-link ${location.pathname === '/status' ? 'active' : ''}`}>Live Order Status</Link>
+            )}
+            
+            {role === 'ADMIN' && (
+              <>
+                <Link to="/status" className={`nav-link ${location.pathname === '/status' ? 'active' : ''}`}>Live Order Status</Link>
+                <Link to="/dashboard" className={`nav-link ${location.pathname === '/dashboard' ? 'active' : ''}`}>Metrics Dashboard</Link>
+              </>
+            )}
+            
+            {role === 'ADMIN' && (
+              <Link to="/admin" className={`nav-link ${location.pathname === '/admin' ? 'active' : ''}`}>Item Master</Link>
+            )}
+            
+            <button 
+              onClick={() => { localStorage.clear(); window.location.href = '/login'; }}
+              className="btn btn-secondary" 
+              style={{ marginLeft: '1rem', padding: '0.25rem 0.75rem', fontSize: '0.8rem' }}
+            >
+              Sign Out
+            </button>
+          </>
+        )}
+      </div>
+    </nav>
+  );
+}
+
+function RootRedirect() {
+  const token = localStorage.getItem('ocean_spas_auth_token');
+  const role = localStorage.getItem('ocean_spas_role');
+  
+  if (!token) return <Navigate to="/login" />;
+  if (role === 'MANAGER') return <Navigate to="/status" />;
+  if (role === 'SALES') return <Navigate to="/sales" />;
+  return <Navigate to="/admin" />;
+}
+
+function App() {
+  const [socket, setSocket] = useState(null);
 
   useEffect(() => {
     // Connect to backend
@@ -28,47 +82,10 @@ function App() {
     <SocketContext.Provider value={socket}>
       <Router>
         <div className="app-container">
-          <nav className="nav-header">
-            <h2>🌊 Ocean Spas Order Manager</h2>
-            <div className="nav-links">
-              {token && (
-                <>
-                  {(role === 'SALES' || role === 'ADMIN') && (
-                    <>
-                      <Link to="/sales" className="nav-link">Sales View</Link>
-                      <Link to="/customers" className="nav-link">Customer Master</Link>
-                    </>
-                  )}
-                  
-                  {role === 'MANAGER' && (
-                    <Link to="/status" className="nav-link">Live Order Status</Link>
-                  )}
-                  
-                  {role === 'ADMIN' && (
-                    <>
-                      <Link to="/status" className="nav-link">Live Order Status</Link>
-                      <Link to="/dashboard" className="nav-link">Metrics Dashboard</Link>
-                    </>
-                  )}
-                  
-                  {role === 'ADMIN' && (
-                    <Link to="/admin" className="nav-link">Item Master</Link>
-                  )}
-                  
-                  <button 
-                    onClick={() => { localStorage.clear(); window.location.href = '/login'; }}
-                    className="btn btn-secondary" 
-                    style={{ marginLeft: '1rem', padding: '0.25rem 0.75rem', fontSize: '0.8rem' }}
-                  >
-                    Sign Out
-                  </button>
-                </>
-              )}
-            </div>
-          </nav>
+          <Navigation />
           
           <Routes>
-            <Route path="/" element={token ? (role === 'MANAGER' ? <Navigate to="/status" /> : (role === 'SALES' ? <Navigate to="/sales" /> : <Navigate to="/admin" />)) : <Navigate to="/login" />} />
+            <Route path="/" element={<RootRedirect />} />
             <Route path="/login" element={<Login />} />
             
             <Route path="/sales" element={<ProtectedRoute allowedRoles={['SALES', 'ADMIN']}><SalesForm /></ProtectedRoute>} />

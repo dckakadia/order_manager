@@ -33,7 +33,7 @@ export default function ItemMaster() {
   };
 
   const handleDelete = async (id) => {
-    await fetch(`/api/items/${id}`, {
+    await fetch(`http://116.74.77.22:3000/api/items/${id}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('ocean_spas_auth_token')}`
