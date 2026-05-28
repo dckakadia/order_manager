@@ -48,6 +48,9 @@ model Order {
   // NEW FIELD: Notes for special instructions or customizations
   notes            String?
 
+  faucetPosition   String?
+  orderBy          String?
+
   locationLat      Float?
   locationLng      Float?
   checkInTime      DateTime?

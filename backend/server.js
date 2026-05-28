@@ -150,6 +150,8 @@ app.post('/api/orders', authMiddleware, async (req, res) => {
         totalPrice: parseFloat(data.totalPrice) || 0,
         // NEW FEATURE: Save notes field
         notes: data.notes || null,
+        faucetPosition: data.faucetPosition || null,
+        orderBy: data.orderBy || null,
         locationLat: data.locationLat,
         locationLng: data.locationLng,
         checkInTime: data.checkInTime ? new Date(data.checkInTime) : null,
@@ -211,8 +213,11 @@ app.put('/api/orders/:id', authMiddleware, requireRole(['ADMIN']), async (req, r
     if (data.customerName !== undefined) updateData.customerName = data.customerName;
     if (data.phone !== undefined) updateData.phone = data.phone;
     if (data.baseModel !== undefined) updateData.baseModel = data.baseModel;
+    if (data.totalPrice !== undefined) updateData.totalPrice = parseFloat(data.totalPrice) || 0;
     if (data.deliveryDate !== undefined) updateData.deliveryDate = data.deliveryDate ? new Date(data.deliveryDate) : null;
     if (data.notes !== undefined) updateData.notes = data.notes;
+    if (data.faucetPosition !== undefined) updateData.faucetPosition = data.faucetPosition;
+    if (data.orderBy !== undefined) updateData.orderBy = data.orderBy;
     
     const order = await prisma.order.update({
       where: { id },

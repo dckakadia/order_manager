@@ -11,7 +11,7 @@ export default function SalesForm() {
   const [selectedCustomerId, setSelectedCustomerId] = useState('');
   const [formData, setFormData] = useState({
     customerName: '', phone: '', email: '', shippingAddress: '', taxNumber: '',
-    baseModel: '', deliveryDate: '', notes: ''
+    baseModel: '', deliveryDate: '', notes: '', faucetPosition: 'No Faucet', orderBy: 'Manish', manualPrice: ''
   });
 
   const [location, setLocation] = useState(null);
@@ -81,9 +81,8 @@ export default function SalesForm() {
     }
   };
 
-  const baseModels = items.filter(i => i.category === 'Base Model');
+  const baseModels = items.filter(i => i.category === 'Base Model' || i.category === 'Model' || !i.category);
   const selectedModel = baseModels.find(m => m.id.toString() === formData.baseModel);
-  const totalPrice = selectedModel ? selectedModel.price : 0;
 
   const handleCheckIn = () => {
     if (navigator.geolocation) {
@@ -109,7 +108,7 @@ export default function SalesForm() {
       ...formData,
       baseModel: selectedModel.name,
       basePrice: selectedModel.price,
-      totalPrice,
+      totalPrice: Number(formData.manualPrice),
       deliveryDate: formData.deliveryDate,
       notes: formData.notes,
       locationLat: location?.lat,
@@ -133,7 +132,7 @@ export default function SalesForm() {
         setSubmitted(false);
         // BUG FIX #6: Reset customer dropdown + all form state properly
         setSelectedCustomerId('');
-        setFormData({ customerName: '', phone: '', email: '', shippingAddress: '', taxNumber: '', baseModel: '', deliveryDate: '', notes: '' });
+        setFormData({ customerName: '', phone: '', email: '', shippingAddress: '', taxNumber: '', baseModel: '', deliveryDate: '', notes: '', faucetPosition: 'No Faucet', orderBy: 'Manish', manualPrice: '' });
         setLocation(null);
       }, 3000);
     } catch {
@@ -142,7 +141,7 @@ export default function SalesForm() {
   };
 
   const handleShare = async () => {
-    const text = `Ocean Spas Order\n\nCustomer: ${formData.customerName}\nModel: ${selectedModel?.name}\nTotal Price: ₹${totalPrice.toLocaleString('en-IN')}\nNotes: ${formData.notes || 'None'}`;
+    const text = `Ocean Spas Order\n\nCustomer: ${formData.customerName}\nModel: ${selectedModel?.name}\nTotal Price: ₹${Number(formData.manualPrice).toLocaleString('en-IN')}\nNotes: ${formData.notes || 'None'}`;
     if (navigator.share) {
       try {
         await navigator.share({ title: 'Ocean Spas Order Details', text });
@@ -264,7 +263,11 @@ export default function SalesForm() {
           <h2>Configuration</h2>
           <div className="form-group">
             <label className="form-label required">Base Model</label>
-            <select className="form-control" required value={formData.baseModel} onChange={e => setFormData({...formData, baseModel: e.target.value})} form="orderForm">
+            <select className="form-control" required value={formData.baseModel} onChange={e => {
+              const modelId = e.target.value;
+              const m = baseModels.find(x => x.id.toString() === modelId);
+              setFormData({...formData, baseModel: modelId, manualPrice: m ? m.price : ''});
+            }} form="orderForm">
               <option value="">-- Select Model --</option>
               {baseModels.map(m => (
                 <option key={m.id} value={m.id}>{m.name} (₹{m.price.toLocaleString('en-IN')})</option>
@@ -290,9 +293,27 @@ export default function SalesForm() {
             ></textarea>
           </div>
 
-          <div style={{ padding: '1rem', background: '#F9FAFB', borderRadius: '8px', marginTop: '1.5rem' }}>
-            <p className="form-label" style={{ marginBottom: 0 }}>Total Price</p>
-            <div className="price-display">₹{totalPrice.toLocaleString('en-IN')}</div>
+          <div className="form-group" style={{ marginTop: '1.5rem' }}>
+            <label className="form-label required">Faucet Position</label>
+            <select className="form-control" required value={formData.faucetPosition} onChange={e => setFormData({...formData, faucetPosition: e.target.value})} form="orderForm">
+              <option value="No Faucet">No Faucet</option>
+              <option value="Left Side">Left Side</option>
+              <option value="Right Side">Right Side</option>
+            </select>
+          </div>
+
+          <div className="form-group" style={{ marginTop: '1.5rem' }}>
+            <label className="form-label required">Order By</label>
+            <select className="form-control" required value={formData.orderBy} onChange={e => setFormData({...formData, orderBy: e.target.value})} form="orderForm">
+              <option value="Manish">Manish</option>
+              <option value="Paresh">Paresh</option>
+              <option value="Devin">Devin</option>
+            </select>
+          </div>
+
+          <div className="form-group" style={{ marginTop: '1.5rem', background: '#F9FAFB', padding: '1rem', borderRadius: '8px' }}>
+            <label className="form-label required" style={{ marginBottom: '0.5rem', display: 'block' }}>Total Price (₹)</label>
+            <input type="number" step="any" className="form-control" required value={formData.manualPrice} onChange={e => setFormData({...formData, manualPrice: e.target.value})} form="orderForm" style={{ fontSize: '1.25rem', fontWeight: 'bold' }} />
           </div>
         </div>
 
