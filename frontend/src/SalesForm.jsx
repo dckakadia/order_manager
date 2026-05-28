@@ -374,11 +374,17 @@ export default function SalesForm() {
                   }`}>{order.status}</span>
                 </div>
                 <div className="order-customer-name">{order.customerName}</div>
-                <div style={{ marginBottom: '8px', marginTop: '4px' }}>
+                <div style={{ fontSize: '12px', color: 'var(--text-light)', marginBottom: '8px' }}>
+                  Placed: {new Date(order.createdAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
+                </div>
+                <div style={{ marginBottom: '8px' }}>
                   <span className="order-model">{order.baseModel} {order.variant && `(${order.variant})`}</span>
                 </div>
-                <div style={{ fontSize: '13px', color: 'var(--text-light)', marginBottom: '8px' }}>
-                  <strong>Notes:</strong> {order.notes || '—'}
+                <div style={{ fontSize: '13px', color: 'var(--text)', marginBottom: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <div><strong>Total Price:</strong> ₹{order.totalPrice?.toLocaleString('en-IN')}</div>
+                  <div><strong>Faucet Position:</strong> {order.faucetPosition || 'Not Specified'}</div>
+                  <div><strong>Order By:</strong> {order.orderBy || 'Not Specified'}</div>
+                  <div><strong>Notes:</strong> {order.notes || '—'}</div>
                 </div>
                 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', paddingTop: '12px', borderTop: '1px solid var(--border)' }}>
