@@ -190,8 +190,8 @@ export default function LiveOrderStatus() {
       {error && <div className="badge badge-start" style={{ display: 'block', marginBottom: '1rem', padding: '0.5rem' }}>{error}</div>}
 
       <div className="order-list">
-        {orders.map(order => {
-          const isDelivered = order.status === 'Delivered';
+        {orders.filter(o => o.status !== 'Delivered').map(order => {
+          const isDelivered = false; // Always false now since they are filtered out, but kept for logic below if needed.
           return (
             <div className="order-card" key={order.id} style={{ opacity: isDelivered ? 0.6 : 1 }}>
               <div className="order-card-header">
@@ -250,10 +250,10 @@ export default function LiveOrderStatus() {
           );
         })}
 
-        {orders.length === 0 && (
+        {orders.filter(o => o.status !== 'Delivered').length === 0 && (
           <div style={{ textAlign: 'center', padding: '4rem 2rem', color: 'var(--text-light)' }}>
             <Box size={48} style={{ margin: '0 auto 1rem', opacity: 0.5 }} />
-            <p>No orders yet. Waiting for sales team...</p>
+            <p>No active orders. All caught up!</p>
           </div>
         )}
       </div>
