@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Lock } from 'lucide-react';
 
 export default function Login() {
+  const [username, setUsername] = useState('');
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
@@ -10,17 +10,19 @@ export default function Login() {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch('/api/login', {
+      const response = await fetch('http://116.74.77.22:3000/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pin })
+        body: JSON.stringify({ username, pin })
       });
+      const data = await response.json();
       
-      if (response.ok) {
-        localStorage.setItem('ocean_spas_auth_token', pin);
-        navigate('/manager');
+      if (data.success) {
+        localStorage.setItem('ocean_spas_auth_token', data.token);
+        localStorage.setItem('ocean_spas_role', data.role);
+        navigate('/sales');
       } else {
-        setError('Invalid PIN code');
+        setError(data.message || 'Invalid credentials');
       }
     } catch (err) {
       setError('Connection error');
@@ -28,32 +30,33 @@ export default function Login() {
   };
 
   return (
-    <div style={{ maxWidth: '400px', margin: '4rem auto' }} className="glass-card">
-      <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-        <div style={{ background: 'var(--primary)', width: '64px', height: '64px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem', color: 'white' }}>
-          <Lock size={32} />
-        </div>
-        <h2>Manager Access</h2>
-        <p style={{ color: 'var(--text-light)' }}>Enter your PIN to continue</p>
-      </div>
-
+    <div className="glass-card" style={{ maxWidth: '400px', margin: '4rem auto', padding: '2rem' }}>
+      <h2 style={{ textAlign: 'center', marginBottom: '2rem' }}>Login</h2>
+      {error && <div className="badge badge-start" style={{ display: 'block', textAlign: 'center', marginBottom: '1rem' }}>{error}</div>}
       <form onSubmit={handleLogin}>
         <div className="form-group">
-          <input
-            type="password"
-            className="form-control"
-            placeholder="Enter PIN (e.g. 1234)"
-            value={pin}
-            onChange={(e) => setPin(e.target.value)}
-            style={{ textAlign: 'center', fontSize: '1.5rem', letterSpacing: '0.5em' }}
-            autoFocus
+          <label className="form-label">Username</label>
+          <input 
+            type="text" 
+            className="form-control" 
+            value={username} 
+            onChange={e => setUsername(e.target.value)} 
+            required 
+            autoFocus 
           />
         </div>
-        
-        {error && <p style={{ color: 'var(--danger)', textAlign: 'center', marginBottom: '1rem' }}>{error}</p>}
-        
-        <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>
-          Unlock
+        <div className="form-group">
+          <label className="form-label">PIN / Password</label>
+          <input 
+            type="password" 
+            className="form-control" 
+            value={pin} 
+            onChange={e => setPin(e.target.value)} 
+            required 
+          />
+        </div>
+        <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '1rem' }}>
+          Login
         </button>
       </form>
     </div>

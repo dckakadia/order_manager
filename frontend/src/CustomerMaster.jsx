@@ -8,7 +8,7 @@ export default function CustomerMaster() {
   });
 
   const fetchCustomers = async () => {
-    const res = await fetch('/api/customers');
+    const res = await fetch('http://116.74.77.22:3000/api/customers', { headers: { 'Authorization': `Bearer ${localStorage.getItem('ocean_spas_auth_token')}` } });
     const data = await res.json();
     setCustomers(data);
   };
@@ -19,11 +19,11 @@ export default function CustomerMaster() {
 
   const handleAddCustomer = async (e) => {
     e.preventDefault();
-    await fetch('/api/customers', {
+    await fetch('http://116.74.77.22:3000/api/customers', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-pin': localStorage.getItem('ocean_spas_auth_token')
+        'Authorization': `Bearer ${localStorage.getItem('ocean_spas_auth_token')}`
       },
       body: JSON.stringify(formData)
     });
@@ -36,7 +36,7 @@ export default function CustomerMaster() {
     await fetch(`/api/customers/${id}`, {
       method: 'DELETE',
       headers: {
-        'x-pin': localStorage.getItem('ocean_spas_auth_token')
+        'Authorization': `Bearer ${localStorage.getItem('ocean_spas_auth_token')}`
       }
     });
     fetchCustomers();

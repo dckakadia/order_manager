@@ -11,10 +11,13 @@ export const SocketContext = createContext();
 
 function App() {
   const [socket, setSocket] = useState(null);
+  
+  const token = localStorage.getItem('ocean_spas_auth_token');
+  const role = localStorage.getItem('ocean_spas_role');
 
   useEffect(() => {
     // Connect to backend
-    const newSocket = io('/');
+    const newSocket = io('http://116.74.77.22:3000');
     setSocket(newSocket);
     
     return () => newSocket.close();
@@ -27,29 +30,40 @@ function App() {
           <nav className="nav-header">
             <h2>🌊 Ocean Spas Order Manager</h2>
             <div className="nav-links">
-              <Link to="/sales" className="nav-link">Sales View</Link>
-              <Link to="/manager" className="nav-link">Manager Dashboard</Link>
-              <Link to="/admin" className="nav-link">Item Master</Link>
-              <Link to="/customers" className="nav-link">Customer Master</Link>
-              {localStorage.getItem('ocean_spas_auth_token') && (
-                <button 
-                  onClick={() => { localStorage.clear(); window.location.href = '/login'; }}
-                  className="btn btn-secondary" 
-                  style={{ marginLeft: '1rem', padding: '0.25rem 0.75rem', fontSize: '0.8rem' }}
-                >
-                  Logout
-                </button>
+              {token && (
+                <>
+                  <Link to="/sales" className="nav-link">Sales View</Link>
+                  <Link to="/customers" className="nav-link">Customer Master</Link>
+                  
+                  {(role === 'MANAGER' || role === 'ADMIN') && (
+                    <Link to="/manager" className="nav-link">Manager Dashboard</Link>
+                  )}
+                  
+                  {role === 'ADMIN' && (
+                    <Link to="/admin" className="nav-link">Item Master</Link>
+                  )}
+                  
+                  <button 
+                    onClick={() => { localStorage.clear(); window.location.href = '/login'; }}
+                    className="btn btn-secondary" 
+                    style={{ marginLeft: '1rem', padding: '0.25rem 0.75rem', fontSize: '0.8rem' }}
+                  >
+                    Logout
+                  </button>
+                </>
               )}
             </div>
           </nav>
           
           <Routes>
-            <Route path="/" element={<Navigate to="/sales" />} />
-            <Route path="/sales" element={<SalesForm />} />
+            <Route path="/" element={token ? <Navigate to="/sales" /> : <Navigate to="/login" />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/manager" element={<ProtectedRoute><ManagerDashboard /></ProtectedRoute>} />
-            <Route path="/admin" element={<ProtectedRoute><ItemMaster /></ProtectedRoute>} />
-            <Route path="/customers" element={<CustomerMaster />} />
+            
+            <Route path="/sales" element={<ProtectedRoute allowedRoles={['SALES', 'MANAGER', 'ADMIN']}><SalesForm /></ProtectedRoute>} />
+            <Route path="/customers" element={<ProtectedRoute allowedRoles={['SALES', 'MANAGER', 'ADMIN']}><CustomerMaster /></ProtectedRoute>} />
+            
+            <Route path="/manager" element={<ProtectedRoute allowedRoles={['MANAGER', 'ADMIN']}><ManagerDashboard /></ProtectedRoute>} />
+            <Route path="/admin" element={<ProtectedRoute allowedRoles={['ADMIN']}><ItemMaster /></ProtectedRoute>} />
           </Routes>
         </div>
       </Router>
@@ -58,11 +72,18 @@ function App() {
 }
 
 // Simple Protected Route wrapper
-function ProtectedRoute({ children }) {
-  const isAuth = !!localStorage.getItem('ocean_spas_auth_token');
-  if (!isAuth) {
+function ProtectedRoute({ children, allowedRoles }) {
+  const token = localStorage.getItem('ocean_spas_auth_token');
+  const role = localStorage.getItem('ocean_spas_role');
+  
+  if (!token) {
     return <Navigate to="/login" />;
   }
+  
+  if (allowedRoles && !allowedRoles.includes(role)) {
+    return <div style={{ padding: '2rem', textAlign: 'center' }}><h2>Access Denied</h2><p>You do not have permission to view this page.</p></div>;
+  }
+  
   return children;
 }
 

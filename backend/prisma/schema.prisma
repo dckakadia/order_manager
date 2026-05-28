@@ -51,3 +51,13 @@ model Order {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 }
+
+model User {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  pin       String
+  role      String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

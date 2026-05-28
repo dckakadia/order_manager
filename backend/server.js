@@ -2,6 +2,7 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
+const jwt = require('jsonwebtoken');
 const { PrismaClient } = require('@prisma/client');
 
 const app = express();
@@ -16,24 +17,41 @@ const prisma = new PrismaClient();
 app.use(cors());
 app.use(express.json());
 
-const MANAGER_PIN = '1234';
+const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_ocean_spas_key';
 
-// Basic Auth Middleware for simple PIN
+// Basic Auth Middleware for JWT
 const authMiddleware = (req, res, next) => {
-  const pin = req.headers['x-pin'];
-  if (pin === MANAGER_PIN) {
+  const token = req.headers['authorization']?.split(' ')[1];
+  if (!token) return res.status(401).json({ error: 'Unauthorized' });
+
+  jwt.verify(token, JWT_SECRET, (err, user) => {
+    if (err) return res.status(401).json({ error: 'Unauthorized' });
+    req.user = user;
     next();
-  } else {
-    res.status(401).json({ error: 'Unauthorized' });
-  }
+  });
 };
 
-app.post('/api/login', (req, res) => {
-  const { pin } = req.body;
-  if (pin === MANAGER_PIN) {
-    res.json({ success: true, message: 'Authenticated' });
-  } else {
-    res.status(401).json({ success: false, message: 'Invalid PIN' });
+const requireRole = (roles) => {
+  return (req, res, next) => {
+    if (!req.user || !roles.includes(req.user.role)) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+    next();
+  };
+};
+
+app.post('/api/login', async (req, res) => {
+  const { username, pin } = req.body;
+  try {
+    const user = await prisma.user.findUnique({ where: { username } });
+    if (user && user.pin === pin && user.isActive) {
+      const token = jwt.sign({ id: user.id, username: user.username, role: user.role }, JWT_SECRET, { expiresIn: '24h' });
+      res.json({ success: true, token, role: user.role });
+    } else {
+      res.status(401).json({ success: false, message: 'Invalid credentials' });
+    }
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -41,7 +59,7 @@ app.post('/api/login', (req, res) => {
 // ITEM MASTER API
 // ==================================
 
-app.get('/api/items', async (req, res) => {
+app.get('/api/items', authMiddleware, async (req, res) => {
   try {
     const items = await prisma.item.findMany({ where: { isActive: true } });
     res.json(items);
@@ -50,7 +68,7 @@ app.get('/api/items', async (req, res) => {
   }
 });
 
-app.post('/api/items', authMiddleware, async (req, res) => {
+app.post('/api/items', authMiddleware, requireRole(['ADMIN']), async (req, res) => {
   try {
     const { category, name, price } = req.body;
     const item = await prisma.item.create({
@@ -62,7 +80,7 @@ app.post('/api/items', authMiddleware, async (req, res) => {
   }
 });
 
-app.delete('/api/items/:id', authMiddleware, async (req, res) => {
+app.delete('/api/items/:id', authMiddleware, requireRole(['ADMIN']), async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     await prisma.item.update({
@@ -79,7 +97,7 @@ app.delete('/api/items/:id', authMiddleware, async (req, res) => {
 // CUSTOMERS API
 // ==================================
 
-app.get('/api/customers', async (req, res) => {
+app.get('/api/customers', authMiddleware, async (req, res) => {
   try {
     const customers = await prisma.customer.findMany({ where: { isActive: true } });
     res.json(customers);
@@ -88,7 +106,7 @@ app.get('/api/customers', async (req, res) => {
   }
 });
 
-app.post('/api/customers', async (req, res) => {
+app.post('/api/customers', authMiddleware, async (req, res) => {
   try {
     const { name, phone, email, shippingAddress, taxNumber } = req.body;
     const customer = await prisma.customer.create({
@@ -100,7 +118,7 @@ app.post('/api/customers', async (req, res) => {
   }
 });
 
-app.delete('/api/customers/:id', async (req, res) => {
+app.delete('/api/customers/:id', authMiddleware, requireRole(['ADMIN', 'MANAGER']), async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     await prisma.customer.update({
@@ -117,7 +135,7 @@ app.delete('/api/customers/:id', async (req, res) => {
 // ORDERS API
 // ==================================
 
-app.post('/api/orders', async (req, res) => {
+app.post('/api/orders', authMiddleware, async (req, res) => {
   try {
     const data = req.body;
     const order = await prisma.order.create({
@@ -147,7 +165,7 @@ app.post('/api/orders', async (req, res) => {
   }
 });
 
-app.get('/api/orders', async (req, res) => {
+app.get('/api/orders', authMiddleware, async (req, res) => {
   try {
     const orders = await prisma.order.findMany({
       orderBy: { createdAt: 'desc' }
@@ -158,7 +176,7 @@ app.get('/api/orders', async (req, res) => {
   }
 });
 
-app.put('/api/orders/:id/status', authMiddleware, async (req, res) => {
+app.put('/api/orders/:id/status', authMiddleware, requireRole(['ADMIN', 'MANAGER']), async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     const { status } = req.body;

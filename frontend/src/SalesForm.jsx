@@ -15,15 +15,17 @@ export default function SalesForm() {
   const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
-    fetch('/api/items')
+    const fetchOptions = { headers: { 'Authorization': `Bearer ${localStorage.getItem('ocean_spas_auth_token')}` } };
+    
+    fetch('http://116.74.77.22:3000/api/items', fetchOptions)
       .then(res => res.json())
       .then(data => setItems(data));
       
-    fetch('/api/customers')
+    fetch('http://116.74.77.22:3000/api/customers', fetchOptions)
       .then(res => res.json())
       .then(data => setCustomers(data));
       
-    fetch('/api/orders') // Needs auth? Wait!
+    fetch('http://116.74.77.22:3000/api/orders', fetchOptions)
       .then(res => res.json())
       .then(data => setOrders(data));
   }, []);
@@ -81,14 +83,17 @@ export default function SalesForm() {
       checkInTime: location?.time
     };
 
-    await fetch('/api/orders', {
+    await fetch('http://116.74.77.22:3000/api/orders', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('ocean_spas_auth_token')}`
+      },
       body: JSON.stringify(orderPayload)
     });
     
     // Refresh orders
-    fetch('/api/orders')
+    fetch('http://116.74.77.22:3000/api/orders', { headers: { 'Authorization': `Bearer ${localStorage.getItem('ocean_spas_auth_token')}` } })
       .then(res => res.json())
       .then(data => setOrders(data));
     

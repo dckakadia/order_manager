@@ -8,7 +8,7 @@ export default function ItemMaster() {
   const [category, setCategory] = useState('Base Model');
 
   const fetchItems = async () => {
-    const res = await fetch('/api/items');
+    const res = await fetch('http://116.74.77.22:3000/api/items', { headers: { 'Authorization': `Bearer ${localStorage.getItem('ocean_spas_auth_token')}` } });
     const data = await res.json();
     setItems(data);
   };
@@ -19,11 +19,11 @@ export default function ItemMaster() {
 
   const handleAddItem = async (e) => {
     e.preventDefault();
-    await fetch('/api/items', {
+    await fetch('http://116.74.77.22:3000/api/items', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-pin': localStorage.getItem('ocean_spas_auth_token')
+        'Authorization': `Bearer ${localStorage.getItem('ocean_spas_auth_token')}`
       },
       body: JSON.stringify({ category, name, price })
     });
@@ -36,7 +36,7 @@ export default function ItemMaster() {
     await fetch(`/api/items/${id}`, {
       method: 'DELETE',
       headers: {
-        'x-pin': localStorage.getItem('ocean_spas_auth_token')
+        'Authorization': `Bearer ${localStorage.getItem('ocean_spas_auth_token')}`
       }
     });
     fetchItems();

@@ -17,8 +17,8 @@ export default function ManagerDashboard() {
 
   useEffect(() => {
     // Fetch initial orders
-    fetch('/api/orders', {
-      headers: { 'x-pin': localStorage.getItem('ocean_spas_auth_token') }
+    fetch('http://116.74.77.22:3000/api/orders', {
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('ocean_spas_auth_token')}` }
     })
       .then(res => res.json())
       .then(data => setOrders(data));
@@ -49,7 +49,7 @@ export default function ManagerDashboard() {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
-          'x-pin': localStorage.getItem('ocean_spas_auth_token')
+          'Authorization': `Bearer ${localStorage.getItem('ocean_spas_auth_token')}`
         },
         body: JSON.stringify({ status: nextStatus })
       });
