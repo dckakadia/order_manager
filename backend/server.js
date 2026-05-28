@@ -183,8 +183,8 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => console.log('Client disconnected'));
 });
 
-// BUG FIX #4: Default port changed to 3000 to match frontend hardcoded API calls
-const PORT = process.env.PORT || 3000;
+// BUG FIX #4: Default port changed to 3001 to match Nginx proxy configuration
+const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
