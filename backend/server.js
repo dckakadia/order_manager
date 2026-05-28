@@ -170,7 +170,47 @@ app.put('/api/orders/:id/status', authMiddleware, requireRole(['ADMIN', 'MANAGER
   try {
     const id = parseInt(req.params.id);
     const { status } = req.body;
+
+    if (status === 'Cancelled' && req.user.role !== 'ADMIN') {
+      return res.status(403).json({ error: 'Only ADMIN can cancel orders' });
+    }
+
     const order = await prisma.order.update({ where: { id }, data: { status } });
+    io.emit('order_status_updated', order);
+    res.json(order);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.delete('/api/orders/:id', authMiddleware, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    await prisma.order.delete({ where: { id } });
+    io.emit('order_deleted', id);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.put('/api/orders/:id', authMiddleware, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const data = req.body;
+    
+    const updateData = {};
+    if (data.customerName !== undefined) updateData.customerName = data.customerName;
+    if (data.phone !== undefined) updateData.phone = data.phone;
+    if (data.baseModel !== undefined) updateData.baseModel = data.baseModel;
+    if (data.deliveryDate !== undefined) updateData.deliveryDate = data.deliveryDate ? new Date(data.deliveryDate) : null;
+    if (data.notes !== undefined) updateData.notes = data.notes;
+    
+    const order = await prisma.order.update({
+      where: { id },
+      data: updateData
+    });
+    
     io.emit('order_status_updated', order);
     res.json(order);
   } catch (error) {

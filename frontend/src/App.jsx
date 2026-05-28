@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
+import { ClipboardList, Users, Activity, BarChart2, Settings, LogOut } from 'lucide-react';
 import { io } from 'socket.io-client';
 import { createContext, useEffect, useState } from 'react';
 import SalesForm from './SalesForm';
@@ -16,44 +17,54 @@ function Navigation() {
   const role = localStorage.getItem('ocean_spas_role');
 
   return (
-    <nav className="nav-header">
-      <h2>🌊 Ocean Spas Order Manager</h2>
-      <div className="nav-links">
-        {token && (
-          <>
-            {(role === 'SALES' || role === 'ADMIN') && (
-              <>
-                <Link to="/sales" className={`nav-link ${location.pathname === '/sales' ? 'active' : ''}`}>Sales View</Link>
-                <Link to="/customers" className={`nav-link ${location.pathname === '/customers' ? 'active' : ''}`}>Customer Master</Link>
-              </>
-            )}
-            
-            {role === 'MANAGER' && (
-              <Link to="/status" className={`nav-link ${location.pathname === '/status' ? 'active' : ''}`}>Live Order Status</Link>
-            )}
-            
-            {role === 'ADMIN' && (
-              <>
-                <Link to="/status" className={`nav-link ${location.pathname === '/status' ? 'active' : ''}`}>Live Order Status</Link>
-                <Link to="/dashboard" className={`nav-link ${location.pathname === '/dashboard' ? 'active' : ''}`}>Metrics Dashboard</Link>
-              </>
-            )}
-            
-            {role === 'ADMIN' && (
-              <Link to="/admin" className={`nav-link ${location.pathname === '/admin' ? 'active' : ''}`}>Item Master</Link>
-            )}
-            
-            <button 
-              onClick={() => { localStorage.clear(); window.location.href = '/login'; }}
-              className="btn btn-secondary" 
-              style={{ padding: '0.5rem 1rem', fontSize: '0.9rem', borderRadius: '9999px', whiteSpace: 'nowrap' }}
-            >
-              Sign Out
-            </button>
-          </>
-        )}
-      </div>
-    </nav>
+    <>
+      <header className="app-header">
+        <div className="logo-icon">🌊</div>
+        <h1 className="app-name">Ocean Spas</h1>
+      </header>
+      {token && (
+        <nav className="bottom-nav">
+          {(role === 'SALES' || role === 'ADMIN') && (
+            <>
+              <Link to="/sales" className={`bottom-nav-item ${location.pathname === '/sales' ? 'active' : ''}`}>
+                <ClipboardList size={24} />
+                <span>New Order</span>
+              </Link>
+              <Link to="/customers" className={`bottom-nav-item ${location.pathname === '/customers' ? 'active' : ''}`}>
+                <Users size={24} />
+                <span>Customers</span>
+              </Link>
+            </>
+          )}
+          
+          <Link to="/status" className={`bottom-nav-item ${location.pathname === '/status' ? 'active' : ''}`}>
+            <Activity size={24} />
+            <span>Live Orders</span>
+          </Link>
+          
+          {role === 'ADMIN' && (
+            <>
+              <Link to="/dashboard" className={`bottom-nav-item ${location.pathname === '/dashboard' ? 'active' : ''}`}>
+                <BarChart2 size={24} />
+                <span>Metrics</span>
+              </Link>
+              <Link to="/admin" className={`bottom-nav-item ${location.pathname === '/admin' ? 'active' : ''}`}>
+                <Settings size={24} />
+                <span>Items</span>
+              </Link>
+            </>
+          )}
+          
+          <button 
+            onClick={() => { localStorage.clear(); window.location.href = '/login'; }}
+            className="bottom-nav-item"
+          >
+            <LogOut size={24} />
+            <span>Sign Out</span>
+          </button>
+        </nav>
+      )}
+    </>
   );
 }
 

@@ -71,16 +71,16 @@ export default function CustomerMaster() {
         {successMsg && <div className="badge badge-delivered" style={{ display: 'block', marginBottom: '1rem', padding: '0.5rem' }}>{successMsg}</div>}
         <form onSubmit={handleAddCustomer}>
           <div className="form-group">
-            <label className="form-label">Customer Name *</label>
+            <label className="form-label required">Customer Name</label>
             <input type="text" className="form-control" required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
           </div>
           <div className="form-group">
             <label className="form-label">Phone</label>
-            <input type="text" className="form-control" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
+            <input type="tel" inputMode="tel" className="form-control" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
           </div>
           <div className="form-group">
             <label className="form-label">Email</label>
-            <input type="email" className="form-control" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
+            <input type="email" inputMode="email" className="form-control" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
           </div>
           <div className="form-group">
             <label className="form-label">Shipping Address</label>
@@ -98,36 +98,25 @@ export default function CustomerMaster() {
 
       <div className="glass-card" style={{ maxHeight: '800px', overflowY: 'auto' }}>
         <h2>Customer List</h2>
-        <div className="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Phone</th>
-                {canDelete && <th>Action</th>}
-              </tr>
-            </thead>
-            <tbody>
-              {customers.map(customer => (
-                <tr key={customer.id}>
-                  <td>{customer.name}</td>
-                  <td>{customer.phone || '-'}</td>
-                  {canDelete && (
-                    <td>
-                      <button onClick={() => handleDelete(customer.id)} className="btn btn-danger" style={{ padding: '0.25rem 0.5rem' }}>
-                        <Trash2 size={16} />
-                      </button>
-                    </td>
-                  )}
-                </tr>
-              ))}
-              {customers.length === 0 && (
-                <tr>
-                  <td colSpan={canDelete ? 3 : 2} style={{ textAlign: 'center' }}>No customers found.</td>
-                </tr>
+        <div className="option-list">
+          {customers.map(customer => (
+            <div className="option-card" key={customer.id}>
+              <div className="option-card-main">
+                <div className="option-name">{customer.name}</div>
+                <div className="option-price">{customer.phone || 'No phone'}</div>
+              </div>
+              {canDelete && (
+                <button onClick={() => handleDelete(customer.id)} className="option-delete-btn" aria-label="Delete">
+                  <Trash2 size={18} />
+                </button>
               )}
-            </tbody>
-          </table>
+            </div>
+          ))}
+          {customers.length === 0 && (
+            <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-light)' }}>
+              No customers found.
+            </div>
+          )}
         </div>
       </div>
     </div>

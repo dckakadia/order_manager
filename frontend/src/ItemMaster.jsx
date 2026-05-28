@@ -74,38 +74,26 @@ export default function ItemMaster() {
         </form>
       </div>
 
-      <div className="glass-card" style={{ maxHeight: '600px', overflowY: 'auto' }}>
+      <div className="glass-card" style={{ maxHeight: '600px', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
         <h2>Current Options</h2>
-        <div className="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th>Category</th>
-                <th>Name</th>
-                <th>Price</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map(item => (
-                <tr key={item.id}>
-                  <td>{item.category}</td>
-                  <td>{item.name}</td>
-                  <td>{item.price.toLocaleString()}</td>
-                  <td>
-                    <button onClick={() => handleDelete(item.id)} className="btn btn-danger" style={{ padding: '0.25rem 0.5rem' }}>
-                      <Trash2 size={16} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {items.length === 0 && (
-                <tr>
-                  <td colSpan="4" style={{ textAlign: 'center' }}>No items found. Add some models!</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+        <div className="option-list">
+          {items.map(item => (
+            <div className="option-card" key={item.id}>
+              <div className="option-card-main">
+                <span className="option-category-badge">{item.category}</span>
+                <div className="option-name">{item.name}</div>
+                <div className="option-price">Price: ₹{item.price.toLocaleString('en-IN')}</div>
+              </div>
+              <button onClick={() => handleDelete(item.id)} className="option-delete-btn" aria-label="Delete">
+                <Trash2 size={18} />
+              </button>
+            </div>
+          ))}
+          {items.length === 0 && (
+            <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-light)' }}>
+              No items found. Add some models!
+            </div>
+          )}
         </div>
       </div>
     </div>
