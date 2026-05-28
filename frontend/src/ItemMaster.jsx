@@ -8,7 +8,7 @@ export default function ItemMaster() {
   const [category, setCategory] = useState('Base Model');
 
   const fetchItems = async () => {
-    const res = await fetch('http://localhost:3001/api/items');
+    const res = await fetch('/api/items');
     const data = await res.json();
     setItems(data);
   };
@@ -19,7 +19,7 @@ export default function ItemMaster() {
 
   const handleAddItem = async (e) => {
     e.preventDefault();
-    await fetch('http://localhost:3001/api/items', {
+    await fetch('/api/items', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -33,7 +33,7 @@ export default function ItemMaster() {
   };
 
   const handleDelete = async (id) => {
-    await fetch(`http://localhost:3001/api/items/${id}`, {
+    await fetch(`/api/items/${id}`, {
       method: 'DELETE',
       headers: {
         'x-pin': localStorage.getItem('ocean_spas_auth_token')

@@ -14,7 +14,7 @@ function App() {
 
   useEffect(() => {
     // Connect to backend
-    const newSocket = io('http://localhost:3001');
+    const newSocket = io('/');
     setSocket(newSocket);
     
     return () => newSocket.close();

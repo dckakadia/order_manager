@@ -17,7 +17,7 @@ export default function ManagerDashboard() {
 
   useEffect(() => {
     // Fetch initial orders
-    fetch('http://localhost:3001/api/orders', {
+    fetch('/api/orders', {
       headers: { 'x-pin': localStorage.getItem('ocean_spas_auth_token') }
     })
       .then(res => res.json())
@@ -45,7 +45,7 @@ export default function ManagerDashboard() {
     const currentIndex = STAGES.indexOf(currentStatus);
     if (currentIndex < STAGES.length - 1) {
       const nextStatus = STAGES[currentIndex + 1];
-      await fetch(`http://localhost:3001/api/orders/${orderId}/status`, {
+      await fetch(`/api/orders/${orderId}/status`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',

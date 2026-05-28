@@ -15,15 +15,15 @@ export default function SalesForm() {
   const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
-    fetch('http://localhost:3001/api/items')
+    fetch('/api/items')
       .then(res => res.json())
       .then(data => setItems(data));
       
-    fetch('http://localhost:3001/api/customers')
+    fetch('/api/customers')
       .then(res => res.json())
       .then(data => setCustomers(data));
       
-    fetch('http://localhost:3001/api/orders') // Needs auth? Wait!
+    fetch('/api/orders') // Needs auth? Wait!
       .then(res => res.json())
       .then(data => setOrders(data));
   }, []);
@@ -81,14 +81,14 @@ export default function SalesForm() {
       checkInTime: location?.time
     };
 
-    await fetch('http://localhost:3001/api/orders', {
+    await fetch('/api/orders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(orderPayload)
     });
     
     // Refresh orders
-    fetch('http://localhost:3001/api/orders')
+    fetch('/api/orders')
       .then(res => res.json())
       .then(data => setOrders(data));
     

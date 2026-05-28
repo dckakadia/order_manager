@@ -8,7 +8,7 @@ export default function CustomerMaster() {
   });
 
   const fetchCustomers = async () => {
-    const res = await fetch('http://localhost:3001/api/customers');
+    const res = await fetch('/api/customers');
     const data = await res.json();
     setCustomers(data);
   };
@@ -19,7 +19,7 @@ export default function CustomerMaster() {
 
   const handleAddCustomer = async (e) => {
     e.preventDefault();
-    await fetch('http://localhost:3001/api/customers', {
+    await fetch('/api/customers', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -33,7 +33,7 @@ export default function CustomerMaster() {
 
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this customer?")) return;
-    await fetch(`http://localhost:3001/api/customers/${id}`, {
+    await fetch(`/api/customers/${id}`, {
       method: 'DELETE',
       headers: {
         'x-pin': localStorage.getItem('ocean_spas_auth_token')
