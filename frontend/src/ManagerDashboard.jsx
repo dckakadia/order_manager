@@ -1,21 +1,50 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { DollarSign, Package, CheckCircle, Clock } from 'lucide-react';
+import { SocketContext } from './App';
+
+const API_BASE = 'http://116.74.77.22:3000';
 
 export default function ManagerDashboard() {
   const [orders, setOrders] = useState([]);
-  
-  useEffect(() => {
-    fetch('http://116.74.77.22:3000/api/orders', {
+  const socket = useContext(SocketContext);
+
+  const fetchOrders = () => {
+    fetch(`${API_BASE}/api/orders`, {
       headers: { 'Authorization': `Bearer ${localStorage.getItem('ocean_spas_auth_token')}` }
     })
       .then(res => res.json())
-      .then(data => setOrders(data));
+      .then(data => setOrders(data))
+      .catch(() => {});
+  };
+
+  useEffect(() => {
+    fetchOrders();
   }, []);
 
+  // BUG FIX #9: Subscribe to Socket.IO events so dashboard updates in real-time
+  useEffect(() => {
+    if (!socket) return;
+
+    socket.on('new_order', (newOrder) => {
+      setOrders(prev => [newOrder, ...prev]);
+    });
+
+    socket.on('order_status_updated', (updatedOrder) => {
+      setOrders(prev => prev.map(o => o.id === updatedOrder.id ? updatedOrder : o));
+    });
+
+    return () => {
+      socket.off('new_order');
+      socket.off('order_status_updated');
+    };
+  }, [socket]);
+
+  // BUG FIX #10: Use ₹ (Indian Rupee) instead of $ for currency
   const totalRevenue = orders.reduce((sum, order) => sum + (order.totalPrice || 0), 0);
   const activeOrders = orders.filter(o => o.status !== 'Delivered').length;
   const completedOrders = orders.filter(o => o.status === 'Delivered').length;
-  
+  const totalOrders = orders.length;
+
   const statusCounts = orders.reduce((acc, order) => {
     acc[order.status] = (acc[order.status] || 0) + 1;
     return acc;
@@ -23,20 +52,20 @@ export default function ManagerDashboard() {
 
   return (
     <div className="grid-1" style={{ gap: '2rem' }}>
-      
+
       {/* Top Metrics Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
-        
+
         <div className="glass-card" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <div style={{ padding: '1rem', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '12px', color: '#3b82f6' }}>
             <DollarSign size={24} />
           </div>
           <div>
             <p style={{ margin: 0, color: 'var(--text-light)', fontSize: '0.875rem' }}>Total Revenue</p>
-            <h3 style={{ margin: '0.25rem 0 0', fontSize: '1.5rem' }}>${totalRevenue.toLocaleString()}</h3>
+            <h3 style={{ margin: '0.25rem 0 0', fontSize: '1.5rem' }}>₹{totalRevenue.toLocaleString('en-IN')}</h3>
           </div>
         </div>
-        
+
         <div className="glass-card" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <div style={{ padding: '1rem', background: 'rgba(245, 158, 11, 0.1)', borderRadius: '12px', color: '#f59e0b' }}>
             <Clock size={24} />
@@ -54,6 +83,16 @@ export default function ManagerDashboard() {
           <div>
             <p style={{ margin: 0, color: 'var(--text-light)', fontSize: '0.875rem' }}>Completed</p>
             <h3 style={{ margin: '0.25rem 0 0', fontSize: '1.5rem' }}>{completedOrders} Orders</h3>
+          </div>
+        </div>
+
+        <div className="glass-card" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div style={{ padding: '1rem', background: 'rgba(139, 92, 246, 0.1)', borderRadius: '12px', color: '#8b5cf6' }}>
+            <Package size={24} />
+          </div>
+          <div>
+            <p style={{ margin: 0, color: 'var(--text-light)', fontSize: '0.875rem' }}>Total Orders</p>
+            <h3 style={{ margin: '0.25rem 0 0', fontSize: '1.5rem' }}>{totalOrders}</h3>
           </div>
         </div>
 
@@ -76,7 +115,7 @@ export default function ManagerDashboard() {
           )}
         </div>
       </div>
-      
+
     </div>
   );
 }

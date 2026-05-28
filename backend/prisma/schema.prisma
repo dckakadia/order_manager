@@ -9,7 +9,7 @@ datasource db {
 
 model Item {
   id        Int      @id @default(autoincrement())
-  category  String   // e.g., "Base Model"
+  category  String
   name      String
   price     Float    @default(0)
   isActive  Boolean  @default(true)
@@ -36,18 +36,21 @@ model Order {
   email            String?
   shippingAddress  String?
   taxNumber        String?
-  
+
   baseModel        String?
   basePrice        Float    @default(0)
   totalPrice       Float    @default(0)
-  
+
+  // NEW FIELD: Notes for special instructions or customizations
+  notes            String?
+
   locationLat      Float?
   locationLng      Float?
   checkInTime      DateTime?
   deliveryDate     DateTime?
-  
+
   status           String   @default("Order Form Received")
-  
+
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 }

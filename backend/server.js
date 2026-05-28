@@ -8,9 +8,7 @@ const { PrismaClient } = require('@prisma/client');
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: {
-    origin: '*',
-  }
+  cors: { origin: '*' }
 });
 const prisma = new PrismaClient();
 
@@ -19,11 +17,10 @@ app.use(express.json());
 
 const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_ocean_spas_key';
 
-// Basic Auth Middleware for JWT
+// Auth Middleware
 const authMiddleware = (req, res, next) => {
   const token = req.headers['authorization']?.split(' ')[1];
   if (!token) return res.status(401).json({ error: 'Unauthorized' });
-
   jwt.verify(token, JWT_SECRET, (err, user) => {
     if (err) return res.status(401).json({ error: 'Unauthorized' });
     req.user = user;
@@ -31,21 +28,24 @@ const authMiddleware = (req, res, next) => {
   });
 };
 
-const requireRole = (roles) => {
-  return (req, res, next) => {
-    if (!req.user || !roles.includes(req.user.role)) {
-      return res.status(403).json({ error: 'Forbidden' });
-    }
-    next();
-  };
+const requireRole = (roles) => (req, res, next) => {
+  if (!req.user || !roles.includes(req.user.role)) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+  next();
 };
 
+// LOGIN
 app.post('/api/login', async (req, res) => {
   const { username, pin } = req.body;
   try {
     const user = await prisma.user.findUnique({ where: { username } });
     if (user && user.pin === pin && user.isActive) {
-      const token = jwt.sign({ id: user.id, username: user.username, role: user.role }, JWT_SECRET, { expiresIn: '24h' });
+      const token = jwt.sign(
+        { id: user.id, username: user.username, role: user.role },
+        JWT_SECRET,
+        { expiresIn: '24h' }
+      );
       res.json({ success: true, token, role: user.role });
     } else {
       res.status(401).json({ success: false, message: 'Invalid credentials' });
@@ -55,10 +55,9 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// ==================================
-// ITEM MASTER API
-// ==================================
-
+// ============================================================
+// ITEM MASTER
+// ============================================================
 app.get('/api/items', authMiddleware, async (req, res) => {
   try {
     const items = await prisma.item.findMany({ where: { isActive: true } });
@@ -83,20 +82,16 @@ app.post('/api/items', authMiddleware, requireRole(['ADMIN']), async (req, res) 
 app.delete('/api/items/:id', authMiddleware, requireRole(['ADMIN']), async (req, res) => {
   try {
     const id = parseInt(req.params.id);
-    await prisma.item.update({
-      where: { id },
-      data: { isActive: false }
-    });
+    await prisma.item.update({ where: { id }, data: { isActive: false } });
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// ==================================
-// CUSTOMERS API
-// ==================================
-
+// ============================================================
+// CUSTOMERS
+// ============================================================
 app.get('/api/customers', authMiddleware, async (req, res) => {
   try {
     const customers = await prisma.customer.findMany({ where: { isActive: true } });
@@ -118,23 +113,20 @@ app.post('/api/customers', authMiddleware, async (req, res) => {
   }
 });
 
+// BUG FIX #7: SALES can also create customers but only ADMIN/MANAGER can delete
 app.delete('/api/customers/:id', authMiddleware, requireRole(['ADMIN', 'MANAGER']), async (req, res) => {
   try {
     const id = parseInt(req.params.id);
-    await prisma.customer.update({
-      where: { id },
-      data: { isActive: false }
-    });
+    await prisma.customer.update({ where: { id }, data: { isActive: false } });
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// ==================================
-// ORDERS API
-// ==================================
-
+// ============================================================
+// ORDERS
+// ============================================================
 app.post('/api/orders', authMiddleware, async (req, res) => {
   try {
     const data = req.body;
@@ -148,6 +140,8 @@ app.post('/api/orders', authMiddleware, async (req, res) => {
         baseModel: data.baseModel,
         basePrice: parseFloat(data.basePrice) || 0,
         totalPrice: parseFloat(data.totalPrice) || 0,
+        // NEW FEATURE: Save notes field
+        notes: data.notes || null,
         locationLat: data.locationLat,
         locationLng: data.locationLng,
         checkInTime: data.checkInTime ? new Date(data.checkInTime) : null,
@@ -156,9 +150,7 @@ app.post('/api/orders', authMiddleware, async (req, res) => {
       }
     });
 
-    // Broadcast new order to connected manager clients
     io.emit('new_order', order);
-    
     res.json(order);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -167,9 +159,7 @@ app.post('/api/orders', authMiddleware, async (req, res) => {
 
 app.get('/api/orders', authMiddleware, async (req, res) => {
   try {
-    const orders = await prisma.order.findMany({
-      orderBy: { createdAt: 'desc' }
-    });
+    const orders = await prisma.order.findMany({ orderBy: { createdAt: 'desc' } });
     res.json(orders);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -180,15 +170,8 @@ app.put('/api/orders/:id/status', authMiddleware, requireRole(['ADMIN', 'MANAGER
   try {
     const id = parseInt(req.params.id);
     const { status } = req.body;
-    
-    const order = await prisma.order.update({
-      where: { id },
-      data: { status }
-    });
-    
-    // Broadcast status update
+    const order = await prisma.order.update({ where: { id }, data: { status } });
     io.emit('order_status_updated', order);
-    
     res.json(order);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -197,12 +180,11 @@ app.put('/api/orders/:id/status', authMiddleware, requireRole(['ADMIN', 'MANAGER
 
 io.on('connection', (socket) => {
   console.log('A client connected');
-  socket.on('disconnect', () => {
-    console.log('Client disconnected');
-  });
+  socket.on('disconnect', () => console.log('Client disconnected'));
 });
 
-const PORT = process.env.PORT || 3001;
+// BUG FIX #4: Default port changed to 3000 to match frontend hardcoded API calls
+const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
