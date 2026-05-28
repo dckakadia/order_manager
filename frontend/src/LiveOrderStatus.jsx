@@ -13,6 +13,43 @@ const STAGES = [
   'Delivered'
 ];
 
+const renderDeliveryDate = (dateString) => {
+  if (!dateString) return <span style={{ padding: '0.4rem 0.75rem', background: '#f1f5f9', color: '#64748b', borderRadius: '6px', fontWeight: 'bold', fontSize: '0.95rem' }}>Not Set</span>;
+  
+  const dDate = new Date(dateString);
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  const diffDays = Math.floor((dDate - today) / (1000 * 60 * 60 * 24));
+  
+  let bgColor = '#f0fdf4';
+  let color = '#166534';
+  let border = '1px solid #bbf7d0';
+  let label = 'Delivery: ';
+  
+  if (diffDays < 0) {
+    bgColor = '#fef2f2';
+    color = '#991b1b';
+    border = '1px solid #fecaca';
+    label = '⚠️ OVERDUE: ';
+  } else if (diffDays <= 3) {
+    bgColor = '#fff7ed';
+    color = '#9a3412';
+    border = '1px solid #fed7aa';
+    label = '⏳ URGENT: ';
+  }
+  
+  return (
+    <div style={{
+      background: bgColor, color, border, 
+      padding: '0.4rem 0.75rem', borderRadius: '6px', 
+      fontWeight: 'bold', fontSize: '0.95rem',
+      display: 'inline-block'
+    }}>
+      {label}{dDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+    </div>
+  );
+};
+
 export default function LiveOrderStatus() {
   const [orders, setOrders] = useState([]);
   
@@ -176,7 +213,7 @@ export default function LiveOrderStatus() {
               
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', paddingTop: '12px', borderTop: '1px solid var(--border)' }}>
                 <div className="order-date">
-                  Delivery: {order.deliveryDate ? new Date(order.deliveryDate).toLocaleDateString('en-IN') : 'Not Set'}
+                  {renderDeliveryDate(order.deliveryDate)}
                 </div>
                 {!isDelivered && order.status !== 'Cancelled' ? (
                   <button
@@ -250,9 +287,9 @@ export default function LiveOrderStatus() {
                 <label className="form-label required">Base Model</label>
                 <input type="text" className="form-control" required value={editingOrder.baseModel} onChange={e => setEditingOrder({...editingOrder, baseModel: e.target.value})} />
               </div>
-              <div className="form-group">
-                <label className="form-label">Delivery Date</label>
-                <input type="date" className="form-control" value={editingOrder.deliveryDate ? editingOrder.deliveryDate.split('T')[0] : ''} onChange={e => setEditingOrder({...editingOrder, deliveryDate: e.target.value})} />
+              <div className="form-group" style={{ marginTop: '1.5rem', background: '#fff7ed', padding: '1rem', borderRadius: '8px', border: '1px solid #fed7aa' }}>
+                <label className="form-label required" style={{ color: '#9a3412', fontWeight: 'bold' }}>🚨 COMMITTED DELIVERY DATE</label>
+                <input type="date" className="form-control" required value={editingOrder.deliveryDate ? editingOrder.deliveryDate.split('T')[0] : ''} onChange={e => setEditingOrder({...editingOrder, deliveryDate: e.target.value})} style={{ fontWeight: 'bold', fontSize: '1.1rem', color: '#9a3412', borderColor: '#fed7aa' }} />
               </div>
               <div className="form-group">
                 <label className="form-label">Notes</label>
