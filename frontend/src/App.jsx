@@ -40,7 +40,11 @@ function App() {
                     </>
                   )}
                   
-                  {(role === 'MANAGER' || role === 'ADMIN') && (
+                  {role === 'MANAGER' && (
+                    <Link to="/status" className="nav-link">Live Order Status</Link>
+                  )}
+                  
+                  {role === 'ADMIN' && (
                     <>
                       <Link to="/status" className="nav-link">Live Order Status</Link>
                       <Link to="/dashboard" className="nav-link">Metrics Dashboard</Link>
@@ -56,7 +60,7 @@ function App() {
                     className="btn btn-secondary" 
                     style={{ marginLeft: '1rem', padding: '0.25rem 0.75rem', fontSize: '0.8rem' }}
                   >
-                    Logout
+                    Sign Out
                   </button>
                 </>
               )}
