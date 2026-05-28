@@ -46,7 +46,7 @@ function Navigation() {
             <button 
               onClick={() => { localStorage.clear(); window.location.href = '/login'; }}
               className="btn btn-secondary" 
-              style={{ marginLeft: '1rem', padding: '0.25rem 0.75rem', fontSize: '0.8rem' }}
+              style={{ padding: '0.5rem 1rem', fontSize: '0.9rem', borderRadius: '9999px', whiteSpace: 'nowrap' }}
             >
               Sign Out
             </button>
