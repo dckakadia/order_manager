@@ -60,17 +60,19 @@ export default function CustomerMaster() {
     }
   };
 
-  // BUG FIX #7: Only show delete button to ADMIN or MANAGER roles
-  const canDelete = role === 'ADMIN' || role === 'MANAGER';
+  // BUG FIX #7: Only show delete and add forms to ADMIN
+  const canDelete = role === 'ADMIN';
+  const isAdmin = role === 'ADMIN';
 
   return (
     <div className="grid-2">
-      <div className="glass-card">
-        <h2>Add New Customer</h2>
-        {error && <div className="badge badge-start" style={{ display: 'block', marginBottom: '1rem', padding: '0.5rem' }}>{error}</div>}
-        {successMsg && <div className="badge badge-delivered" style={{ display: 'block', marginBottom: '1rem', padding: '0.5rem' }}>{successMsg}</div>}
-        <form onSubmit={handleAddCustomer}>
-          <div className="form-group">
+      {isAdmin && (
+        <div className="glass-card">
+          <h2>Add New Customer</h2>
+          {error && <div className="badge badge-start" style={{ display: 'block', marginBottom: '1rem', padding: '0.5rem' }}>{error}</div>}
+          {successMsg && <div className="badge badge-delivered" style={{ display: 'block', marginBottom: '1rem', padding: '0.5rem' }}>{successMsg}</div>}
+          <form onSubmit={handleAddCustomer}>
+            <div className="form-group">
             <label className="form-label required">Customer Name</label>
             <input type="text" className="form-control" required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
           </div>
@@ -95,6 +97,7 @@ export default function CustomerMaster() {
           </button>
         </form>
       </div>
+      )}
 
       <div className="glass-card" style={{ maxHeight: '800px', overflowY: 'auto' }}>
         <h2>Customer List</h2>

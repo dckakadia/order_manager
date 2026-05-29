@@ -43,6 +43,9 @@ export default function ItemMaster() {
     fetchItems();
   };
 
+  const role = localStorage.getItem('ocean_spas_role');
+  const isAdmin = role === 'ADMIN';
+
   const handleDelete = async (id) => {
     await fetch(`http://116.74.77.22:3000/api/items/${id}`, {
       method: 'DELETE',
@@ -55,9 +58,10 @@ export default function ItemMaster() {
 
   return (
     <div className="grid-2">
-      <div className="glass-card">
-        <h2>Add New Option</h2>
-        <form onSubmit={handleAddItem}>
+      {isAdmin && (
+        <div className="glass-card">
+          <h2>Add New Option</h2>
+          <form onSubmit={handleAddItem}>
           <div className="form-group">
             <label className="form-label">Name</label>
             <input type="text" className="form-control" required value={name} onChange={e => setName(e.target.value)} />
@@ -88,6 +92,7 @@ export default function ItemMaster() {
           </button>
         </form>
       </div>
+      )}
 
       <div className="glass-card" style={{ maxHeight: '600px', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
         <h2>Current Options</h2>
@@ -110,9 +115,11 @@ export default function ItemMaster() {
                   )}
                 </div>
               </div>
-              <button onClick={() => handleDelete(item.id)} className="option-delete-btn" aria-label="Delete">
-                <Trash2 size={18} />
-              </button>
+              {isAdmin && (
+                <button onClick={() => handleDelete(item.id)} className="option-delete-btn" aria-label="Delete">
+                  <Trash2 size={18} />
+                </button>
+              )}
             </div>
           ))}
           {items.length === 0 && (

@@ -109,7 +109,7 @@ app.get('/api/customers', authMiddleware, async (req, res) => {
   }
 });
 
-app.post('/api/customers', authMiddleware, async (req, res) => {
+app.post('/api/customers', authMiddleware, requireRole(['ADMIN']), async (req, res) => {
   try {
     const { name, phone, email, shippingAddress, taxNumber } = req.body;
     const customer = await prisma.customer.create({
@@ -121,8 +121,8 @@ app.post('/api/customers', authMiddleware, async (req, res) => {
   }
 });
 
-// BUG FIX #7: SALES can also create customers but only ADMIN/MANAGER can delete
-app.delete('/api/customers/:id', authMiddleware, requireRole(['ADMIN', 'MANAGER']), async (req, res) => {
+// BUG FIX #7: Only ADMIN can delete
+app.delete('/api/customers/:id', authMiddleware, requireRole(['ADMIN']), async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     await prisma.customer.update({ where: { id }, data: { isActive: false } });
