@@ -63,6 +63,9 @@ export default function SalesForm() {
     return m[priceField] !== undefined && m[priceField] !== null ? m[priceField] : (m.price || 0);
   };
 
+  const [isCustomerDropdownOpen, setIsCustomerDropdownOpen] = useState(false);
+  const [customerSearchTerm, setCustomerSearchTerm] = useState('');
+
   const [location, setLocation] = useState(null);
   const [submitted, setSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState('');
@@ -110,8 +113,7 @@ export default function SalesForm() {
     }
   }, [socket]);
 
-  const handleCustomerSelect = (e) => {
-    const custId = e.target.value;
+  const handleCustomerSelect = (custId) => {
     setSelectedCustomerId(custId);
     if (!custId) {
       setFormData({ ...formData, customerName: '', phone: '', email: '', shippingAddress: '', taxNumber: '' });
@@ -129,6 +131,30 @@ export default function SalesForm() {
       });
     }
   };
+
+  // 1. Sort customers newest first (by id descending)
+  const sortedCustomers = [...customers].sort((a, b) => b.id - a.id);
+
+  // 3. Pin last 5 used customers at top
+  const recentCustomerIds = [];
+  for (const order of orders) {
+    if (recentCustomerIds.length >= 5) break;
+    const matchedCustomer = customers.find(c => c.name === order.customerName && (c.phone === order.phone || !order.phone));
+    if (matchedCustomer && !recentCustomerIds.includes(matchedCustomer.id)) {
+      recentCustomerIds.push(matchedCustomer.id);
+    }
+  }
+  const recentCustomers = recentCustomerIds.map(id => customers.find(c => c.id === id)).filter(Boolean);
+
+  const lowerSearchTerm = customerSearchTerm.toLowerCase();
+  const filteredRecentCustomers = recentCustomers.filter(c => 
+    c.name.toLowerCase().includes(lowerSearchTerm) || 
+    (c.phone && c.phone.includes(lowerSearchTerm))
+  );
+  const filteredAllCustomers = sortedCustomers.filter(c => 
+    c.name.toLowerCase().includes(lowerSearchTerm) || 
+    (c.phone && c.phone.includes(lowerSearchTerm))
+  );
 
   const baseModels = items.filter(i => i.category === 'Base Model' || i.category === 'Model' || !i.category);
   const selectedModel = baseModels.find(m => m.id.toString() === formData.baseModel);
@@ -191,6 +217,7 @@ export default function SalesForm() {
         setSubmitted(false);
         // BUG FIX #6: Reset customer dropdown + all form state properly
         setSelectedCustomerId('');
+        setCustomerSearchTerm('');
         setFormData({ customerName: '', phone: '', email: '', shippingAddress: '', taxNumber: '', baseModel: '', variant: '', deliveryDate: '', notes: '', faucetPosition: '', sidePanel: '', orderBy: 'Manish', manualPrice: '' });
         setLocation(null);
       }, 3000);
@@ -318,14 +345,89 @@ export default function SalesForm() {
         <h2>Customer Details</h2>
         {submitError && <div className="badge badge-start" style={{ display: 'block', marginBottom: '1rem', padding: '0.5rem' }}>{submitError}</div>}
         <form id="orderForm" onSubmit={handleSubmit}>
-          <div className="form-group">
+          <div className="form-group" style={{ position: 'relative' }}>
             <label className="form-label required">Select Customer</label>
-            <select className="form-control primary" value={selectedCustomerId} onChange={handleCustomerSelect} required>
-              <option value="" disabled>-- Choose from Customer Master --</option>
-              {customers.map(c => (
-                <option key={c.id} value={c.id}>{c.name} ({c.phone || 'No phone'})</option>
-              ))}
-            </select>
+            <div style={{ position: 'relative' }} onClick={() => setIsCustomerDropdownOpen(true)}>
+              <input
+                type="text"
+                className="form-control primary"
+                placeholder="-- Search or Choose Customer --"
+                value={customerSearchTerm}
+                onChange={(e) => {
+                  setCustomerSearchTerm(e.target.value);
+                  setIsCustomerDropdownOpen(true);
+                  if (selectedCustomerId) {
+                     setSelectedCustomerId('');
+                     setFormData({ ...formData, customerName: '', phone: '', email: '', shippingAddress: '', taxNumber: '' });
+                  }
+                }}
+                onFocus={() => setIsCustomerDropdownOpen(true)}
+                required={!selectedCustomerId}
+                style={{ width: '100%', cursor: 'text' }}
+              />
+            </div>
+            
+            {isCustomerDropdownOpen && (
+              <>
+                <div 
+                  style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 99 }} 
+                  onClick={() => {
+                    setIsCustomerDropdownOpen(false);
+                    const selected = customers.find(c => c.id.toString() === selectedCustomerId);
+                    if (selected) {
+                      setCustomerSearchTerm(`${selected.name} (${selected.phone || 'No phone'})`);
+                    } else {
+                      setCustomerSearchTerm('');
+                    }
+                  }}
+                />
+                <div style={{ 
+                  position: 'absolute', top: '100%', left: 0, right: 0, 
+                  background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', 
+                  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', zIndex: 100, 
+                  maxHeight: '280px', overflowY: 'auto', marginTop: '4px' 
+                }}>
+                  {filteredRecentCustomers.length > 0 && (
+                    <>
+                      <div style={{ padding: '8px 12px', background: '#f8fafc', fontSize: '12px', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase', position: 'sticky', top: 0 }}>Recent Customers</div>
+                      {filteredRecentCustomers.map(c => (
+                        <div 
+                          key={`recent-${c.id}`}
+                          style={{ padding: '10px 12px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', background: '#fff' }}
+                          onClick={() => {
+                            handleCustomerSelect(c.id.toString());
+                            setCustomerSearchTerm(`${c.name} (${c.phone || 'No phone'})`);
+                            setIsCustomerDropdownOpen(false);
+                          }}
+                        >
+                          <div style={{ fontWeight: 500, color: '#0f172a' }}>{c.name}</div>
+                          <div style={{ fontSize: '12px', color: '#64748b' }}>{c.phone || 'No phone'}</div>
+                        </div>
+                      ))}
+                    </>
+                  )}
+                  
+                  <div style={{ padding: '8px 12px', background: '#f8fafc', fontSize: '12px', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase', position: 'sticky', top: filteredRecentCustomers.length > 0 ? 0 : 0 }}>All Customers</div>
+                  {filteredAllCustomers.map(c => (
+                    <div 
+                      key={`all-${c.id}`}
+                      style={{ padding: '10px 12px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', background: '#fff' }}
+                      onClick={() => {
+                        handleCustomerSelect(c.id.toString());
+                        setCustomerSearchTerm(`${c.name} (${c.phone || 'No phone'})`);
+                        setIsCustomerDropdownOpen(false);
+                      }}
+                    >
+                      <div style={{ fontWeight: 500, color: '#0f172a' }}>{c.name}</div>
+                      <div style={{ fontSize: '12px', color: '#64748b' }}>{c.phone || 'No phone'}</div>
+                    </div>
+                  ))}
+                  {filteredAllCustomers.length === 0 && (
+                    <div style={{ padding: '12px', textAlign: 'center', color: '#64748b' }}>No customers found</div>
+                  )}
+                </div>
+              </>
+            )}
           </div>
 
           <div className="form-group">
