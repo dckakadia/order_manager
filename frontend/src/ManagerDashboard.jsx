@@ -1,11 +1,13 @@
 import { useState, useEffect, useContext } from 'react';
-import { DollarSign, Package, CheckCircle, Clock } from 'lucide-react';
+import { DollarSign, Package, CheckCircle, Clock, Printer } from 'lucide-react';
 import { SocketContext } from './App';
 
 const API_BASE = 'http://116.74.77.22:3000';
 
 export default function ManagerDashboard() {
   const [orders, setOrders] = useState([]);
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
   const socket = useContext(SocketContext);
 
   const fetchOrders = () => {
@@ -49,6 +51,27 @@ export default function ManagerDashboard() {
     acc[order.status] = (acc[order.status] || 0) + 1;
     return acc;
   }, {});
+
+  const filteredTableOrders = orders.filter(order => {
+    if (!fromDate && !toDate) return true;
+    const orderDate = new Date(order.createdAt);
+    orderDate.setHours(0, 0, 0, 0);
+    
+    let match = true;
+    if (fromDate) {
+      const from = new Date(fromDate);
+      from.setHours(0, 0, 0, 0);
+      if (orderDate < from) match = false;
+    }
+    if (toDate) {
+      const to = new Date(toDate);
+      to.setHours(23, 59, 59, 999);
+      if (orderDate > to) match = false;
+    }
+    return match;
+  });
+
+  const tableTotalRevenue = filteredTableOrders.reduce((sum, order) => sum + (order.totalPrice || 0), 0);
 
   return (
     <div className="grid-1" style={{ gap: '2rem' }}>
@@ -113,6 +136,98 @@ export default function ManagerDashboard() {
           {Object.keys(statusCounts).length === 0 && (
             <p style={{ color: 'var(--text-light)' }}>No orders in pipeline yet.</p>
           )}
+        </div>
+    </div>
+
+      {/* Accountant Order Table Section */}
+      <div className="glass-card accountant-print-section" style={{ gridColumn: '1 / -1', marginTop: '1rem' }}>
+        <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
+          <h2 style={{ marginBottom: 0 }}>Order History</h2>
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <label style={{ fontSize: '0.875rem', fontWeight: 500 }}>From:</label>
+              <input type="date" className="form-control" style={{ minHeight: '36px', padding: '0.5rem' }} value={fromDate} onChange={e => setFromDate(e.target.value)} />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <label style={{ fontSize: '0.875rem', fontWeight: 500 }}>To:</label>
+              <input type="date" className="form-control" style={{ minHeight: '36px', padding: '0.5rem' }} value={toDate} onChange={e => setToDate(e.target.value)} />
+            </div>
+            <button onClick={() => window.print()} className="btn btn-primary" style={{ minHeight: '36px', padding: '0.5rem 1rem' }}>
+              <Printer size={16} /> Print / PDF
+            </button>
+          </div>
+        </div>
+        
+        {/* Hidden print header */}
+        <h1 className="print-only-header" style={{ display: 'none', textAlign: 'center', marginBottom: '20px' }}>Ocean Spas - Order Report</h1>
+
+        <div className="table-container accountant-table-wrapper">
+          <table className="accountant-table">
+            <thead>
+              <tr>
+                <th>Order #</th>
+                <th>Order Date & Time</th>
+                <th>Customer Name</th>
+                <th>Model Name</th>
+                <th>Variant</th>
+                <th>Faucet Position</th>
+                <th>Order By</th>
+                <th>Total Price (₹)</th>
+                <th>Committed Delivery Date</th>
+                <th>Actual Delivered Date & Time</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredTableOrders.length === 0 ? (
+                <tr>
+                  <td colSpan="11" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-light)' }}>
+                    No orders found for this date range.
+                  </td>
+                </tr>
+              ) : (
+                filteredTableOrders.map(order => {
+                  let actualDelivered = '-';
+                  if (order.status === 'Delivered') {
+                    const d = new Date(order.updatedAt);
+                    actualDelivered = `${d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}, ${d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }).toLowerCase()}`;
+                  }
+                  
+                  return (
+                    <tr key={order.id}>
+                      <td>#{order.id}</td>
+                      <td>{new Date(order.createdAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}</td>
+                      <td>{order.customerName}</td>
+                      <td>{order.baseModel}</td>
+                      <td>{order.variant || '-'}</td>
+                      <td>{order.faucetPosition || '-'}</td>
+                      <td>{order.orderBy || '-'}</td>
+                      <td style={{ fontWeight: 500 }}>₹{order.totalPrice?.toLocaleString('en-IN') || 0}</td>
+                      <td>{order.deliveryDate ? new Date(order.deliveryDate).toLocaleDateString('en-IN') : '-'}</td>
+                      <td>{actualDelivered}</td>
+                      <td><span className={`badge ${
+                        order.status === 'Order Form Received' ? 'badge-received' :
+                        order.status === 'Start Production' ? 'badge-start' :
+                        order.status === 'Finish Production' ? 'badge-finish' :
+                        order.status === 'Order Ready For Dispatch' ? 'badge-ready' :
+                        order.status === 'Order Dispatched' ? 'badge-dispatched' :
+                        order.status === 'Delivered' ? 'badge-delivered' : ''
+                      }`}>{order.status}</span></td>
+                    </tr>
+                  )
+                })
+              )}
+            </tbody>
+            {filteredTableOrders.length > 0 && (
+              <tfoot>
+                <tr style={{ background: '#f8fafc', fontWeight: 'bold' }}>
+                  <td colSpan="7" style={{ textAlign: 'right', borderTop: '2px solid var(--border)' }}>Grand Total:</td>
+                  <td colSpan="4" style={{ borderTop: '2px solid var(--border)', color: 'var(--primary)' }}>₹{tableTotalRevenue.toLocaleString('en-IN')}</td>
+                </tr>
+              </tfoot>
+            )}
+          </table>
         </div>
       </div>
 

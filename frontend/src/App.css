@@ -426,3 +426,93 @@ tr:last-child td {
   color: #94a3b8;
   margin-top: 6px;
 }
+
+/* Accountant Table Styles */
+.accountant-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.accountant-table th {
+  background-color: #f1f5f9;
+  color: #1e293b;
+  font-weight: 700;
+  border: 1px solid var(--border);
+  padding: 10px;
+}
+
+.accountant-table td {
+  border: 1px solid var(--border);
+  padding: 10px;
+  color: #334155;
+}
+
+.accountant-table tbody tr:nth-child(even) {
+  background-color: #f8fafc;
+}
+
+.accountant-table tbody tr:hover {
+  background-color: #f1f5f9;
+}
+
+.accountant-table tfoot td {
+  padding: 12px 10px;
+  font-size: 14px;
+}
+
+/* Print Styles */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  
+  .app-header, .bottom-nav, .no-print, .grid-1 > div:not(.accountant-print-section) {
+    display: none !important;
+  }
+
+  .app-container {
+    padding: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .glass-card.accountant-print-section {
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
+
+  .print-only-header {
+    display: block !important;
+    font-size: 24px !important;
+    font-weight: bold !important;
+    margin-bottom: 20px !important;
+    color: black !important;
+  }
+
+  .accountant-table-wrapper {
+    overflow: visible !important;
+    border: none !important;
+  }
+
+  .accountant-table {
+    border: 1px solid #000;
+  }
+
+  .accountant-table th, .accountant-table td {
+    border: 1px solid #000 !important;
+    color: black !important;
+  }
+
+  .badge {
+    border: 1px solid #000;
+    color: black !important;
+    background: transparent !important;
+  }
+
+  @page {
+    margin: 1cm;
+    size: landscape;
+  }
+}
