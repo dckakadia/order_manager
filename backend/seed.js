@@ -3,9 +3,9 @@ const prisma = new PrismaClient();
 
 async function main() {
   const users = [
-    { username: 'sales', pin: '1234', role: 'SALES' },
-    { username: 'manager', pin: '1234', role: 'MANAGER' },
-    { username: 'admin', pin: '1234', role: 'ADMIN' },
+    { username: 'manish', pin: '7411', role: 'SALES' },
+    { username: 'sunil', pin: '1234', role: 'MANAGER' },
+    { username: 'devin', pin: '7930', role: 'ADMIN' },
   ];
 
   for (const u of users) {

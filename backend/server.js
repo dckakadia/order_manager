@@ -177,6 +177,50 @@ app.get('/api/orders', authMiddleware, async (req, res) => {
   }
 });
 
+app.post('/api/orders/bulk', authMiddleware, async (req, res) => {
+  try {
+    const orders = req.body;
+    if (!Array.isArray(orders)) {
+      return res.status(400).json({ error: 'Expected an array of orders' });
+    }
+    
+    let createdCount = 0;
+    for (const data of orders) {
+      await prisma.order.create({
+        data: {
+          customerName: data.customerName,
+          phone: data.phone,
+          email: data.email,
+          shippingAddress: data.shippingAddress,
+          taxNumber: data.taxNumber,
+          baseModel: data.baseModel,
+          variant: data.variant || null,
+          basePrice: parseFloat(data.basePrice) || 0,
+          totalPrice: parseFloat(data.totalPrice) || 0,
+          notes: data.notes || null,
+          faucetPosition: data.faucetPosition || null,
+          orderBy: data.orderBy || null,
+          locationLat: data.locationLat,
+          locationLng: data.locationLng,
+          checkInTime: data.checkInTime ? new Date(data.checkInTime) : null,
+          deliveryDate: data.deliveryDate ? new Date(data.deliveryDate) : null,
+          status: data.status || 'Order Form Received',
+          createdAt: data.createdAt ? new Date(data.createdAt) : undefined,
+          updatedAt: data.updatedAt ? new Date(data.updatedAt) : undefined,
+        }
+      });
+      createdCount++;
+    }
+    
+    // Broadcast a general update so clients refresh
+    io.emit('bulk_orders_imported', createdCount);
+    res.json({ success: true, imported: createdCount });
+  } catch (error) {
+    console.error('Bulk import error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.put('/api/orders/:id/status', authMiddleware, requireRole(['ADMIN', 'MANAGER']), async (req, res) => {
   try {
     const id = parseInt(req.params.id);

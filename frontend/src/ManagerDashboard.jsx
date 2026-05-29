@@ -35,9 +35,14 @@ export default function ManagerDashboard() {
       setOrders(prev => prev.map(o => o.id === updatedOrder.id ? updatedOrder : o));
     });
 
+    socket.on('bulk_orders_imported', () => {
+      fetchOrders();
+    });
+
     return () => {
       socket.off('new_order');
       socket.off('order_status_updated');
+      socket.off('bulk_orders_imported');
     };
   }, [socket]);
 
@@ -72,6 +77,48 @@ export default function ManagerDashboard() {
   });
 
   const tableTotalRevenue = filteredTableOrders.reduce((sum, order) => sum + (order.totalPrice || 0), 0);
+
+  const handleExportJson = () => {
+    const dataStr = JSON.stringify(orders, null, 2);
+    const blob = new Blob([dataStr], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "orders_export.json";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImportJson = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const importedData = JSON.parse(event.target.result);
+        if (Array.isArray(importedData)) {
+          const res = await fetch(`${API_BASE}/api/orders/bulk`, {
+            method: 'POST',
+            headers: { 
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('ocean_spas_auth_token')}` 
+            },
+            body: JSON.stringify(importedData)
+          });
+          if (res.ok) {
+            alert('Import successful!');
+            fetchOrders();
+          } else {
+            alert('Import failed.');
+          }
+        }
+      } catch (err) {
+        alert('Invalid JSON file.');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
 
   return (
     <div className="grid-1" style={{ gap: '2rem' }}>
@@ -156,6 +203,13 @@ export default function ManagerDashboard() {
             <button onClick={() => window.print()} className="btn btn-primary" style={{ minHeight: '36px', padding: '0.5rem 1rem' }}>
               <Printer size={16} /> Print / PDF
             </button>
+            <button onClick={handleExportJson} className="btn btn-secondary" style={{ minHeight: '36px', padding: '0.5rem 1rem' }}>
+              Export JSON
+            </button>
+            <label className="btn btn-secondary" style={{ minHeight: '36px', padding: '0.5rem 1rem', cursor: 'pointer', margin: 0, display: 'inline-flex', alignItems: 'center' }}>
+              Import JSON
+              <input type="file" accept=".json" style={{ display: 'none' }} onChange={handleImportJson} />
+            </label>
           </div>
         </div>
         
