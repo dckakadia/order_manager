@@ -1,4 +1,3 @@
-const { google } = require('googleapis');
 const { PrismaClient } = require('@prisma/client');
 const fs = require('fs');
 const path = require('path');
@@ -6,64 +5,44 @@ const cron = require('node-cron');
 
 const prisma = new PrismaClient();
 
-// Load credentials
-const CREDENTIALS_PATH = path.join(__dirname, 'google-credentials.json');
-const FOLDER_ID = '1hNDVZuTfK9yEXetR7-g57Izw5epmGkDA';
+// Setup local backups directory
+const BACKUPS_DIR = path.join(__dirname, 'backups');
+if (!fs.existsSync(BACKUPS_DIR)) {
+  fs.mkdirSync(BACKUPS_DIR, { recursive: true });
+}
 
 let lastBackupTime = null;
 
-// Initialize Google Drive API
-function getDriveService() {
-  if (!fs.existsSync(CREDENTIALS_PATH)) {
-    throw new Error('Google credentials missing');
-  }
-  const auth = new google.auth.GoogleAuth({
-    keyFile: CREDENTIALS_PATH,
-    scopes: ['https://www.googleapis.com/auth/drive.file', 'https://www.googleapis.com/auth/drive'],
-  });
-  return google.drive({ version: 'v3', auth });
-}
-
 async function performBackup() {
-  console.log('Starting automated Google Drive backup...');
+  console.log('Starting automated local database backup...');
   try {
-    const drive = getDriveService();
     const orders = await prisma.order.findMany();
+    const customers = await prisma.customer.findMany();
+    const items = await prisma.item.findMany();
+    const users = await prisma.user.findMany();
+    
+    const backupData = {
+      orders,
+      customers,
+      items,
+      users
+    };
     
     const now = new Date();
     const dateStr = String(now.getDate()).padStart(2, '0') + '-' + 
                     String(now.getMonth() + 1).padStart(2, '0') + '-' + 
                     now.getFullYear();
     const fileName = `OceanSpas_Backup_${dateStr}.json`;
+    const filePath = path.join(BACKUPS_DIR, fileName);
     
-    // Create temporary file
-    const tempPath = path.join(__dirname, fileName);
-    fs.writeFileSync(tempPath, JSON.stringify(orders, null, 2));
-
-    // Upload to Drive
-    const fileMetadata = {
-      name: fileName,
-      parents: [FOLDER_ID]
-    };
-    const media = {
-      mimeType: 'application/json',
-      body: fs.createReadStream(tempPath)
-    };
-    
-    await drive.files.create({
-      resource: fileMetadata,
-      media: media,
-      fields: 'id'
-    });
-    console.log(`Backup uploaded successfully: ${fileName}`);
-    
-    // Clean up local temp file
-    fs.unlinkSync(tempPath);
+    // Write full backup to local disk
+    fs.writeFileSync(filePath, JSON.stringify(backupData, null, 2));
+    console.log(`Local backup saved successfully: ${fileName}`);
     
     lastBackupTime = new Date().toISOString();
 
     // Delete backups older than 30 days
-    await deleteOldBackups(drive);
+    await deleteOldBackups();
     
     return lastBackupTime;
   } catch (error) {
@@ -72,29 +51,24 @@ async function performBackup() {
   }
 }
 
-async function deleteOldBackups(drive) {
+async function deleteOldBackups() {
   try {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    const res = await drive.files.list({
-      q: `'${FOLDER_ID}' in parents and mimeType='application/json'`,
-      fields: 'files(id, name, createdTime)',
-      orderBy: 'createdTime desc'
-    });
-
-    const files = res.data.files;
-    if (files.length) {
-      for (const file of files) {
-        const fileDate = new Date(file.createdTime);
-        if (fileDate < thirtyDaysAgo) {
-          await drive.files.delete({ fileId: file.id });
-          console.log(`Deleted old backup: ${file.name}`);
+    const files = fs.readdirSync(BACKUPS_DIR);
+    for (const file of files) {
+      if (file.endsWith('.json')) {
+        const filePath = path.join(BACKUPS_DIR, file);
+        const stats = fs.statSync(filePath);
+        if (stats.mtime < thirtyDaysAgo) {
+          fs.unlinkSync(filePath);
+          console.log(`Deleted old local backup: ${file}`);
         }
       }
     }
   } catch (err) {
-    console.error('Error cleaning old backups:', err);
+    console.error('Error cleaning old local backups:', err);
   }
 }
 

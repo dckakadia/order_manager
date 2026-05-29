@@ -96,17 +96,27 @@ export default function ManagerDashboard() {
 
   const tableTotalRevenue = filteredTableOrders.reduce((sum, order) => sum + (order.totalPrice || 0), 0);
 
-  const handleExportJson = () => {
-    const dataStr = JSON.stringify(orders, null, 2);
-    const blob = new Blob([dataStr], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "orders_backup.json";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+  const handleExportJson = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/backup/download`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('ocean_spas_auth_token')}` }
+      });
+      if (!res.ok) throw new Error('Failed to download full backup');
+      const data = await res.json();
+      
+      const dataStr = JSON.stringify(data, null, 2);
+      const blob = new Blob([dataStr], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `OceanSpas_Full_Backup_${new Date().toLocaleDateString('en-IN').replace(/\//g, '-')}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      alert('Error exporting full backup.');
+    }
   };
 
   const handleExportCsv = () => {
@@ -150,28 +160,33 @@ export default function ManagerDashboard() {
   const handleImportJson = (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    
+    if (!window.confirm("WARNING: Restoring a backup will wipe all current database records and replace them with the backup data. Are you sure you want to proceed?")) {
+      e.target.value = '';
+      return;
+    }
+    
     const reader = new FileReader();
     reader.onload = async (event) => {
       try {
         const importedData = JSON.parse(event.target.result);
-        if (Array.isArray(importedData)) {
-          const res = await fetch(`${API_BASE}/api/orders/bulk`, {
-            method: 'POST',
-            headers: { 
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${localStorage.getItem('ocean_spas_auth_token')}` 
-            },
-            body: JSON.stringify(importedData)
-          });
-          if (res.ok) {
-            alert('Import successful!');
-            fetchOrders();
-          } else {
-            alert('Import failed.');
-          }
+        const res = await fetch(`${API_BASE}/api/backup/restore`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('ocean_spas_auth_token')}` 
+          },
+          body: JSON.stringify(importedData)
+        });
+        const responseData = await res.json();
+        if (res.ok) {
+          alert('Full database restored successfully!');
+          window.location.reload(); // Reload to refresh all state
+        } else {
+          alert('Restore failed: ' + responseData.error);
         }
       } catch (err) {
-        alert('Invalid JSON file.');
+        alert('Invalid JSON backup file.');
       }
     };
     reader.readAsText(file);
@@ -188,7 +203,7 @@ export default function ManagerDashboard() {
       });
       const data = await res.json();
       if (res.ok) {
-        alert('Backup successfully uploaded to Google Drive!');
+        alert('Local backup generated successfully on the server!');
         setLastBackup(data.timestamp);
       } else {
         alert('Backup failed: ' + data.error);
@@ -286,17 +301,17 @@ export default function ManagerDashboard() {
             <button onClick={handleExportCsv} className="btn btn-secondary" style={{ minHeight: '36px', padding: '0.5rem 1rem', background: '#f0fdf4', color: '#166534', borderColor: '#bbf7d0' }}>
               Export Excel / CSV
             </button>
-            <button onClick={handleExportJson} className="btn btn-secondary" style={{ minHeight: '36px', padding: '0.5rem 1rem' }}>
-              Export JSON (Backup)
-            </button>
-            <label className="btn btn-secondary" style={{ minHeight: '36px', padding: '0.5rem 1rem', cursor: 'pointer', margin: 0, display: 'inline-flex', alignItems: 'center' }}>
-              Import JSON
-              <input type="file" accept=".json" style={{ display: 'none' }} onChange={handleImportJson} />
-            </label>
             {isAdmin && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(255,255,255,0.05)', padding: '0.25rem 0.5rem', borderRadius: '8px' }}>
+                <button onClick={handleExportJson} className="btn btn-secondary" style={{ minHeight: '36px', padding: '0.5rem 1rem' }}>
+                  Export Full Backup
+                </button>
+                <label className="btn btn-secondary" style={{ minHeight: '36px', padding: '0.5rem 1rem', cursor: 'pointer', margin: 0, display: 'inline-flex', alignItems: 'center' }}>
+                  Restore from Backup
+                  <input type="file" accept=".json" style={{ display: 'none' }} onChange={handleImportJson} />
+                </label>
                 <button onClick={handleBackup} disabled={isBackingUp} className="btn btn-success" style={{ minHeight: '36px', padding: '0.5rem 1rem', border: 'none' }}>
-                  {isBackingUp ? 'Backing up...' : 'Backup to Drive'}
+                  {isBackingUp ? 'Backing up...' : 'Run Local Backup'}
                 </button>
                 {lastBackup && (
                   <span style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>

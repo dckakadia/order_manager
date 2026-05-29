@@ -214,46 +214,52 @@ app.get('/api/orders', authMiddleware, async (req, res) => {
   }
 });
 
-app.post('/api/orders/bulk', authMiddleware, async (req, res) => {
+app.get('/api/backup/download', authMiddleware, requireRole(['ADMIN']), async (req, res) => {
   try {
-    const orders = req.body;
-    if (!Array.isArray(orders)) {
-      return res.status(400).json({ error: 'Expected an array of orders' });
-    }
-    
-    let createdCount = 0;
-    for (const data of orders) {
-      await prisma.order.create({
-        data: {
-          customerName: data.customerName,
-          phone: data.phone,
-          email: data.email,
-          shippingAddress: data.shippingAddress,
-          taxNumber: data.taxNumber,
-          baseModel: data.baseModel,
-          variant: data.variant || null,
-          basePrice: parseFloat(data.basePrice) || 0,
-          totalPrice: parseFloat(data.totalPrice) || 0,
-          notes: data.notes || null,
-          faucetPosition: data.faucetPosition || null,
-          orderBy: data.orderBy || null,
-          locationLat: data.locationLat,
-          locationLng: data.locationLng,
-          checkInTime: data.checkInTime ? new Date(data.checkInTime) : null,
-          deliveryDate: data.deliveryDate ? new Date(data.deliveryDate) : null,
-          status: data.status || 'Order Form Received',
-          createdAt: data.createdAt ? new Date(data.createdAt) : undefined,
-          updatedAt: data.updatedAt ? new Date(data.updatedAt) : undefined,
-        }
-      });
-      createdCount++;
-    }
-    
-    // Broadcast a general update so clients refresh
-    io.emit('bulk_orders_imported', createdCount);
-    res.json({ success: true, imported: createdCount });
+    const orders = await prisma.order.findMany();
+    const customers = await prisma.customer.findMany();
+    const items = await prisma.item.findMany();
+    const users = await prisma.user.findMany();
+    res.json({ orders, customers, items, users });
   } catch (error) {
-    console.error('Bulk import error:', error);
+    console.error('Backup download error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/backup/restore', authMiddleware, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const { orders, customers, items, users } = req.body;
+    
+    if (!orders || !customers || !items || !users) {
+      return res.status(400).json({ error: 'Invalid backup format' });
+    }
+    
+    await prisma.$transaction(async (tx) => {
+      // 1. Delete all existing records
+      await tx.order.deleteMany();
+      await tx.customer.deleteMany();
+      await tx.item.deleteMany();
+      await tx.user.deleteMany();
+      
+      // 2. Insert records with their original IDs
+      if (users.length) await tx.user.createMany({ data: users });
+      if (items.length) await tx.item.createMany({ data: items });
+      if (customers.length) await tx.customer.createMany({ data: customers });
+      if (orders.length) await tx.order.createMany({ data: orders });
+      
+      // 3. Reset PostgreSQL sequence generators so future inserts work properly
+      await tx.$executeRawUnsafe(`SELECT setval('"User_id_seq"', COALESCE((SELECT MAX(id)+1 FROM "User"), 1), false)`);
+      await tx.$executeRawUnsafe(`SELECT setval('"Item_id_seq"', COALESCE((SELECT MAX(id)+1 FROM "Item"), 1), false)`);
+      await tx.$executeRawUnsafe(`SELECT setval('"Customer_id_seq"', COALESCE((SELECT MAX(id)+1 FROM "Customer"), 1), false)`);
+      await tx.$executeRawUnsafe(`SELECT setval('"Order_id_seq"', COALESCE((SELECT MAX(id)+1 FROM "Order"), 1), false)`);
+    });
+    
+    // Broadcast general update to connected clients
+    io.emit('full_backup_restored');
+    res.json({ success: true, message: 'Database fully restored' });
+  } catch (error) {
+    console.error('Backup restore error:', error);
     res.status(500).json({ error: error.message });
   }
 });
