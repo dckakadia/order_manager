@@ -451,7 +451,7 @@ export default function SalesForm() {
       <div className="glass-card" style={{ gridColumn: '1 / -1', marginTop: '2rem' }}>
         <h2>My Submitted Orders</h2>
         <div className="order-list">
-          {orders.map(order => {
+          {orders.slice(0, 10).map(order => {
             const isDelivered = order.status === 'Delivered';
             return (
               <div className="order-card" key={order.id} style={{ opacity: isDelivered ? 0.6 : 1 }}>
@@ -481,7 +481,22 @@ export default function SalesForm() {
                 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', paddingTop: '12px', borderTop: '1px solid var(--border)' }}>
                   <div className="order-date">
-                    {renderDeliveryDate(order.deliveryDate)}
+                    {order.status === 'Delivered' ? (
+                      <span style={{ 
+                        padding: '0.4rem 0.75rem', 
+                        background: '#f0fdf4', 
+                        color: '#166534', 
+                        border: '1px solid #bbf7d0',
+                        borderRadius: '6px', 
+                        fontWeight: 'bold', 
+                        fontSize: '0.95rem',
+                        display: 'inline-block' 
+                      }}>
+                        Delivered: {new Date(order.updatedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}, {new Date(order.updatedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }).toLowerCase()}
+                      </span>
+                    ) : (
+                      renderDeliveryDate(order.deliveryDate)
+                    )}
                   </div>
                 </div>
                 
