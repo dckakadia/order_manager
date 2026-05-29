@@ -4,6 +4,7 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const { PrismaClient } = require('@prisma/client');
+const backupService = require('./backup');
 
 const app = express();
 const server = http.createServer(app);
@@ -275,6 +276,22 @@ app.put('/api/orders/:id', authMiddleware, requireRole(['ADMIN']), async (req, r
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
+});
+
+// ============================================================
+// BACKUP (Google Drive)
+// ============================================================
+app.post('/api/backup', authMiddleware, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const timestamp = await backupService.performBackup();
+    res.json({ success: true, timestamp });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/backup/status', authMiddleware, requireRole(['ADMIN']), (req, res) => {
+  res.json({ lastBackup: backupService.getLastBackupTime() });
 });
 
 io.on('connection', (socket) => {

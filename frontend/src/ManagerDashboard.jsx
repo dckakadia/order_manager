@@ -8,7 +8,12 @@ export default function ManagerDashboard() {
   const [orders, setOrders] = useState([]);
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
+  const [lastBackup, setLastBackup] = useState(null);
+  const [isBackingUp, setIsBackingUp] = useState(false);
   const socket = useContext(SocketContext);
+
+  const role = localStorage.getItem('ocean_spas_role');
+  const isAdmin = role === 'ADMIN';
 
   const fetchOrders = () => {
     fetch(`${API_BASE}/api/orders`, {
@@ -19,8 +24,21 @@ export default function ManagerDashboard() {
       .catch(() => {});
   };
 
+  const fetchBackupStatus = () => {
+    if (!isAdmin) return;
+    fetch(`${API_BASE}/api/backup/status`, {
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('ocean_spas_auth_token')}` }
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.lastBackup) setLastBackup(data.lastBackup);
+      })
+      .catch(() => {});
+  };
+
   useEffect(() => {
     fetchOrders();
+    fetchBackupStatus();
   }, []);
 
   // BUG FIX #9: Subscribe to Socket.IO events so dashboard updates in real-time
@@ -120,6 +138,28 @@ export default function ManagerDashboard() {
     e.target.value = '';
   };
 
+  const handleBackup = async () => {
+    if (!isAdmin) return;
+    setIsBackingUp(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/backup`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('ocean_spas_auth_token')}` }
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert('Backup successfully uploaded to Google Drive!');
+        setLastBackup(data.timestamp);
+      } else {
+        alert('Backup failed: ' + data.error);
+      }
+    } catch (err) {
+      alert('Backup failed.');
+    } finally {
+      setIsBackingUp(false);
+    }
+  };
+
   return (
     <div className="grid-1" style={{ gap: '2rem' }}>
 
@@ -210,6 +250,18 @@ export default function ManagerDashboard() {
               Import JSON
               <input type="file" accept=".json" style={{ display: 'none' }} onChange={handleImportJson} />
             </label>
+            {isAdmin && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(255,255,255,0.05)', padding: '0.25rem 0.5rem', borderRadius: '8px' }}>
+                <button onClick={handleBackup} disabled={isBackingUp} className="btn btn-primary" style={{ minHeight: '36px', padding: '0.5rem 1rem', background: 'var(--success)', border: 'none' }}>
+                  {isBackingUp ? 'Backing up...' : 'Backup to Drive'}
+                </button>
+                {lastBackup && (
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>
+                    Last Backup: {new Date(lastBackup).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' })}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         </div>
         

@@ -4,3 +4,4 @@ dev.db
 dev.db-journal
 dist/
 .DS_Store
+backend/google-credentials.json
