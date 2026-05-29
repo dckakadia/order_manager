@@ -295,7 +295,7 @@ export default function ManagerDashboard() {
             </label>
             {isAdmin && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(255,255,255,0.05)', padding: '0.25rem 0.5rem', borderRadius: '8px' }}>
-                <button onClick={handleBackup} disabled={isBackingUp} className="btn btn-primary" style={{ minHeight: '36px', padding: '0.5rem 1rem', background: 'var(--success)', border: 'none' }}>
+                <button onClick={handleBackup} disabled={isBackingUp} className="btn btn-success" style={{ minHeight: '36px', padding: '0.5rem 1rem', border: 'none' }}>
                   {isBackingUp ? 'Backing up...' : 'Backup to Drive'}
                 </button>
                 {lastBackup && (
