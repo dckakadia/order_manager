@@ -52,7 +52,7 @@ export default function SalesForm() {
   const [selectedCustomerId, setSelectedCustomerId] = useState('');
   const [formData, setFormData] = useState({
     customerName: '', phone: '', email: '', shippingAddress: '', taxNumber: '',
-    baseModel: '', variant: '', deliveryDate: '', notes: '', faucetPosition: 'No Faucet', orderBy: 'Manish', manualPrice: ''
+    baseModel: '', variant: '', deliveryDate: '', notes: '', faucetPosition: '', orderBy: 'Manish', manualPrice: ''
   });
 
   const getVariantPrice = (modelId, variantName) => {
@@ -189,7 +189,7 @@ export default function SalesForm() {
         setSubmitted(false);
         // BUG FIX #6: Reset customer dropdown + all form state properly
         setSelectedCustomerId('');
-        setFormData({ customerName: '', phone: '', email: '', shippingAddress: '', taxNumber: '', baseModel: '', variant: '', deliveryDate: '', notes: '', faucetPosition: 'No Faucet', orderBy: 'Manish', manualPrice: '' });
+        setFormData({ customerName: '', phone: '', email: '', shippingAddress: '', taxNumber: '', baseModel: '', variant: '', deliveryDate: '', notes: '', faucetPosition: '', orderBy: 'Manish', manualPrice: '' });
         setLocation(null);
       }, 3000);
     } catch {
@@ -394,6 +394,7 @@ export default function SalesForm() {
           <div className="form-group" style={{ marginTop: '1.5rem' }}>
             <label className="form-label required">Faucet Position</label>
             <select className="form-control" required value={formData.faucetPosition} onChange={e => setFormData({...formData, faucetPosition: e.target.value})} form="orderForm">
+              <option value="" disabled>-- Select Faucet Position --</option>
               <option value="No Faucet">No Faucet</option>
               <option value="Left Side">Left Side</option>
               <option value="Right Side">Right Side</option>
