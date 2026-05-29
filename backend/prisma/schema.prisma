@@ -50,6 +50,7 @@ model Order {
   notes            String?
 
   faucetPosition   String?
+  sidePanel        String?
   orderBy          String?
 
   locationLat      Float?

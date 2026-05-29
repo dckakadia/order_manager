@@ -189,6 +189,7 @@ app.post('/api/orders', authMiddleware, async (req, res) => {
         // NEW FEATURE: Save notes field
         notes: data.notes || null,
         faucetPosition: data.faucetPosition || null,
+        sidePanel: data.sidePanel || null,
         orderBy: data.orderBy || null,
         locationLat: data.locationLat,
         locationLng: data.locationLng,
@@ -306,6 +307,7 @@ app.put('/api/orders/:id', authMiddleware, requireRole(['ADMIN']), async (req, r
     if (data.deliveryDate !== undefined) updateData.deliveryDate = data.deliveryDate ? new Date(data.deliveryDate) : null;
     if (data.notes !== undefined) updateData.notes = data.notes;
     if (data.faucetPosition !== undefined) updateData.faucetPosition = data.faucetPosition;
+    if (data.sidePanel !== undefined) updateData.sidePanel = data.sidePanel;
     if (data.orderBy !== undefined) updateData.orderBy = data.orderBy;
     
     const order = await prisma.order.update({

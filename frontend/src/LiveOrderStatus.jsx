@@ -207,6 +207,7 @@ export default function LiveOrderStatus() {
               </div>
               <div style={{ fontSize: '13px', color: 'var(--text)', marginBottom: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 <div><strong>Faucet Position:</strong> {order.faucetPosition || 'Not Specified'}</div>
+                <div><strong>Side Panel:</strong> {order.sidePanel || 'Not Specified'}</div>
                 <div><strong>Order By:</strong> {order.orderBy || 'Not Specified'}</div>
                 <div><strong>Notes:</strong> {order.notes || '—'}</div>
               </div>

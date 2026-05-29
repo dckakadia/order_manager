@@ -122,7 +122,7 @@ export default function ManagerDashboard() {
   const handleExportCsv = () => {
     const headers = [
       "Order#", "Date & Time", "Customer", "Model", "Variant", 
-      "Faucet Position", "Order By", "Total Price", 
+      "Faucet Position", "Side Panel", "Order By", "Total Price", 
       "Committed Delivery Date", "Delivered Date & Time", "Status"
     ];
     
@@ -136,6 +136,7 @@ export default function ManagerDashboard() {
         `"${order.baseModel || ''}"`,
         `"${order.variant || 'None'}"`,
         `"${order.faucetPosition || 'None'}"`,
+        `"${order.sidePanel || 'None'}"`,
         `"${order.orderBy || 'None'}"`,
         order.totalPrice || 0,
         order.deliveryDate ? `"${new Date(order.deliveryDate).toLocaleDateString('en-IN')}"` : '"Not Set"',
@@ -336,6 +337,7 @@ export default function ManagerDashboard() {
                 <th>Model Name</th>
                 <th>Variant</th>
                 <th>Faucet Position</th>
+                <th>Side Panel</th>
                 <th>Order By</th>
                 <th>Total Price (₹)</th>
                 <th>Committed Delivery Date</th>
@@ -366,6 +368,7 @@ export default function ManagerDashboard() {
                       <td>{order.baseModel}</td>
                       <td>{order.variant || '-'}</td>
                       <td>{order.faucetPosition || '-'}</td>
+                      <td>{order.sidePanel || '-'}</td>
                       <td>{order.orderBy || '-'}</td>
                       <td style={{ fontWeight: 500 }}>₹{order.totalPrice?.toLocaleString('en-IN') || 0}</td>
                       <td>{order.deliveryDate ? new Date(order.deliveryDate).toLocaleDateString('en-IN') : '-'}</td>
@@ -386,7 +389,7 @@ export default function ManagerDashboard() {
             {filteredTableOrders.length > 0 && (
               <tfoot>
                 <tr style={{ background: '#f8fafc', fontWeight: 'bold' }}>
-                  <td colSpan="7" style={{ textAlign: 'right', borderTop: '2px solid var(--border)' }}>Grand Total:</td>
+                  <td colSpan="8" style={{ textAlign: 'right', borderTop: '2px solid var(--border)' }}>Grand Total:</td>
                   <td colSpan="4" style={{ borderTop: '2px solid var(--border)', color: 'var(--primary)' }}>₹{tableTotalRevenue.toLocaleString('en-IN')}</td>
                 </tr>
               </tfoot>

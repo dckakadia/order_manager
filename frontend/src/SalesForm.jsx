@@ -52,7 +52,7 @@ export default function SalesForm() {
   const [selectedCustomerId, setSelectedCustomerId] = useState('');
   const [formData, setFormData] = useState({
     customerName: '', phone: '', email: '', shippingAddress: '', taxNumber: '',
-    baseModel: '', variant: '', deliveryDate: '', notes: '', faucetPosition: '', orderBy: 'Manish', manualPrice: ''
+    baseModel: '', variant: '', deliveryDate: '', notes: '', faucetPosition: '', sidePanel: '', orderBy: 'Manish', manualPrice: ''
   });
 
   const getVariantPrice = (modelId, variantName) => {
@@ -168,6 +168,8 @@ export default function SalesForm() {
       totalPrice: Number(formData.manualPrice),
       deliveryDate: formData.deliveryDate,
       notes: formData.notes,
+      faucetPosition: formData.faucetPosition,
+      sidePanel: formData.sidePanel,
       locationLat: location?.lat,
       locationLng: location?.lng,
       checkInTime: location?.time
@@ -189,7 +191,7 @@ export default function SalesForm() {
         setSubmitted(false);
         // BUG FIX #6: Reset customer dropdown + all form state properly
         setSelectedCustomerId('');
-        setFormData({ customerName: '', phone: '', email: '', shippingAddress: '', taxNumber: '', baseModel: '', variant: '', deliveryDate: '', notes: '', faucetPosition: '', orderBy: 'Manish', manualPrice: '' });
+        setFormData({ customerName: '', phone: '', email: '', shippingAddress: '', taxNumber: '', baseModel: '', variant: '', deliveryDate: '', notes: '', faucetPosition: '', sidePanel: '', orderBy: 'Manish', manualPrice: '' });
         setLocation(null);
       }, 3000);
     } catch {
@@ -300,6 +302,7 @@ export default function SalesForm() {
             <tr><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0', fontWeight: 'bold' }}>Model</td><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0' }}>{selectedModel?.name}</td></tr>
             <tr><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0', fontWeight: 'bold' }}>Variant</td><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0' }}>{formData.variant || 'None'}</td></tr>
             <tr><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0', fontWeight: 'bold' }}>Faucet</td><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0' }}>{formData.faucetPosition}</td></tr>
+            <tr><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0', fontWeight: 'bold' }}>Side Panel</td><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0' }}>{formData.sidePanel}</td></tr>
             <tr><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0', fontWeight: 'bold' }}>Delivery</td><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0' }}>{formData.deliveryDate ? new Date(formData.deliveryDate).toLocaleDateString('en-IN') : 'Not Set'}</td></tr>
             <tr><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0', fontWeight: 'bold' }}>Order By</td><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0' }}>{formData.orderBy}</td></tr>
             <tr><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0', fontWeight: 'bold' }}>Notes</td><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0' }}>{formData.notes || 'None'}</td></tr>
@@ -402,6 +405,17 @@ export default function SalesForm() {
           </div>
 
           <div className="form-group" style={{ marginTop: '1.5rem' }}>
+            <label className="form-label required">Side Panel</label>
+            <select className="form-control" required value={formData.sidePanel} onChange={e => setFormData({...formData, sidePanel: e.target.value})} form="orderForm">
+              <option value="" disabled>-- Select Side Panel --</option>
+              <option value="Head Side">Head Side</option>
+              <option value="Leg Side">Leg Side</option>
+              <option value="Head + Leg Side">Head + Leg Side</option>
+              <option value="No Side Panel">No Side Panel</option>
+            </select>
+          </div>
+
+          <div className="form-group" style={{ marginTop: '1.5rem' }}>
             <label className="form-label">Notes</label>
             <textarea
               className="form-control"
@@ -476,6 +490,7 @@ export default function SalesForm() {
                 <div style={{ fontSize: '13px', color: 'var(--text)', marginBottom: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   <div><strong>Total Price:</strong> ₹{order.totalPrice?.toLocaleString('en-IN')}</div>
                   <div><strong>Faucet Position:</strong> {order.faucetPosition || 'Not Specified'}</div>
+                  <div><strong>Side Panel:</strong> {order.sidePanel || 'Not Specified'}</div>
                   <div><strong>Order By:</strong> {order.orderBy || 'Not Specified'}</div>
                   <div><strong>Notes:</strong> {order.notes || '—'}</div>
                 </div>
