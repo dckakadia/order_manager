@@ -675,6 +675,38 @@ export default function SalesForm() {
                   <option value="Titanium">Titanium</option>
                 </select>
               </div>
+              <div className="form-group">
+                <label className="form-label">Faucet Position</label>
+                <select className="form-control" value={editingOrder.faucetPosition || ''} onChange={e => setEditingOrder({...editingOrder, faucetPosition: e.target.value})}>
+                  <option value="">-- None --</option>
+                  <option value="No Faucet">No Faucet</option>
+                  <option value="Left Side">Left Side</option>
+                  <option value="Right Side">Right Side</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Side Panel</label>
+                <select className="form-control" value={editingOrder.sidePanel || ''} onChange={e => setEditingOrder({...editingOrder, sidePanel: e.target.value})}>
+                  <option value="">-- None --</option>
+                  <option value="Head Side">Head Side</option>
+                  <option value="Leg Side">Leg Side</option>
+                  <option value="Head + Leg Side">Head + Leg Side</option>
+                  <option value="No Side Panel">No Side Panel</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Order By</label>
+                <select className="form-control" value={editingOrder.orderBy || ''} onChange={e => setEditingOrder({...editingOrder, orderBy: e.target.value})}>
+                  <option value="">-- None --</option>
+                  <option value="Manish">Manish</option>
+                  <option value="Paresh">Paresh</option>
+                  <option value="Devin">Devin</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Total Price (₹)</label>
+                <input type="number" step="any" className="form-control" value={editingOrder.totalPrice || ''} onChange={e => setEditingOrder({...editingOrder, totalPrice: e.target.value})} />
+              </div>
               <div className="form-group" style={{ marginTop: '1.5rem', background: '#fff7ed', padding: '1rem', borderRadius: '8px', border: '1px solid #fed7aa' }}>
                 <label className="form-label required" style={{ color: '#9a3412', fontWeight: 'bold' }}>🚨 COMMITTED DELIVERY DATE</label>
                 <input type="date" className="form-control" required value={editingOrder.deliveryDate ? editingOrder.deliveryDate.split('T')[0] : ''} onChange={e => setEditingOrder({...editingOrder, deliveryDate: e.target.value})} style={{ fontWeight: 'bold', fontSize: '1.1rem', color: '#9a3412', borderColor: '#fed7aa' }} />
