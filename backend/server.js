@@ -343,16 +343,16 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => console.log('Client disconnected'));
 });
 
-// Ensure manish-7411 user exists for customer creation
+// Ensure manish user exists for customer creation
 prisma.user.upsert({
-  where: { username: 'manish-7411' },
+  where: { username: 'manish' },
   update: {},
   create: {
-    username: 'manish-7411',
+    username: 'manish',
     pin: '7411',
     role: 'SALES'
   }
-}).catch(err => console.error('Error ensuring manish-7411 user exists:', err));
+}).catch(err => console.error('Error ensuring manish user exists:', err));
 
 // BUG FIX #4: Default port changed to 3001 to match Nginx proxy configuration
 const PORT = process.env.PORT || 3001;
