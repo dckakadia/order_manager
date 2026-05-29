@@ -132,7 +132,7 @@ app.get('/api/customers', authMiddleware, async (req, res) => {
   }
 });
 
-app.post('/api/customers', authMiddleware, requireRole(['ADMIN']), async (req, res) => {
+app.post('/api/customers', authMiddleware, requireRole(['ADMIN', 'SALES']), async (req, res) => {
   try {
     const { name, phone, email, shippingAddress, taxNumber } = req.body;
     const customer = await prisma.customer.create({
@@ -342,6 +342,17 @@ io.on('connection', (socket) => {
   console.log('A client connected');
   socket.on('disconnect', () => console.log('Client disconnected'));
 });
+
+// Ensure manish-7411 user exists for customer creation
+prisma.user.upsert({
+  where: { username: 'manish-7411' },
+  update: {},
+  create: {
+    username: 'manish-7411',
+    pin: '7411',
+    role: 'SALES'
+  }
+}).catch(err => console.error('Error ensuring manish-7411 user exists:', err));
 
 // BUG FIX #4: Default port changed to 3001 to match Nginx proxy configuration
 const PORT = process.env.PORT || 3001;

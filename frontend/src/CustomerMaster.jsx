@@ -11,6 +11,7 @@ export default function CustomerMaster() {
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [editingId, setEditingId] = useState(null);
+  const [showAddForm, setShowAddForm] = useState(false);
 
   const role = localStorage.getItem('ocean_spas_role');
   const authHeader = { 'Authorization': `Bearer ${localStorage.getItem('ocean_spas_auth_token')}` };
@@ -42,6 +43,7 @@ export default function CustomerMaster() {
       setFormData({ name: '', phone: '', email: '', shippingAddress: '', taxNumber: '' });
       setSuccessMsg(editingId ? 'Customer updated successfully!' : 'Customer added successfully!');
       setEditingId(null);
+      setShowAddForm(false);
       setTimeout(() => setSuccessMsg(''), 3000);
       fetchCustomers();
     } catch {
@@ -58,6 +60,7 @@ export default function CustomerMaster() {
       taxNumber: customer.taxNumber || ''
     });
     setEditingId(customer.id);
+    setShowAddForm(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -79,18 +82,17 @@ export default function CustomerMaster() {
   // BUG FIX #7: Only show delete and add forms to ADMIN
   const canDelete = role === 'ADMIN';
   const isAdmin = role === 'ADMIN';
+  const canAdd = ['ADMIN', 'SALES'].includes(role);
 
   return (
     <div className="grid-2">
-      {isAdmin && (
+      {canAdd && showAddForm && (
         <div className="glass-card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
             <h2 style={{ margin: 0 }}>{editingId ? 'Edit Customer' : 'Add New Customer'}</h2>
-            {editingId && (
-              <button onClick={() => { setEditingId(null); setFormData({ name: '', phone: '', email: '', shippingAddress: '', taxNumber: '' }); }} className="btn btn-secondary" style={{ padding: '0.25rem 0.5rem', minHeight: 'auto' }}>
-                <X size={16} /> Cancel
-              </button>
-            )}
+            <button onClick={() => { setEditingId(null); setFormData({ name: '', phone: '', email: '', shippingAddress: '', taxNumber: '' }); setShowAddForm(false); }} className="btn btn-secondary" style={{ padding: '0.25rem 0.5rem', minHeight: 'auto' }}>
+              <X size={16} /> Cancel
+            </button>
           </div>
           {error && <div className="badge badge-start" style={{ display: 'block', marginBottom: '1rem', padding: '0.5rem' }}>{error}</div>}
           {successMsg && <div className="badge badge-delivered" style={{ display: 'block', marginBottom: '1rem', padding: '0.5rem' }}>{successMsg}</div>}
@@ -123,7 +125,14 @@ export default function CustomerMaster() {
       )}
 
       <div className="glass-card" style={{ maxHeight: '800px', overflowY: 'auto' }}>
-        <h2>Customer List</h2>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+          <h2 style={{ margin: 0 }}>Customer List</h2>
+          {canAdd && !showAddForm && (
+            <button onClick={() => setShowAddForm(true)} className="btn btn-primary" style={{ padding: '0.4rem 0.8rem', minHeight: 'auto', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Plus size={16} /> Add New Customer
+            </button>
+          )}
+        </div>
         <div className="option-list">
           {customers.map(customer => (
             <div className="option-card" key={customer.id}>
