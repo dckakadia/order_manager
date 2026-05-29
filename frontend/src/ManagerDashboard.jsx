@@ -102,8 +102,48 @@ export default function ManagerDashboard() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "orders_export.json";
+    a.download = "orders_backup.json";
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExportCsv = () => {
+    const headers = [
+      "Order#", "Date & Time", "Customer", "Model", "Variant", 
+      "Faucet Position", "Order By", "Total Price", 
+      "Committed Delivery Date", "Delivered Date & Time", "Status"
+    ];
+    
+    const csvRows = [headers.join(',')];
+    
+    filteredTableOrders.forEach(order => {
+      const row = [
+        order.id,
+        `"${new Date(order.createdAt).toLocaleString('en-IN')}"`,
+        `"${order.customerName || ''}"`,
+        `"${order.baseModel || ''}"`,
+        `"${order.variant || 'None'}"`,
+        `"${order.faucetPosition || 'None'}"`,
+        `"${order.orderBy || 'None'}"`,
+        order.totalPrice || 0,
+        order.deliveryDate ? `"${new Date(order.deliveryDate).toLocaleDateString('en-IN')}"` : '"Not Set"',
+        order.status === 'Delivered' ? `"${new Date(order.updatedAt).toLocaleString('en-IN')}"` : '"N/A"',
+        `"${order.status}"`
+      ];
+      csvRows.push(row.join(','));
+    });
+
+    const csvStr = csvRows.join('\n');
+    const blob = new Blob([csvStr], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'orders_report.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
 
@@ -243,8 +283,11 @@ export default function ManagerDashboard() {
             <button onClick={() => window.print()} className="btn btn-primary" style={{ minHeight: '36px', padding: '0.5rem 1rem' }}>
               <Printer size={16} /> Print / PDF
             </button>
+            <button onClick={handleExportCsv} className="btn btn-secondary" style={{ minHeight: '36px', padding: '0.5rem 1rem', background: '#f0fdf4', color: '#166534', borderColor: '#bbf7d0' }}>
+              Export Excel / CSV
+            </button>
             <button onClick={handleExportJson} className="btn btn-secondary" style={{ minHeight: '36px', padding: '0.5rem 1rem' }}>
-              Export JSON
+              Export JSON (Backup)
             </button>
             <label className="btn btn-secondary" style={{ minHeight: '36px', padding: '0.5rem 1rem', cursor: 'pointer', margin: 0, display: 'inline-flex', alignItems: 'center' }}>
               Import JSON
