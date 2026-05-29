@@ -116,6 +116,28 @@ export default function LiveOrderStatus() {
     }
   };
 
+  const reverseStatus = async (orderId, currentStatus) => {
+    const currentIndex = STAGES.indexOf(currentStatus);
+    if (currentIndex > 0) {
+      const prevStatus = STAGES[currentIndex - 1];
+      if (!window.confirm(`Are you sure you want to move this order back to ${prevStatus}?`)) return;
+      try {
+        const res = await fetch(`${API_BASE}/api/orders/${orderId}/status`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('ocean_spas_auth_token')}`
+          },
+          body: JSON.stringify({ status: prevStatus })
+        });
+        if (!res.ok) throw new Error('Status update failed');
+      } catch {
+        setError('Failed to reverse order status. Please try again.');
+        setTimeout(() => setError(''), 3000);
+      }
+    }
+  };
+
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to permanently delete this order?')) return;
     try {
@@ -217,13 +239,24 @@ export default function LiveOrderStatus() {
                   {renderDeliveryDate(order.deliveryDate)}
                 </div>
                 {!isDelivered && order.status !== 'Cancelled' ? (
-                  <button
-                    onClick={() => advanceStatus(order.id, order.status)}
-                    className="btn btn-primary"
-                    style={{ padding: '0.5rem 1rem', fontSize: '0.875rem', minHeight: '36px' }}
-                  >
-                    Advance <ArrowRight size={14} />
-                  </button>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    {role === 'ADMIN' && order.status !== 'Order Form Received' && (
+                      <button
+                        onClick={() => reverseStatus(order.id, order.status)}
+                        className="btn btn-secondary"
+                        style={{ padding: '0.5rem 1rem', fontSize: '0.875rem', minHeight: '36px' }}
+                      >
+                        Reverse ←
+                      </button>
+                    )}
+                    <button
+                      onClick={() => advanceStatus(order.id, order.status)}
+                      className="btn btn-primary"
+                      style={{ padding: '0.5rem 1rem', fontSize: '0.875rem', minHeight: '36px' }}
+                    >
+                      Advance <ArrowRight size={14} />
+                    </button>
+                  </div>
                 ) : (
                   <span style={{ color: order.status === 'Cancelled' ? 'var(--danger)' : 'var(--secondary)', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.25rem', fontWeight: 600 }}>
                     {order.status === 'Cancelled' ? <XCircle size={14} /> : <CheckCircle2 size={14} />} 
