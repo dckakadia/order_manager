@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Edit2, X } from 'lucide-react';
 
 export default function ItemMaster() {
   const [items, setItems] = useState([]);
@@ -8,6 +8,7 @@ export default function ItemMaster() {
   const [goldPrice, setGoldPrice] = useState('');
   const [platinumPrice, setPlatinumPrice] = useState('');
   const [titaniumPrice, setTitaniumPrice] = useState('');
+  const [editingId, setEditingId] = useState(null);
 
   const fetchItems = async () => {
     const res = await fetch('http://116.74.77.22:3000/api/items', { headers: { 'Authorization': `Bearer ${localStorage.getItem('ocean_spas_auth_token')}` } });
@@ -19,10 +20,13 @@ export default function ItemMaster() {
     fetchItems();
   }, []);
 
-  const handleAddItem = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    await fetch('http://116.74.77.22:3000/api/items', {
-      method: 'POST',
+    const url = editingId ? `http://116.74.77.22:3000/api/items/${editingId}` : 'http://116.74.77.22:3000/api/items';
+    const method = editingId ? 'PUT' : 'POST';
+    
+    await fetch(url, {
+      method,
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${localStorage.getItem('ocean_spas_auth_token')}`
@@ -40,7 +44,18 @@ export default function ItemMaster() {
     setGoldPrice('');
     setPlatinumPrice('');
     setTitaniumPrice('');
+    setEditingId(null);
     fetchItems();
+  };
+
+  const handleEditClick = (item) => {
+    setName(item.name || '');
+    setSilverPrice(item.silverPrice !== null ? item.silverPrice : '');
+    setGoldPrice(item.goldPrice !== null ? item.goldPrice : '');
+    setPlatinumPrice(item.platinumPrice !== null ? item.platinumPrice : '');
+    setTitaniumPrice(item.titaniumPrice !== null ? item.titaniumPrice : '');
+    setEditingId(item.id);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const role = localStorage.getItem('ocean_spas_role');
@@ -60,8 +75,15 @@ export default function ItemMaster() {
     <div className="grid-2">
       {isAdmin && (
         <div className="glass-card">
-          <h2>Add New Option</h2>
-          <form onSubmit={handleAddItem}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <h2 style={{ margin: 0 }}>{editingId ? 'Edit Option' : 'Add New Option'}</h2>
+            {editingId && (
+              <button onClick={() => { setEditingId(null); setName(''); setSilverPrice(''); setGoldPrice(''); setPlatinumPrice(''); setTitaniumPrice(''); }} className="btn btn-secondary" style={{ padding: '0.25rem 0.5rem', minHeight: 'auto' }}>
+                <X size={16} /> Cancel
+              </button>
+            )}
+          </div>
+          <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label className="form-label">Name</label>
             <input type="text" className="form-control" required value={name} onChange={e => setName(e.target.value)} />
@@ -88,7 +110,7 @@ export default function ItemMaster() {
           </div>
           
           <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>
-            <Plus size={18} /> Add Option
+            {editingId ? <><Edit2 size={18} /> Update Option</> : <><Plus size={18} /> Add Option</>}
           </button>
         </form>
       </div>
@@ -116,9 +138,14 @@ export default function ItemMaster() {
                 </div>
               </div>
               {isAdmin && (
-                <button onClick={() => handleDelete(item.id)} className="option-delete-btn" aria-label="Delete">
-                  <Trash2 size={18} />
-                </button>
+                <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
+                  <button onClick={() => handleEditClick(item)} className="option-delete-btn" style={{ color: 'var(--primary)', background: '#eff6ff', borderColor: '#bfdbfe' }} aria-label="Edit">
+                    <Edit2 size={18} />
+                  </button>
+                  <button onClick={() => handleDelete(item.id)} className="option-delete-btn" aria-label="Delete">
+                    <Trash2 size={18} />
+                  </button>
+                </div>
               )}
             </div>
           ))}

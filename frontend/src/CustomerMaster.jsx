@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Edit2, X } from 'lucide-react';
 
 const API_BASE = 'http://116.74.77.22:3000';
 
@@ -10,6 +10,7 @@ export default function CustomerMaster() {
   });
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [editingId, setEditingId] = useState(null);
 
   const role = localStorage.getItem('ocean_spas_role');
   const authHeader = { 'Authorization': `Bearer ${localStorage.getItem('ocean_spas_auth_token')}` };
@@ -26,23 +27,38 @@ export default function CustomerMaster() {
 
   useEffect(() => { fetchCustomers(); }, []);
 
-  const handleAddCustomer = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     try {
-      const res = await fetch(`${API_BASE}/api/customers`, {
-        method: 'POST',
+      const url = editingId ? `${API_BASE}/api/customers/${editingId}` : `${API_BASE}/api/customers`;
+      const method = editingId ? 'PUT' : 'POST';
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json', ...authHeader },
         body: JSON.stringify(formData)
       });
-      if (!res.ok) throw new Error('Failed to add customer');
+      if (!res.ok) throw new Error(editingId ? 'Failed to update customer' : 'Failed to add customer');
       setFormData({ name: '', phone: '', email: '', shippingAddress: '', taxNumber: '' });
-      setSuccessMsg('Customer added successfully!');
+      setSuccessMsg(editingId ? 'Customer updated successfully!' : 'Customer added successfully!');
+      setEditingId(null);
       setTimeout(() => setSuccessMsg(''), 3000);
       fetchCustomers();
     } catch {
-      setError('Failed to add customer. Please try again.');
+      setError(editingId ? 'Failed to update customer. Please try again.' : 'Failed to add customer. Please try again.');
     }
+  };
+
+  const handleEditClick = (customer) => {
+    setFormData({
+      name: customer.name || '',
+      phone: customer.phone || '',
+      email: customer.email || '',
+      shippingAddress: customer.shippingAddress || '',
+      taxNumber: customer.taxNumber || ''
+    });
+    setEditingId(customer.id);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleDelete = async (id) => {
@@ -68,10 +84,17 @@ export default function CustomerMaster() {
     <div className="grid-2">
       {isAdmin && (
         <div className="glass-card">
-          <h2>Add New Customer</h2>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <h2 style={{ margin: 0 }}>{editingId ? 'Edit Customer' : 'Add New Customer'}</h2>
+            {editingId && (
+              <button onClick={() => { setEditingId(null); setFormData({ name: '', phone: '', email: '', shippingAddress: '', taxNumber: '' }); }} className="btn btn-secondary" style={{ padding: '0.25rem 0.5rem', minHeight: 'auto' }}>
+                <X size={16} /> Cancel
+              </button>
+            )}
+          </div>
           {error && <div className="badge badge-start" style={{ display: 'block', marginBottom: '1rem', padding: '0.5rem' }}>{error}</div>}
           {successMsg && <div className="badge badge-delivered" style={{ display: 'block', marginBottom: '1rem', padding: '0.5rem' }}>{successMsg}</div>}
-          <form onSubmit={handleAddCustomer}>
+          <form onSubmit={handleSubmit}>
             <div className="form-group">
             <label className="form-label required">Customer Name</label>
             <input type="text" className="form-control" required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
@@ -93,7 +116,7 @@ export default function CustomerMaster() {
             <input type="text" className="form-control" value={formData.taxNumber} onChange={e => setFormData({...formData, taxNumber: e.target.value})} />
           </div>
           <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>
-            <Plus size={18} /> Add Customer
+            {editingId ? <><Edit2 size={18} /> Update Customer</> : <><Plus size={18} /> Add Customer</>}
           </button>
         </form>
       </div>
@@ -108,10 +131,15 @@ export default function CustomerMaster() {
                 <div className="option-name">{customer.name}</div>
                 <div className="option-price">{customer.phone || 'No phone'}</div>
               </div>
-              {canDelete && (
-                <button onClick={() => handleDelete(customer.id)} className="option-delete-btn" aria-label="Delete">
-                  <Trash2 size={18} />
-                </button>
+              {isAdmin && (
+                <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
+                  <button onClick={() => handleEditClick(customer)} className="option-delete-btn" style={{ color: 'var(--primary)', background: '#eff6ff', borderColor: '#bfdbfe' }} aria-label="Edit">
+                    <Edit2 size={18} />
+                  </button>
+                  <button onClick={() => handleDelete(customer.id)} className="option-delete-btn" aria-label="Delete">
+                    <Trash2 size={18} />
+                  </button>
+                </div>
               )}
             </div>
           ))}

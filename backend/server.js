@@ -98,6 +98,28 @@ app.delete('/api/items/:id', authMiddleware, requireRole(['ADMIN']), async (req,
   }
 });
 
+app.put('/api/items/:id', authMiddleware, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const { category, name, price, silverPrice, goldPrice, platinumPrice, titaniumPrice } = req.body;
+    const item = await prisma.item.update({
+      where: { id },
+      data: { 
+        category: category || 'Model', 
+        name, 
+        price: parseFloat(price) || 0,
+        silverPrice: silverPrice !== undefined && silverPrice !== null ? parseFloat(silverPrice) : null,
+        goldPrice: goldPrice !== undefined && goldPrice !== null ? parseFloat(goldPrice) : null,
+        platinumPrice: platinumPrice !== undefined && platinumPrice !== null ? parseFloat(platinumPrice) : null,
+        titaniumPrice: titaniumPrice !== undefined && titaniumPrice !== null ? parseFloat(titaniumPrice) : null
+      }
+    });
+    res.json(item);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ============================================================
 // CUSTOMERS
 // ============================================================
@@ -128,6 +150,20 @@ app.delete('/api/customers/:id', authMiddleware, requireRole(['ADMIN']), async (
     const id = parseInt(req.params.id);
     await prisma.customer.update({ where: { id }, data: { isActive: false } });
     res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.put('/api/customers/:id', authMiddleware, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const { name, phone, email, shippingAddress, taxNumber } = req.body;
+    const customer = await prisma.customer.update({
+      where: { id },
+      data: { name, phone, email, shippingAddress, taxNumber }
+    });
+    res.json(customer);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
