@@ -233,6 +233,14 @@ export default function LiveOrderStatus() {
                 <div><strong>Order By:</strong> {order.orderBy || 'Not Specified'}</div>
                 <div><strong>Notes:</strong> {order.notes || '—'}</div>
               </div>
+              {(order.checkInTime || (order.locationLat && order.locationLng)) && (
+                <div style={{ fontSize: '13px', color: 'var(--text)', marginBottom: '8px', display: 'flex', flexDirection: 'column', gap: '4px', paddingTop: '4px', borderTop: '1px dashed var(--border)' }}>
+                  {order.checkInTime && <div><strong>Check-In Time:</strong> {new Date(order.checkInTime).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}</div>}
+                  {order.locationLat && order.locationLng && (
+                    <div><strong>Check-In Location:</strong> <a href={`https://maps.google.com/?q=${order.locationLat},${order.locationLng}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', textDecoration: 'underline' }}>View on Map</a></div>
+                  )}
+                </div>
+              )}
               
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', paddingTop: '12px', borderTop: '1px solid var(--border)' }}>
                 <div className="order-date">

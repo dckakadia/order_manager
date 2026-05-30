@@ -122,7 +122,7 @@ export default function ManagerDashboard() {
   const handleExportCsv = () => {
     const headers = [
       "Order#", "Date & Time", "Customer", "Model", "Variant", 
-      "Faucet Position", "Side Panel", "Order By", "Total Price", 
+      "Faucet Position", "Side Panel", "Order By", "Check-In Location", "Check-In Time", "Total Price", 
       "Committed Delivery Date", "Delivered Date & Time", "Status"
     ];
     
@@ -138,6 +138,8 @@ export default function ManagerDashboard() {
         `"${order.faucetPosition || 'None'}"`,
         `"${order.sidePanel || 'None'}"`,
         `"${order.orderBy || 'None'}"`,
+        `"${(order.locationLat && order.locationLng) ? `https://maps.google.com/?q=${order.locationLat},${order.locationLng}` : 'None'}"`,
+        `"${order.checkInTime ? new Date(order.checkInTime).toLocaleString('en-IN') : 'None'}"`,
         order.totalPrice || 0,
         order.deliveryDate ? `"${new Date(order.deliveryDate).toLocaleDateString('en-IN')}"` : '"Not Set"',
         order.status === 'Delivered' ? `"${new Date(order.updatedAt).toLocaleString('en-IN')}"` : '"N/A"',
@@ -339,6 +341,7 @@ export default function ManagerDashboard() {
                 <th>Faucet Position</th>
                 <th>Side Panel</th>
                 <th>Order By</th>
+                <th>Check-In</th>
                 <th>Total Price (₹)</th>
                 <th>Committed Delivery Date</th>
                 <th>Actual Delivered Date & Time</th>
@@ -370,6 +373,11 @@ export default function ManagerDashboard() {
                       <td>{order.faucetPosition || '-'}</td>
                       <td>{order.sidePanel || '-'}</td>
                       <td>{order.orderBy || '-'}</td>
+                      <td style={{ fontSize: '11px', lineHeight: '1.2' }}>
+                        {order.checkInTime && <div style={{ marginBottom: '2px' }}>{new Date(order.checkInTime).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' })}</div>}
+                        {order.locationLat && order.locationLng && <a href={`https://maps.google.com/?q=${order.locationLat},${order.locationLng}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)' }}>Map</a>}
+                        {(!order.checkInTime && !order.locationLat) && '-'}
+                      </td>
                       <td style={{ fontWeight: 500 }}>₹{order.totalPrice?.toLocaleString('en-IN') || 0}</td>
                       <td>{order.deliveryDate ? new Date(order.deliveryDate).toLocaleDateString('en-IN') : '-'}</td>
                       <td>{actualDelivered}</td>
@@ -389,7 +397,7 @@ export default function ManagerDashboard() {
             {filteredTableOrders.length > 0 && (
               <tfoot>
                 <tr style={{ background: '#f8fafc', fontWeight: 'bold' }}>
-                  <td colSpan="8" style={{ textAlign: 'right', borderTop: '2px solid var(--border)' }}>Grand Total:</td>
+                  <td colSpan="9" style={{ textAlign: 'right', borderTop: '2px solid var(--border)' }}>Grand Total:</td>
                   <td colSpan="4" style={{ borderTop: '2px solid var(--border)', color: 'var(--primary)' }}>₹{tableTotalRevenue.toLocaleString('en-IN')}</td>
                 </tr>
               </tfoot>
