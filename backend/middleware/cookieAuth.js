@@ -15,7 +15,7 @@ const TOKEN_EXPIRY = '24h'; // Token expiration time
 const setAuthCookie = (res, token, role = null) => {
   res.cookie('auth_token', token, {
     httpOnly: true,           // Cannot be accessed by JavaScript (XSS protection)
-    secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+    secure: process.env.SECURE_COOKIES === 'true', // Configurable for non-HTTPS dev/prod
     sameSite: 'strict',       // CSRF protection
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
     path: '/'
@@ -26,7 +26,7 @@ const setAuthCookie = (res, token, role = null) => {
   if (role) {
     res.cookie('user_role', role, {
       httpOnly: false,
-      secure: process.env.NODE_ENV === 'production',
+      secure: process.env.SECURE_COOKIES === 'true',
       sameSite: 'strict',
       maxAge: 24 * 60 * 60 * 1000,
       path: '/'

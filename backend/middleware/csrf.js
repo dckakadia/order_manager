@@ -19,7 +19,7 @@ const csrfProtection = (req, res, next) => {
     const token = crypto.randomUUID();
     res.cookie('csrf_token', token, {
       httpOnly: false, // Must be readable by frontend JS
-      secure: process.env.NODE_ENV === 'production',
+      secure: process.env.SECURE_COOKIES === 'true',
       sameSite: 'strict'
     });
     // Add token to request so it can be returned in JSON
