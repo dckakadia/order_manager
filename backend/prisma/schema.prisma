@@ -64,6 +64,7 @@ model Order {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
   deletedAt        DateTime?
+  statusHistory    OrderStatusHistory[]
 
   // PHASE 3: Add indexes for frequently queried fields
   @@index([status])
@@ -80,6 +81,7 @@ model User {
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  statusChanges OrderStatusHistory[]
 }
 
 // PHASE 3: Audit logging for compliance and security
@@ -100,4 +102,19 @@ model AuditLog {
   @@index([userId])
   @@index([action])
   @@index([createdAt])
+}
+
+// PHASE 4: Order Status History Tracking
+model OrderStatusHistory {
+  id              Int      @id @default(autoincrement())
+  orderId         Int
+  order           Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  previousStatus  String?  // Null if this is the initial creation
+  newStatus       String
+  changedByUserId Int?
+  user            User?    @relation(fields: [changedByUserId], references: [id], onDelete: SetNull)
+  timestamp       DateTime @default(now())
+  
+  @@index([orderId])
+  @@index([timestamp])
 }
