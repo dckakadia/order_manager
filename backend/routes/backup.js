@@ -29,6 +29,9 @@ router.post('/restore', authMiddleware, requireRole(['ADMIN']), async (req, res)
       return res.status(400).json({ success: false, error: 'Invalid backup format' });
     }
     
+    // CRITICAL: Auto-backup before overwrite
+    await backupService.performBackup();
+    
     await prisma.$transaction(async (tx) => {
       // 1. Delete all existing records
       await tx.order.deleteMany();
