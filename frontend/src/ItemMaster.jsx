@@ -12,9 +12,18 @@ export default function ItemMaster() {
   const [editingId, setEditingId] = useState(null);
 
   const fetchItems = async () => {
-    const res = await fetch(`${config.api.baseURL}/api/items`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('ocean_spas_auth_token')}` } });
-    const data = await res.json();
-    setItems(data);
+    try {
+      const res = await fetch(`${config.api.baseURL}/api/items`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('ocean_spas_auth_token')}` } });
+      if (res.status === 401) {
+        localStorage.clear();
+        window.location.href = '/login';
+        return;
+      }
+      const data = await res.json();
+      setItems(Array.isArray(data) ? data : (data.data || []));
+    } catch (e) {
+      setItems([]);
+    }
   };
 
   useEffect(() => {

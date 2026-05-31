@@ -17,10 +17,16 @@ export default function CustomerMaster() {
   const fetchCustomers = async () => {
     try {
       const res = await fetch(`${config.api.baseURL}/api/customers`, { headers: authHeader });
+      if (res.status === 401) {
+        localStorage.clear();
+        window.location.href = '/login';
+        return;
+      }
       const data = await res.json();
-      setCustomers(data);
+      setCustomers(Array.isArray(data) ? data : (data.data || []));
     } catch {
       setError('Failed to load customers.');
+      setCustomers([]);
     }
   };
 
