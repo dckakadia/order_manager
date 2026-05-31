@@ -1,98 +1,68 @@
-# Implementation Plan: CI/CD, Order Status History, and Service Layer
+# Implementation Plan: Tests, Pagination, Status History, & Error Boundaries
 
-This plan outlines the next major architectural features for the Order Manager: adding an automated deployment pipeline, auditing order status transitions, and extracting business logic into a dedicated Service Layer.
-
-## User Review Required
-> [!IMPORTANT]
-> **GitHub Secrets Setup for CI/CD**
-> To allow GitHub Actions to deploy to your Ubuntu server, you will need to add three secrets to your GitHub repository (`Settings > Secrets and variables > Actions > New repository secret`):
-> 1. `SSH_HOST`: Your server IP (e.g., `116.74.77.22`)
-> 2. `SSH_USERNAME`: Your SSH username (e.g., `dckakadia`)
-> 3. `SSH_PASSWORD`: Your SSH password (or `SSH_PRIVATE_KEY` if you use an RSA key).
-
-## Open Questions
-- Do you use a password or an SSH key to log into your Ubuntu server? I will configure the GitHub Actions workflow to use a password by default, but it can be changed to an SSH key.
-- Where exactly is the project located on your server? I will assume `~/order_manager` based on our previous terminal sessions.
+This plan covers the final set of missing features and bug fixes to ensure the application is robust, scalable, and fully tested.
 
 ## Proposed Changes
 
 ---
 
-### Backend Service Layer
+### 1. React Error Boundary
 
-Extracting database operations into service classes to enable isolated unit testing and clean up route files.
+To prevent the entire application from unmounting and displaying a "white screen of death" if a single component fails.
 
-#### [NEW] `backend/services/orderService.js`
-- Move all Prisma calls for `Order` (`create`, `findMany`, `update`, `delete`) from `orders.js`.
-- Integrate the new `OrderStatusHistory` creation logic here.
+#### [NEW] `frontend/src/ErrorBoundary.jsx`
+- Create a standard React Error Boundary class component.
+- It will catch JS errors anywhere in the child component tree, log them, and display a fallback UI with a "Reload Application" button.
 
-#### [NEW] `backend/services/customerService.js`
-- Move all Prisma calls for `Customer` from `customers.js`.
-
-#### [NEW] `backend/services/itemService.js`
-- Move all Prisma calls for `Item` from `items.js`.
-
-#### [MODIFY] `backend/routes/orders.js`, `customers.js`, `items.js`
-- Refactor routes to instantiate and call methods from their respective service files.
-- Keep only request validation, HTTP response handling, and `Socket.IO` emitting in the routes.
+#### [MODIFY] `frontend/src/main.jsx`
+- Import `ErrorBoundary` and wrap the `<App />` component.
 
 ---
 
-### Order Status History
+### 2. Status History Display (Manager Dashboard)
 
-Adding a robust audit trail for every order status change.
+Currently, the backend tracks status changes via `OrderStatusHistory`, but the UI doesn't expose this data.
 
-#### [MODIFY] `backend/prisma/schema.prisma`
-Add a new model to track historical states.
-```prisma
-model OrderStatusHistory {
-  id              Int      @id @default(autoincrement())
-  orderId         Int
-  order           Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  previousStatus  String?  // Null if this is the initial creation
-  newStatus       String
-  changedByUserId Int?
-  user            User?    @relation(fields: [changedByUserId], references: [id], onDelete: SetNull)
-  timestamp       DateTime @default(now())
-  
-  @@index([orderId])
-  @@index([timestamp])
-}
-```
-Update `Order` and `User` models to include the reverse relation:
-```prisma
-  // In Order model:
-  statusHistory OrderStatusHistory[]
-  
-  // In User model:
-  statusChanges OrderStatusHistory[]
-```
-
-#### [MODIFY] `backend/services/orderService.js`
-- Update `createOrder` to automatically insert the initial status into `OrderStatusHistory`.
-- Update `updateOrderStatus` to insert a record into `OrderStatusHistory` with the `previousStatus`, `newStatus`, and the ID of the user performing the action (`req.user.id`).
-
-#### [MODIFY] `backend/routes/orders.js`
-- Add a new endpoint `GET /api/orders/:id/history` to retrieve the timeline of an order.
+#### [MODIFY] `frontend/src/ManagerDashboard.jsx`
+- Add a new "History" button or link to the Accountant Order Table for each order.
+- Create an `OrderHistoryModal` component state.
+- When clicked, fetch `GET /api/orders/:id/history` and display a vertical timeline showing:
+  - Timestamp of the change.
+  - Previous Status -> New Status.
+  - The Username of the employee who made the change.
 
 ---
 
-### CI/CD Pipeline
+### 3. Pagination UI
 
-Automating the testing and deployment workflow on every push to the `master` branch.
+The backend already supports `page` and `limit` query parameters, but the frontend currently fetches all orders (or defaults to the first page) without a way to navigate.
 
-#### [NEW] `.github/workflows/deploy.yml`
-Create a GitHub Actions workflow with two jobs:
-1. **Test Job**: Runs `npm install` and `npm test` on a runner.
-2. **Deploy Job**: If tests pass, uses `appleboy/ssh-action` to connect to your Ubuntu server, pull the latest code, install dependencies, run migrations (`npx prisma db push --accept-data-loss`), and restart PM2.
+#### [MODIFY] `frontend/src/LiveOrderStatus.jsx`
+- Add `page` and `totalPages` state.
+- Update `apiFetch` to include `?page=${page}&limit=20`.
+- Add a standard `<div className="pagination">` block at the bottom with "Previous" and "Next" buttons, along with a "Page X of Y" indicator.
+- Automatically refresh data when `page` changes.
+
+#### [MODIFY] `frontend/src/SalesForm.jsx`
+- Apply the exact same pagination state and UI controls to the "Recent Orders" list shown below the sales form.
+
+---
+
+### 4. Comprehensive API Tests
+
+Expand the test suite to ensure business-critical logic doesn't silently break.
+
+#### [MODIFY] `backend/__tests__/api.test.js`
+- **Order CRUD**: Test creating, reading, updating, and soft-deleting an order.
+- **Customer Deletion Constraint**: Test that deleting a customer who has existing orders returns a `400 Bad Request` with the correct error message (preventing orphaned records).
+- **Rate Limiting**: Create a loop of rapid login requests to verify that `express-rate-limit` correctly triggers a `429 Too Many Requests` error.
 
 ## Verification Plan
 
-### Automated Tests
-- The existing API tests will be run automatically on GitHub Actions.
-- Add mock service tests to verify the service layer if necessary.
+### Automated Verification
+- Run `npm test` in the backend directory. We expect 10+ passing tests, specifically validating the new CRUD, constraint, and rate limit behaviors.
 
 ### Manual Verification
-- Commit and push to `master`.
-- Watch the GitHub Actions tab to ensure the pipeline runs `npm test` successfully and then connects to the server to deploy the code.
-- Create a new order and update its status; then query the database to verify `OrderStatusHistory` records are generated correctly.
+- **Error Boundary**: Temporarily introduce a bug in a React component and verify the friendly fallback UI appears instead of a blank screen.
+- **Status History**: Open the Manager Dashboard, click "History" on a recently modified order, and verify the timeline renders correctly.
+- **Pagination**: Navigate to the Live Order Status page and use the Previous/Next buttons to browse older records.

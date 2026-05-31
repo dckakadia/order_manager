@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext } from 'react';
-import { DollarSign, Package, CheckCircle, Clock, Printer } from 'lucide-react';
+import { DollarSign, Package, CheckCircle, Clock, Printer, History, X } from 'lucide-react';
 import { SocketContext } from './App';
 import config, { apiFetch } from './config';
 
@@ -10,6 +10,9 @@ export default function ManagerDashboard() {
   const [lastBackup, setLastBackup] = useState(null);
   const [isBackingUp, setIsBackingUp] = useState(false);
   const [showDeleted, setShowDeleted] = useState(false);
+  const [historyModalOrder, setHistoryModalOrder] = useState(null);
+  const [orderHistory, setOrderHistory] = useState([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const socket = useContext(SocketContext);
 
   const role = localStorage.getItem('ocean_spas_role');
@@ -213,6 +216,21 @@ export default function ManagerDashboard() {
     }
   };
 
+  const openHistoryModal = async (orderId) => {
+    setHistoryModalOrder(orderId);
+    setOrderHistory([]);
+    setIsLoadingHistory(true);
+    try {
+      const res = await apiFetch(`${config.api.baseURL}/api/orders/${orderId}/history`);
+      const data = await res.json();
+      if (res.ok) setOrderHistory(data.data || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  };
+
   return (
     <div className="grid-1" style={{ gap: '2rem' }}>
 
@@ -347,6 +365,7 @@ export default function ManagerDashboard() {
                 <th>Committed Delivery Date</th>
                 <th>Actual Delivered Date & Time</th>
                 <th>Status</th>
+                <th className="no-print">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -390,6 +409,11 @@ export default function ManagerDashboard() {
                         order.status === 'Order Dispatched' ? 'badge-dispatched' :
                         order.status === 'Delivered' ? 'badge-delivered' : ''
                       }`}>{order.status}</span></td>
+                      <td className="no-print">
+                        <button onClick={() => openHistoryModal(order.id)} className="btn btn-secondary" style={{ padding: '0.4rem', fontSize: '12px' }}>
+                          <History size={16} />
+                        </button>
+                      </td>
                     </tr>
                   )
                 })
@@ -406,6 +430,53 @@ export default function ManagerDashboard() {
           </table>
         </div>
       </div>
+
+      {historyModalOrder && (
+        <div className="no-print" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '16px' }}>
+          <div className="glass-card" style={{ width: '100%', maxWidth: '500px', background: '#fff', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ margin: 0 }}>Timeline: Order #{historyModalOrder}</h3>
+              <button onClick={() => setHistoryModalOrder(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={24} /></button>
+            </div>
+            
+            {isLoadingHistory ? (
+              <div style={{ textAlign: 'center', padding: '2rem' }}>Loading timeline...</div>
+            ) : orderHistory.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-light)' }}>No history found.</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '0.5rem 0' }}>
+                {orderHistory.map((item, index) => (
+                  <div key={item.id} style={{ display: 'flex', gap: '1rem', position: 'relative' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                      <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: 'var(--primary)', marginTop: '4px' }}></div>
+                      {index !== orderHistory.length - 1 && <div style={{ width: '2px', background: 'var(--border)', flex: 1, marginTop: '4px', marginBottom: '-1rem' }}></div>}
+                    </div>
+                    <div style={{ flex: 1, paddingBottom: '1rem' }}>
+                      <div style={{ fontSize: '0.85rem', color: 'var(--text-light)', marginBottom: '4px' }}>
+                        {new Date(item.timestamp).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
+                      </div>
+                      <div style={{ fontWeight: 500, color: 'var(--text)' }}>
+                        {item.previousStatus ? (
+                          <>
+                            <span style={{ color: 'var(--text-light)', textDecoration: 'line-through' }}>{item.previousStatus}</span>
+                            {' → '}
+                            <span style={{ color: 'var(--primary)' }}>{item.newStatus}</span>
+                          </>
+                        ) : (
+                          <span style={{ color: 'var(--success)' }}>Created: {item.newStatus}</span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-light)', marginTop: '4px' }}>
+                        By: <strong>{item.user ? item.user.username : 'System/Unknown'}</strong>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
     </div>
   );

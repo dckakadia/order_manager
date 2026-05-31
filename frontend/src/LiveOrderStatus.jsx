@@ -51,6 +51,8 @@ const renderDeliveryDate = (dateString) => {
 
 export default function LiveOrderStatus() {
   const [orders, setOrders] = useState([]);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   
   const sortOrders = (ordersList) => {
     return [...ordersList].sort((a, b) => {
@@ -65,14 +67,17 @@ export default function LiveOrderStatus() {
   const role = localStorage.getItem('ocean_spas_role');
 
   useEffect(() => {
-    apiFetch(`${config.api.baseURL}/api/orders`)
+    apiFetch(`${config.api.baseURL}/api/orders?page=${page}&limit=20`)
       .then(res => res.json())
       .then(data => {
         const ordersArray = Array.isArray(data) ? data : (data.data || []);
         setOrders(sortOrders(ordersArray));
+        if (data.pagination) setTotalPages(data.pagination.pages || 1);
       })
       .catch(() => setError('Failed to load orders.'));
+  }, [page]);
 
+  useEffect(() => {
     if (!socket) return;
 
     socket.on('new_order', (newOrder) => {
@@ -293,6 +298,24 @@ export default function LiveOrderStatus() {
             <p>No active orders. All caught up!</p>
           </div>
         )}
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginTop: '2rem', gap: '1rem' }}>
+        <button 
+          onClick={() => setPage(p => Math.max(1, p - 1))} 
+          disabled={page === 1}
+          className="btn btn-secondary"
+        >
+          Previous
+        </button>
+        <span style={{ fontWeight: '500' }}>Page {page} of {totalPages}</span>
+        <button 
+          onClick={() => setPage(p => Math.min(totalPages, p + 1))} 
+          disabled={page >= totalPages}
+          className="btn btn-secondary"
+        >
+          Next
+        </button>
       </div>
 
       <style dangerouslySetInnerHTML={{__html: `
