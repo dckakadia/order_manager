@@ -1,6 +1,6 @@
 import { useState, useEffect, useContext } from 'react';
 import { SocketContext } from './App';
-import config from './config';
+import config, { apiFetch } from './config';
 import { ArrowRight, Box, CheckCircle2, Pencil, Trash2, XCircle, X } from 'lucide-react';
 
 const STAGES = [
@@ -65,9 +65,7 @@ export default function LiveOrderStatus() {
   const role = localStorage.getItem('ocean_spas_role');
 
   useEffect(() => {
-    fetch(`${config.api.baseURL}/api/orders`, {
-      headers: { 'Authorization': `Bearer ${localStorage.getItem('ocean_spas_auth_token')}` }
-    })
+    apiFetch(`${config.api.baseURL}/api/orders`)
       .then(res => res.json())
       .then(data => {
         const ordersArray = Array.isArray(data) ? data : (data.data || []);
@@ -102,11 +100,10 @@ export default function LiveOrderStatus() {
       const nextStatus = STAGES[currentIndex + 1];
       try {
         // BUG FIX #3: Use full config.api.baseURL URL instead of relative path
-        const res = await fetch(`${config.api.baseURL}/api/orders/${orderId}/status`, {
+        const res = await apiFetch(`${config.api.baseURL}/api/orders/${orderId}/status`, {
           method: 'PUT',
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('ocean_spas_auth_token')}`
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify({ status: nextStatus })
         });
@@ -124,11 +121,10 @@ export default function LiveOrderStatus() {
       const prevStatus = STAGES[currentIndex - 1];
       if (!window.confirm(`Are you sure you want to move this order back to ${prevStatus}?`)) return;
       try {
-        const res = await fetch(`${config.api.baseURL}/api/orders/${orderId}/status`, {
+        const res = await apiFetch(`${config.api.baseURL}/api/orders/${orderId}/status`, {
           method: 'PUT',
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('ocean_spas_auth_token')}`
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify({ status: prevStatus })
         });
@@ -143,9 +139,8 @@ export default function LiveOrderStatus() {
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to permanently delete this order?')) return;
     try {
-      const res = await fetch(`${config.api.baseURL}/api/orders/${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('ocean_spas_auth_token')}` }
+      const res = await apiFetch(`${config.api.baseURL}/api/orders/${id}`, {
+        method: 'DELETE'
       });
       if (!res.ok) throw new Error('Delete failed');
     } catch {
@@ -157,11 +152,10 @@ export default function LiveOrderStatus() {
   const handleCancel = async (id) => {
     if (!window.confirm('Cancel this order?')) return;
     try {
-      const res = await fetch(`${config.api.baseURL}/api/orders/${id}/status`, {
+      const res = await apiFetch(`${config.api.baseURL}/api/orders/${id}/status`, {
         method: 'PUT',
         headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('ocean_spas_auth_token')}` 
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ status: 'Cancelled' })
       });
@@ -175,11 +169,10 @@ export default function LiveOrderStatus() {
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch(`${config.api.baseURL}/api/orders/${editingOrder.id}`, {
+      const res = await apiFetch(`${config.api.baseURL}/api/orders/${editingOrder.id}`, {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('ocean_spas_auth_token')}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(editingOrder)
       });

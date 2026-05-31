@@ -1,6 +1,6 @@
 import { useState, useEffect, useContext } from 'react';
 import { SocketContext } from './App';
-import config from './config';
+import config, { apiFetch } from './config';
 import { MapPin, Share2, CheckCircle2, Pencil, Trash2, XCircle, X } from 'lucide-react';
 import { Geolocation } from '@capacitor/geolocation';
 import { Share } from '@capacitor/share';
@@ -73,10 +73,8 @@ export default function SalesForm() {
   const socket = useContext(SocketContext);
   const role = localStorage.getItem('ocean_spas_role');
 
-  const authHeader = { 'Authorization': `Bearer ${localStorage.getItem('ocean_spas_auth_token')}` };
-
   const refreshOrders = () => {
-    fetch(`${config.api.baseURL}/api/orders`, { headers: authHeader })
+    apiFetch(`${config.api.baseURL}/api/orders`)
       .then(res => res.json())
       .then(data => {
         const ordersArray = Array.isArray(data) ? data : (data.data || []);
@@ -86,14 +84,14 @@ export default function SalesForm() {
   };
 
   useEffect(() => {
-    fetch(`${config.api.baseURL}/api/items`, { headers: authHeader })
+    apiFetch(`${config.api.baseURL}/api/items`)
       .then(res => res.json())
-      .then(data => setItems(data))
+      .then(data => setItems(Array.isArray(data) ? data : (data.data || [])))
       .catch(() => {});
 
-    fetch(`${config.api.baseURL}/api/customers`, { headers: authHeader })
+    apiFetch(`${config.api.baseURL}/api/customers`)
       .then(res => res.json())
-      .then(data => setCustomers(data))
+      .then(data => setCustomers(Array.isArray(data) ? data : (data.data || [])))
       .catch(() => {});
 
     refreshOrders();
@@ -206,9 +204,9 @@ export default function SalesForm() {
     };
 
     try {
-      const res = await fetch(`${config.api.baseURL}/api/orders`, {
+      const res = await apiFetch(`${config.api.baseURL}/api/orders`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...authHeader },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(orderPayload)
       });
 
@@ -266,9 +264,8 @@ export default function SalesForm() {
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to permanently delete this order?')) return;
     try {
-      const res = await fetch(`${config.api.baseURL}/api/orders/${id}`, {
-        method: 'DELETE',
-        headers: authHeader
+      const res = await apiFetch(`${config.api.baseURL}/api/orders/${id}`, {
+        method: 'DELETE'
       });
       if (!res.ok) throw new Error('Delete failed');
     } catch {
@@ -280,9 +277,9 @@ export default function SalesForm() {
   const handleCancel = async (id) => {
     if (!window.confirm('Cancel this order?')) return;
     try {
-      const res = await fetch(`${config.api.baseURL}/api/orders/${id}/status`, {
+      const res = await apiFetch(`${config.api.baseURL}/api/orders/${id}/status`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', ...authHeader },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'Cancelled' })
       });
       if (!res.ok) throw new Error('Cancel failed');
@@ -295,9 +292,9 @@ export default function SalesForm() {
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch(`${config.api.baseURL}/api/orders/${editingOrder.id}`, {
+      const res = await apiFetch(`${config.api.baseURL}/api/orders/${editingOrder.id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', ...authHeader },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(editingOrder)
       });
       if (!res.ok) throw new Error('Update failed');
@@ -562,7 +559,7 @@ export default function SalesForm() {
             <Share2 size={18} /> Share Order
           </button>
 
-          <button type="submit" form="orderForm" className="btn btn-primary" style={{ marginTop: '1rem' }}>
+          <button type="submit" form="orderForm" className="btn btn-primary" style={{ marginTop: '1rem' }} disabled={!selectedCustomerId || !formData.baseModel}>
             Submit Order Now
           </button>
         </div>

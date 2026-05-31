@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Plus, Trash2, Edit2, X } from 'lucide-react';
-import config from './config';
+import config, { apiFetch } from './config';
 
 export default function CustomerMaster() {
   const [customers, setCustomers] = useState([]);
@@ -12,11 +12,10 @@ export default function CustomerMaster() {
   const [editingId, setEditingId] = useState(null);
 
   const role = localStorage.getItem('ocean_spas_role');
-  const authHeader = { 'Authorization': `Bearer ${localStorage.getItem('ocean_spas_auth_token')}` };
 
   const fetchCustomers = async () => {
     try {
-      const res = await fetch(`${config.api.baseURL}/api/customers`, { headers: authHeader });
+      const res = await apiFetch(`${config.api.baseURL}/api/customers`);
       if (res.status === 401) {
         localStorage.clear();
         window.location.href = '/login';
@@ -38,9 +37,9 @@ export default function CustomerMaster() {
     try {
       const url = editingId ? `${config.api.baseURL}/api/customers/${editingId}` : `${config.api.baseURL}/api/customers`;
       const method = editingId ? 'PUT' : 'POST';
-      const res = await fetch(url, {
+      const res = await apiFetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json', ...authHeader },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
       });
       if (!res.ok) throw new Error(editingId ? 'Failed to update customer' : 'Failed to add customer');
@@ -68,7 +67,7 @@ export default function CustomerMaster() {
 
   const handleDelete = async (id) => {
     try {
-      const checkRes = await fetch(`${config.api.baseURL}/api/customers/${id}/check-links`, { headers: authHeader });
+      const checkRes = await apiFetch(`${config.api.baseURL}/api/customers/${id}/check-links`);
       if (!checkRes.ok) throw new Error('Failed to verify customer links.');
       const checkData = await checkRes.json();
       
@@ -79,9 +78,8 @@ export default function CustomerMaster() {
 
       if (!window.confirm('Are you sure you want to permanently delete this customer?')) return;
 
-      const res = await fetch(`${config.api.baseURL}/api/customers/${id}`, {
-        method: 'DELETE',
-        headers: authHeader
+      const res = await apiFetch(`${config.api.baseURL}/api/customers/${id}`, {
+        method: 'DELETE'
       });
       
       if (!res.ok) {

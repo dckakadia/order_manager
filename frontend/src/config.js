@@ -3,6 +3,29 @@
  * Centralized environment and configuration settings
  */
 
+export const getCsrfToken = () => {
+  const match = document.cookie.match(new RegExp('(^| )csrf_token=([^;]+)'));
+  return match ? match[2] : null;
+};
+
+export const apiFetch = async (url, options = {}) => {
+  const headers = new Headers(options.headers || {});
+  
+  // For POST/PUT/DELETE, add CSRF token
+  if (options.method && ['POST', 'PUT', 'DELETE'].includes(options.method.toUpperCase())) {
+    const csrf = getCsrfToken();
+    if (csrf) {
+      headers.set('x-csrf-token', csrf);
+    }
+  }
+
+  return fetch(url, {
+    ...options,
+    headers,
+    credentials: 'include' // This ensures cookies (session & HttpOnly) are sent
+  });
+};
+
 const config = {
   // API Configuration
   api: {
@@ -13,7 +36,6 @@ const config = {
 
   // Storage Keys
   storage: {
-    authToken: 'ocean_spas_auth_token',
     userRole: 'ocean_spas_role',
     userId: 'ocean_spas_user_id'
   },

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import config from './config';
+import config, { apiFetch } from './config';
 
 export default function Login() {
   const [username, setUsername] = useState('');
@@ -14,7 +14,7 @@ export default function Login() {
     setLoading(true);
     setError('');
     try {
-      const response = await fetch(`${config.api.baseURL}/api/login`, {
+      const response = await apiFetch(`${config.api.baseURL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, pin })
@@ -22,7 +22,6 @@ export default function Login() {
       const data = await response.json();
 
       if (data.success) {
-        localStorage.setItem(config.storage.authToken, data.token);
         localStorage.setItem(config.storage.userRole, data.role);
 
         // BUG FIX #1: Navigate based on role, not always to /sales

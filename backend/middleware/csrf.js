@@ -1,40 +1,43 @@
 /**
  * CSRF Protection Middleware
- * PHASE 2: Prevents Cross-Site Request Forgery attacks
+ * Custom Double Submit Cookie Pattern
  */
 
-const csrf = require('csurf');
-const cookieParser = require('cookie-parser');
+const crypto = require('crypto');
 
-// CSRF protection using cookies
-const csrfProtection = csrf({ 
-  cookie: {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production', // HTTPS only in production
-    sameSite: 'strict'
+const csrfProtection = (req, res, next) => {
+  // Check CSRF for state-changing methods
+  if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method)) {
+    const cookieToken = req.cookies?.csrf_token;
+    const headerToken = req.headers['x-csrf-token'];
+    
+    if (!cookieToken || !headerToken || cookieToken !== headerToken) {
+      return res.status(403).json({ success: false, error: 'Invalid CSRF token' });
+    }
+  } else if (req.path === '/api/csrf-token' && req.method === 'GET') {
+    // Generate token and set cookie
+    const token = crypto.randomUUID();
+    res.cookie('csrf_token', token, {
+      httpOnly: false, // Must be readable by frontend JS
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict'
+    });
+    // Add token to request so it can be returned in JSON
+    req.csrfToken = () => token;
   }
-});
-
-// Middleware to generate CSRF token for GET requests
-const getCsrfToken = (req, res, next) => {
-  res.locals.csrfToken = req.csrfToken();
+  
   next();
 };
 
-// Middleware to validate CSRF token for state-changing requests
+const getCsrfToken = (req, res, next) => {
+  next();
+};
+
 const validateCsrf = (req, res, next) => {
-  // Skip CSRF check for specific routes if needed (e.g., login)
-  const skipCsrfRoutes = ['/api/login', '/api/health'];
-  if (skipCsrfRoutes.includes(req.path)) {
-    return next();
-  }
-  
-  // CSRF validation happens automatically with csrfProtection middleware
   next();
 };
 
 module.exports = {
-  cookieParser,
   csrfProtection,
   getCsrfToken,
   validateCsrf

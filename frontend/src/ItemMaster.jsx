@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Plus, Trash2, Edit2, X } from 'lucide-react';
-import config from './config';
+import config, { apiFetch } from './config';
 
 export default function ItemMaster() {
   const [items, setItems] = useState([]);
@@ -13,7 +13,7 @@ export default function ItemMaster() {
 
   const fetchItems = async () => {
     try {
-      const res = await fetch(`${config.api.baseURL}/api/items`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('ocean_spas_auth_token')}` } });
+      const res = await apiFetch(`${config.api.baseURL}/api/items`);
       if (res.status === 401) {
         localStorage.clear();
         window.location.href = '/login';
@@ -35,11 +35,10 @@ export default function ItemMaster() {
     const url = editingId ? `${config.api.baseURL}/api/items/${editingId}` : `${config.api.baseURL}/api/items`;
     const method = editingId ? 'PUT' : 'POST';
     
-    await fetch(url, {
+    await apiFetch(url, {
       method,
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('ocean_spas_auth_token')}`
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({ 
         name, 
@@ -73,8 +72,7 @@ export default function ItemMaster() {
 
   const handleDelete = async (id) => {
     try {
-      const authHeader = { 'Authorization': `Bearer ${localStorage.getItem('ocean_spas_auth_token')}` };
-      const checkRes = await fetch(`${config.api.baseURL}/api/items/${id}/check-links`, { headers: authHeader });
+      const checkRes = await apiFetch(`${config.api.baseURL}/api/items/${id}/check-links`);
       if (!checkRes.ok) throw new Error('Failed to verify item links.');
       const checkData = await checkRes.json();
       
@@ -85,9 +83,8 @@ export default function ItemMaster() {
 
       if (!window.confirm('Are you sure you want to permanently delete this option?')) return;
 
-      const res = await fetch(`${config.api.baseURL}/api/items/${id}`, {
-        method: 'DELETE',
-        headers: authHeader
+      const res = await apiFetch(`${config.api.baseURL}/api/items/${id}`, {
+        method: 'DELETE'
       });
       
       if (!res.ok) {

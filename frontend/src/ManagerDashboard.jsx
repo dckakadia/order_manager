@@ -1,7 +1,7 @@
 import { useState, useEffect, useContext } from 'react';
 import { DollarSign, Package, CheckCircle, Clock, Printer } from 'lucide-react';
 import { SocketContext } from './App';
-import config from './config';
+import config, { apiFetch } from './config';
 
 export default function ManagerDashboard() {
   const [orders, setOrders] = useState([]);
@@ -9,15 +9,14 @@ export default function ManagerDashboard() {
   const [toDate, setToDate] = useState('');
   const [lastBackup, setLastBackup] = useState(null);
   const [isBackingUp, setIsBackingUp] = useState(false);
+  const [showDeleted, setShowDeleted] = useState(false);
   const socket = useContext(SocketContext);
 
   const role = localStorage.getItem('ocean_spas_role');
   const isAdmin = role === 'ADMIN';
 
   const fetchOrders = () => {
-    fetch(`${config.api.baseURL}/api/orders?limit=1000`, {
-      headers: { 'Authorization': `Bearer ${localStorage.getItem('ocean_spas_auth_token')}` }
-    })
+    apiFetch(`${config.api.baseURL}/api/orders?limit=1000${showDeleted ? '&includeDeleted=true' : ''}`)
       .then(res => res.json())
       .then(data => {
         const ordersArray = Array.isArray(data) ? data : (data.data || []);
@@ -28,9 +27,7 @@ export default function ManagerDashboard() {
 
   const fetchBackupStatus = () => {
     if (!isAdmin) return;
-    fetch(`${config.api.baseURL}/api/backup/status`, {
-      headers: { 'Authorization': `Bearer ${localStorage.getItem('ocean_spas_auth_token')}` }
-    })
+    apiFetch(`${config.api.baseURL}/api/backup/status`)
       .then(res => res.json())
       .then(data => {
         if (data.lastBackup) setLastBackup(data.lastBackup);
@@ -41,7 +38,7 @@ export default function ManagerDashboard() {
   useEffect(() => {
     fetchOrders();
     fetchBackupStatus();
-  }, []);
+  }, [showDeleted]);
 
   // BUG FIX #9: Subscribe to Socket.IO events so dashboard updates in real-time
   useEffect(() => {
@@ -100,9 +97,7 @@ export default function ManagerDashboard() {
 
   const handleExportJson = async () => {
     try {
-      const res = await fetch(`${config.api.baseURL}/api/backup/download`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('ocean_spas_auth_token')}` }
-      });
+      const res = await apiFetch(`${config.api.baseURL}/api/backup/download`);
       if (!res.ok) throw new Error('Failed to download full backup');
       const data = await res.json();
       
@@ -166,7 +161,7 @@ export default function ManagerDashboard() {
     const file = e.target.files[0];
     if (!file) return;
     
-    if (!window.confirm("WARNING: Restoring a backup will wipe all current database records and replace them with the backup data. Are you sure you want to proceed?")) {
+    if (!window.confirm("This will overwrite ALL data. A backup will be taken first. Are you sure?")) {
       e.target.value = '';
       return;
     }
@@ -175,11 +170,10 @@ export default function ManagerDashboard() {
     reader.onload = async (event) => {
       try {
         const importedData = JSON.parse(event.target.result);
-        const res = await fetch(`${config.api.baseURL}/api/backup/restore`, {
+        const res = await apiFetch(`${config.api.baseURL}/api/backup/restore`, {
           method: 'POST',
           headers: { 
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('ocean_spas_auth_token')}` 
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify(importedData)
         });
@@ -202,9 +196,8 @@ export default function ManagerDashboard() {
     if (!isAdmin) return;
     setIsBackingUp(true);
     try {
-      const res = await fetch(`${config.api.baseURL}/api/backup`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('ocean_spas_auth_token')}` }
+      const res = await apiFetch(`${config.api.baseURL}/api/backup`, {
+        method: 'POST'
       });
       const data = await res.json();
       if (res.ok) {
@@ -300,6 +293,12 @@ export default function ManagerDashboard() {
               <label style={{ fontSize: '0.875rem', fontWeight: 500 }}>To:</label>
               <input type="date" className="form-control" style={{ minHeight: '36px', padding: '0.5rem' }} value={toDate} onChange={e => setToDate(e.target.value)} />
             </div>
+            {isAdmin && (
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', fontWeight: 500, cursor: 'pointer' }}>
+                <input type="checkbox" checked={showDeleted} onChange={(e) => setShowDeleted(e.target.checked)} />
+                Show Deleted
+              </label>
+            )}
             <button onClick={() => window.print()} className="btn btn-primary" style={{ minHeight: '36px', padding: '0.5rem 1rem' }}>
               <Printer size={16} /> Print / PDF
             </button>

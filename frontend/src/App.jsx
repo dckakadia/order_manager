@@ -2,7 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Link, Navigate, useLocation } f
 import { ClipboardList, Users, Activity, BarChart2, Settings, LogOut } from 'lucide-react';
 import { io } from 'socket.io-client';
 import { createContext, useEffect, useState } from 'react';
-import config from './config';
+import config, { apiFetch } from './config';
 import SalesForm from './SalesForm';
 import LiveOrderStatus from './LiveOrderStatus';
 import ManagerDashboard from './ManagerDashboard';
@@ -14,8 +14,15 @@ export const SocketContext = createContext();
 
 function Navigation() {
   const location = useLocation();
-  const token = localStorage.getItem(config.storage.authToken);
   const role = localStorage.getItem(config.storage.userRole);
+
+  const handleLogout = async () => {
+    try {
+      await apiFetch(`${config.api.baseURL}/api/auth/logout`, { method: 'POST' });
+    } catch (e) {}
+    localStorage.clear();
+    window.location.href = '/login';
+  };
 
   return (
     <>
@@ -23,7 +30,7 @@ function Navigation() {
         <div className="logo-icon">🌊</div>
         <h1 className="app-name">Ocean Spas</h1>
       </header>
-      {token && (
+      {role && (
         <nav className="bottom-nav">
           {(role === 'SALES' || role === 'ADMIN') && (
             <>
@@ -57,7 +64,7 @@ function Navigation() {
           )}
           
           <button 
-            onClick={() => { localStorage.clear(); window.location.href = '/login'; }}
+            onClick={handleLogout}
             className="bottom-nav-item"
           >
             <LogOut size={24} />
@@ -70,10 +77,9 @@ function Navigation() {
 }
 
 function RootRedirect() {
-  const token = localStorage.getItem(config.storage.authToken);
   const role = localStorage.getItem(config.storage.userRole);
   
-  if (!token) return <Navigate to="/login" />;
+  if (!role) return <Navigate to="/login" />;
   if (role === 'MANAGER') return <Navigate to="/status" />;
   if (role === 'SALES') return <Navigate to="/sales" />;
   return <Navigate to="/admin" />;
@@ -83,6 +89,9 @@ function App() {
   const [socket, setSocket] = useState(null);
 
   useEffect(() => {
+    // Fetch CSRF token on app load
+    apiFetch(`${config.api.baseURL}/api/csrf-token`).catch(() => {});
+
     // CRITICAL FIX: Use environment variables for API URL
     const newSocket = io(config.api.socketURL, {
       reconnection: true,
@@ -120,10 +129,9 @@ function App() {
 
 // Simple Protected Route wrapper
 function ProtectedRoute({ children, allowedRoles }) {
-  const token = localStorage.getItem(config.storage.authToken);
   const role = localStorage.getItem(config.storage.userRole);
   
-  if (!token) {
+  if (!role) {
     return <Navigate to="/login" />;
   }
   

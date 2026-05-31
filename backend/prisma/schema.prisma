@@ -37,14 +37,8 @@ model Customer {
 
 model Order {
   id               Int      @id @default(autoincrement())
-  customerName     String?
-  phone            String?
-  email            String?
-  shippingAddress  String?
-  taxNumber        String?
-
-  customerId       Int?
-  customer         Customer? @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  customerId       Int
+  customer         Customer @relation(fields: [customerId], references: [id], onDelete: Restrict)
 
   baseModel        String?
   itemId           Int?
@@ -69,11 +63,13 @@ model Order {
 
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
+  deletedAt        DateTime?
 
   // PHASE 3: Add indexes for frequently queried fields
   @@index([status])
   @@index([deliveryDate])
   @@index([createdAt])
+  @@index([deletedAt])
 }
 
 model User {
