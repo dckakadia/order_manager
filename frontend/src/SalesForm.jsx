@@ -190,6 +190,8 @@ export default function SalesForm() {
 
     const orderPayload = {
       ...formData,
+      customerId: selectedCustomerId,
+      itemId: formData.baseModel,
       baseModel: selectedModel.name,
       variant: formData.variant,
       basePrice: selectedModel.price,

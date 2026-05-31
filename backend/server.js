@@ -241,6 +241,27 @@ app.post('/api/items', authMiddleware, requireRole(['ADMIN']), [
   }
 });
 
+app.get('/api/items/:id/check-links', authMiddleware, requireRole(['ADMIN']), [param('id').isInt()], async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const item = await prisma.item.findUnique({ where: { id } });
+    if (!item) return res.status(404).json({ success: false, error: 'Item not found' });
+    
+    const count = await prisma.order.count({
+      where: {
+        OR: [
+          { itemId: id },
+          { baseModel: item.name }
+        ]
+      }
+    });
+    
+    res.json({ success: true, count, name: item.name });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 app.delete('/api/items/:id', authMiddleware, requireRole(['ADMIN']), [param('id').isInt()], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -248,13 +269,29 @@ app.delete('/api/items/:id', authMiddleware, requireRole(['ADMIN']), [param('id'
   }
   try {
     const id = parseInt(req.params.id);
-    await prisma.item.update({ where: { id }, data: { isActive: false } });
+    const item = await prisma.item.findUnique({ where: { id } });
+    if (!item) return res.status(404).json({ success: false, error: 'Item not found' });
+
+    const orderCount = await prisma.order.count({
+      where: {
+        OR: [
+          { itemId: id },
+          { baseModel: item.name }
+        ]
+      }
+    });
+
+    if (orderCount > 0) {
+      return res.status(400).json({ success: false, error: `Cannot delete. '${item.name}' is used in ${orderCount} Sales Orders.` });
+    }
+
+    await prisma.item.delete({ where: { id } });
     // PHASE 3: Audit log item deletion
     await req.auditLog('DELETE_ITEM', 'Item', id, null, 'success');
     res.json({ success: true });
   } catch (error) {
     console.error('Delete item error:', error);
-    await req.auditLog('DELETE_ITEM', 'Item', id, null, 'failure', error.message);
+    await req.auditLog('DELETE_ITEM', 'Item', parseInt(req.params.id), null, 'failure', error.message);
     res.status(500).json({ success: false, error: 'An error occurred. Please try again.' });
   }
 });
@@ -330,6 +367,27 @@ app.post('/api/customers', authMiddleware, requireRole(['ADMIN', 'SALES']), [
   }
 });
 
+app.get('/api/customers/:id/check-links', authMiddleware, requireRole(['ADMIN']), [param('id').isInt()], async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const customer = await prisma.customer.findUnique({ where: { id } });
+    if (!customer) return res.status(404).json({ success: false, error: 'Customer not found' });
+    
+    const count = await prisma.order.count({
+      where: {
+        OR: [
+          { customerId: id },
+          { customerName: customer.name }
+        ]
+      }
+    });
+    
+    res.json({ success: true, count, name: customer.name });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // BUG FIX #7: Only ADMIN can delete
 app.delete('/api/customers/:id', authMiddleware, requireRole(['ADMIN']), [param('id').isInt()], async (req, res) => {
   const errors = validationResult(req);
@@ -338,13 +396,29 @@ app.delete('/api/customers/:id', authMiddleware, requireRole(['ADMIN']), [param(
   }
   try {
     const id = parseInt(req.params.id);
-    await prisma.customer.update({ where: { id }, data: { isActive: false } });
+    const customer = await prisma.customer.findUnique({ where: { id } });
+    if (!customer) return res.status(404).json({ success: false, error: 'Customer not found' });
+
+    const orderCount = await prisma.order.count({
+      where: {
+        OR: [
+          { customerId: id },
+          { customerName: customer.name }
+        ]
+      }
+    });
+
+    if (orderCount > 0) {
+      return res.status(400).json({ success: false, error: `Cannot delete. '${customer.name}' is used in ${orderCount} Sales Orders.` });
+    }
+
+    await prisma.customer.delete({ where: { id } });
     // PHASE 3: Audit log customer deletion
     await req.auditLog('DELETE_CUSTOMER', 'Customer', id, null, 'success');
     res.json({ success: true });
   } catch (error) {
     console.error('Delete customer error:', error);
-    await req.auditLog('DELETE_CUSTOMER', 'Customer', id, null, 'failure', error.message);
+    await req.auditLog('DELETE_CUSTOMER', 'Customer', parseInt(req.params.id), null, 'failure', error.message);
     res.status(500).json({ success: false, error: 'An error occurred. Please try again.' });
   }
 });
@@ -390,11 +464,13 @@ app.post('/api/orders', authMiddleware, [
     const order = await prisma.order.create({
       data: {
         customerName: data.customerName,
+        customerId: data.customerId ? parseInt(data.customerId) : null,
         phone: data.phone,
         email: data.email,
         shippingAddress: data.shippingAddress,
         taxNumber: data.taxNumber,
         baseModel: data.baseModel,
+        itemId: data.itemId ? parseInt(data.itemId) : null,
         variant: data.variant || null,
         basePrice: parseFloat(data.basePrice) || 0,
         totalPrice: parseFloat(data.totalPrice) || 0,

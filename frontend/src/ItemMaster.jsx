@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Plus, Trash2, Edit2, X } from 'lucide-react';
+import config from './config';
 
 export default function ItemMaster() {
   const [items, setItems] = useState([]);
@@ -11,7 +12,7 @@ export default function ItemMaster() {
   const [editingId, setEditingId] = useState(null);
 
   const fetchItems = async () => {
-    const res = await fetch('http://116.74.77.22:3000/api/items', { headers: { 'Authorization': `Bearer ${localStorage.getItem('ocean_spas_auth_token')}` } });
+    const res = await fetch(`${config.api.baseURL}/api/items`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('ocean_spas_auth_token')}` } });
     const data = await res.json();
     setItems(data);
   };
@@ -22,7 +23,7 @@ export default function ItemMaster() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const url = editingId ? `http://116.74.77.22:3000/api/items/${editingId}` : 'http://116.74.77.22:3000/api/items';
+    const url = editingId ? `${config.api.baseURL}/api/items/${editingId}` : `${config.api.baseURL}/api/items`;
     const method = editingId ? 'PUT' : 'POST';
     
     await fetch(url, {
@@ -62,13 +63,32 @@ export default function ItemMaster() {
   const isAdmin = role === 'ADMIN';
 
   const handleDelete = async (id) => {
-    await fetch(`http://116.74.77.22:3000/api/items/${id}`, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('ocean_spas_auth_token')}`
+    try {
+      const authHeader = { 'Authorization': `Bearer ${localStorage.getItem('ocean_spas_auth_token')}` };
+      const checkRes = await fetch(`${config.api.baseURL}/api/items/${id}/check-links`, { headers: authHeader });
+      if (!checkRes.ok) throw new Error('Failed to verify item links.');
+      const checkData = await checkRes.json();
+      
+      if (checkData.count > 0) {
+        alert(`Cannot delete. '${checkData.name}' is used in ${checkData.count} Sales Orders.`);
+        return;
       }
-    });
-    fetchItems();
+
+      if (!window.confirm('Are you sure you want to permanently delete this option?')) return;
+
+      const res = await fetch(`${config.api.baseURL}/api/items/${id}`, {
+        method: 'DELETE',
+        headers: authHeader
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Delete failed');
+      }
+      fetchItems();
+    } catch (err) {
+      alert(err.message || 'Failed to delete item.');
+    }
   };
 
   return (

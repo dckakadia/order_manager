@@ -61,17 +61,30 @@ export default function CustomerMaster() {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this customer?')) return;
     try {
-      // BUG FIX #2: Use full config.api.baseURL URL instead of relative path
+      const checkRes = await fetch(`${config.api.baseURL}/api/customers/${id}/check-links`, { headers: authHeader });
+      if (!checkRes.ok) throw new Error('Failed to verify customer links.');
+      const checkData = await checkRes.json();
+      
+      if (checkData.count > 0) {
+        alert(`Cannot delete. '${checkData.name}' is used in ${checkData.count} Sales Orders.`);
+        return;
+      }
+
+      if (!window.confirm('Are you sure you want to permanently delete this customer?')) return;
+
       const res = await fetch(`${config.api.baseURL}/api/customers/${id}`, {
         method: 'DELETE',
         headers: authHeader
       });
-      if (!res.ok) throw new Error('Delete failed');
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Delete failed');
+      }
       fetchCustomers();
-    } catch {
-      setError('Failed to delete customer. You may not have permission.');
+    } catch (err) {
+      setError(err.message || 'Failed to delete customer. You may not have permission.');
     }
   };
 

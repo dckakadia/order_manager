@@ -19,6 +19,7 @@ model Item {
   isActive      Boolean  @default(true)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+  orders        Order[]
 }
 
 model Customer {
@@ -31,6 +32,7 @@ model Customer {
   isActive         Boolean  @default(true)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
+  orders           Order[]
 }
 
 model Order {
@@ -41,7 +43,12 @@ model Order {
   shippingAddress  String?
   taxNumber        String?
 
+  customerId       Int?
+  customer         Customer? @relation(fields: [customerId], references: [id], onDelete: Restrict)
+
   baseModel        String?
+  itemId           Int?
+  item             Item? @relation(fields: [itemId], references: [id], onDelete: Restrict)
   variant          String?
   basePrice        Float    @default(0)
   totalPrice       Float    @default(0)
