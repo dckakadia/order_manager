@@ -6,8 +6,8 @@
 const config = {
   // API Configuration
   api: {
-    baseURL: import.meta.env.VITE_API_BASE || 'http://localhost:3000',
-    socketURL: import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000',
+    baseURL: import.meta.env.VITE_API_BASE || '',
+    socketURL: import.meta.env.VITE_SOCKET_URL || '',
     timeout: 30000
   },
 

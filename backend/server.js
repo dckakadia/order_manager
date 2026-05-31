@@ -1,5 +1,6 @@
 const express = require('express');
 const http = require('http');
+const path = require('path');
 const { Server } = require('socket.io');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
@@ -623,6 +624,14 @@ app.get('/api/backup/status', authMiddleware, requireRole(['ADMIN']), (req, res)
 io.on('connection', (socket) => {
   console.log('A client connected');
   socket.on('disconnect', () => console.log('Client disconnected'));
+});
+
+// Serve frontend static files
+app.use(express.static(path.join(__dirname, '../frontend/dist')));
+
+// Fallback to index.html for React routing
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
 });
 
 // Ensure manish user exists for customer creation
