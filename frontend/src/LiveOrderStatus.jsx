@@ -2,6 +2,7 @@ import { useState, useEffect, useContext } from 'react';
 import { SocketContext } from './App';
 import config, { apiFetch } from './config';
 import { ArrowRight, Box, CheckCircle2, Pencil, Trash2, XCircle, X } from 'lucide-react';
+import OrderPhotos from './OrderPhotos';
 
 const STAGES = [
   'Order Form Received',
@@ -242,6 +243,8 @@ export default function LiveOrderStatus() {
                 </div>
               )}
               
+              <OrderPhotos orderId={order.id} />
+
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', paddingTop: '12px', borderTop: '1px solid var(--border)' }}>
                 <div className="order-date">
                   {renderDeliveryDate(order.deliveryDate)}

@@ -2,8 +2,32 @@ const express = require('express');
 const { body, validationResult, param } = require('express-validator');
 const { authMiddleware, requireRole } = require('../middleware/authUtils');
 const orderService = require('../services/orderService');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+const { PrismaClient } = require('@prisma/client');
 
+const prisma = new PrismaClient();
 const router = express.Router();
+
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const dest = path.join(__dirname, '../uploads/order_attachments');
+    if (!fs.existsSync(dest)) {
+      fs.mkdirSync(dest, { recursive: true });
+    }
+    cb(null, dest);
+  },
+  filename: function (req, file, cb) {
+    const orderId = req.params.id;
+    const timestamp = Date.now();
+    // Sanitize originalname to avoid spaces/special chars issues
+    const sanitizedName = file.originalname.replace(/[^a-zA-Z0-9.]/g, '_');
+    cb(null, `${orderId}_${timestamp}_${sanitizedName}`);
+  }
+});
+const upload = multer({ storage: storage });
+
 
 router.post('/', authMiddleware, [
   body('customerId').isInt().withMessage('Valid customer ID required'),
@@ -166,6 +190,77 @@ router.put('/:id', authMiddleware, requireRole(['ADMIN']), [param('id').isInt()]
     console.error('Update order error:', error);
     if (req.auditLog) await req.auditLog('UPDATE_ORDER', 'Order', parseInt(req.params.id), req.body, 'failure', error.message);
     res.status(500).json({ success: false, error: 'An error occurred. Please try again.' });
+  }
+});
+
+// GET /api/orders/:id/attachments
+router.get('/:id/attachments', authMiddleware, [param('id').isInt()], async (req, res) => {
+  try {
+    const orderId = parseInt(req.params.id);
+    const attachments = await prisma.orderAttachment.findMany({
+      where: { orderId },
+      orderBy: { createdAt: 'desc' }
+    });
+    res.json({ success: true, data: attachments });
+  } catch (error) {
+    console.error('Get attachments error:', error);
+    res.status(500).json({ success: false, error: 'Failed to load attachments' });
+  }
+});
+
+// POST /api/orders/:id/attachments
+router.post('/:id/attachments', authMiddleware, upload.single('photo'), async (req, res) => {
+  try {
+    const orderId = parseInt(req.params.id);
+    if (!req.file) {
+      return res.status(400).json({ success: false, error: 'No photo file provided' });
+    }
+
+    const attachment = await prisma.orderAttachment.create({
+      data: {
+        orderId,
+        fileName: req.file.originalname,
+        filePath: `/uploads/order_attachments/${req.file.filename}`,
+        uploadedBy: req.user.id
+      }
+    });
+
+    res.json({ success: true, data: attachment });
+  } catch (error) {
+    console.error('Upload attachment error:', error);
+    res.status(500).json({ success: false, error: 'Failed to upload photo' });
+  }
+});
+
+// DELETE /api/orders/:id/attachments/:attachmentId
+router.delete('/:id/attachments/:attachmentId', authMiddleware, async (req, res) => {
+  try {
+    const attachmentId = parseInt(req.params.attachmentId);
+    
+    // Find attachment first
+    const attachment = await prisma.orderAttachment.findUnique({
+      where: { id: attachmentId }
+    });
+    
+    if (!attachment) {
+      return res.status(404).json({ success: false, error: 'Attachment not found' });
+    }
+
+    // Delete from DB
+    await prisma.orderAttachment.delete({
+      where: { id: attachmentId }
+    });
+
+    // Delete file from disk
+    const absolutePath = path.join(__dirname, '..', attachment.filePath);
+    if (fs.existsSync(absolutePath)) {
+      fs.unlinkSync(absolutePath);
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Delete attachment error:', error);
+    res.status(500).json({ success: false, error: 'Failed to delete attachment' });
   }
 });
 

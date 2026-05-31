@@ -85,6 +85,9 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => console.log('Client disconnected'));
 });
 
+// Serve uploads directory statically
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 // Serve frontend static files
 app.use(express.static(path.join(__dirname, '../frontend/dist')));
 app.use((req, res, next) => {
