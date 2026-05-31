@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Link, Navigate, useLocation } f
 import { ClipboardList, Users, Activity, BarChart2, Settings, LogOut } from 'lucide-react';
 import { io } from 'socket.io-client';
 import { createContext, useEffect, useState } from 'react';
+import config from './config';
 import SalesForm from './SalesForm';
 import LiveOrderStatus from './LiveOrderStatus';
 import ManagerDashboard from './ManagerDashboard';
@@ -13,8 +14,8 @@ export const SocketContext = createContext();
 
 function Navigation() {
   const location = useLocation();
-  const token = localStorage.getItem('ocean_spas_auth_token');
-  const role = localStorage.getItem('ocean_spas_role');
+  const token = localStorage.getItem(config.storage.authToken);
+  const role = localStorage.getItem(config.storage.userRole);
 
   return (
     <>
@@ -69,8 +70,8 @@ function Navigation() {
 }
 
 function RootRedirect() {
-  const token = localStorage.getItem('ocean_spas_auth_token');
-  const role = localStorage.getItem('ocean_spas_role');
+  const token = localStorage.getItem(config.storage.authToken);
+  const role = localStorage.getItem(config.storage.userRole);
   
   if (!token) return <Navigate to="/login" />;
   if (role === 'MANAGER') return <Navigate to="/status" />;
@@ -82,8 +83,13 @@ function App() {
   const [socket, setSocket] = useState(null);
 
   useEffect(() => {
-    // Connect to backend
-    const newSocket = io('http://116.74.77.22:3000');
+    // CRITICAL FIX: Use environment variables for API URL
+    const newSocket = io(config.api.socketURL, {
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      reconnectionAttempts: 5
+    });
     setSocket(newSocket);
     
     return () => newSocket.close();
@@ -114,8 +120,8 @@ function App() {
 
 // Simple Protected Route wrapper
 function ProtectedRoute({ children, allowedRoles }) {
-  const token = localStorage.getItem('ocean_spas_auth_token');
-  const role = localStorage.getItem('ocean_spas_role');
+  const token = localStorage.getItem(config.storage.authToken);
+  const role = localStorage.getItem(config.storage.userRole);
   
   if (!token) {
     return <Navigate to="/login" />;

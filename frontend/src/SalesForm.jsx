@@ -1,12 +1,11 @@
 import { useState, useEffect, useContext } from 'react';
 import { SocketContext } from './App';
+import config from './config';
 import { MapPin, Share2, CheckCircle2, Pencil, Trash2, XCircle, X } from 'lucide-react';
 import { Geolocation } from '@capacitor/geolocation';
 import { Share } from '@capacitor/share';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import html2canvas from 'html2canvas';
-
-const API_BASE = 'http://116.74.77.22:3000';
 
 const renderDeliveryDate = (dateString) => {
   if (!dateString) return <span style={{ padding: '0.4rem 0.75rem', background: '#f1f5f9', color: '#64748b', borderRadius: '6px', fontWeight: 'bold', fontSize: '0.95rem' }}>Not Set</span>;
@@ -77,19 +76,22 @@ export default function SalesForm() {
   const authHeader = { 'Authorization': `Bearer ${localStorage.getItem('ocean_spas_auth_token')}` };
 
   const refreshOrders = () => {
-    fetch(`${API_BASE}/api/orders`, { headers: authHeader })
+    fetch(`${config.api.baseURL}/api/orders`, { headers: authHeader })
       .then(res => res.json())
-      .then(data => setOrders(data))
+      .then(data => {
+        const ordersArray = Array.isArray(data) ? data : (data.data || []);
+        setOrders(ordersArray);
+      })
       .catch(() => {});
   };
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/items`, { headers: authHeader })
+    fetch(`${config.api.baseURL}/api/items`, { headers: authHeader })
       .then(res => res.json())
       .then(data => setItems(data))
       .catch(() => {});
 
-    fetch(`${API_BASE}/api/customers`, { headers: authHeader })
+    fetch(`${config.api.baseURL}/api/customers`, { headers: authHeader })
       .then(res => res.json())
       .then(data => setCustomers(data))
       .catch(() => {});
@@ -202,7 +204,7 @@ export default function SalesForm() {
     };
 
     try {
-      const res = await fetch(`${API_BASE}/api/orders`, {
+      const res = await fetch(`${config.api.baseURL}/api/orders`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...authHeader },
         body: JSON.stringify(orderPayload)
@@ -262,7 +264,7 @@ export default function SalesForm() {
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to permanently delete this order?')) return;
     try {
-      const res = await fetch(`${API_BASE}/api/orders/${id}`, {
+      const res = await fetch(`${config.api.baseURL}/api/orders/${id}`, {
         method: 'DELETE',
         headers: authHeader
       });
@@ -276,7 +278,7 @@ export default function SalesForm() {
   const handleCancel = async (id) => {
     if (!window.confirm('Cancel this order?')) return;
     try {
-      const res = await fetch(`${API_BASE}/api/orders/${id}/status`, {
+      const res = await fetch(`${config.api.baseURL}/api/orders/${id}/status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', ...authHeader },
         body: JSON.stringify({ status: 'Cancelled' })
@@ -291,7 +293,7 @@ export default function SalesForm() {
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch(`${API_BASE}/api/orders/${editingOrder.id}`, {
+      const res = await fetch(`${config.api.baseURL}/api/orders/${editingOrder.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', ...authHeader },
         body: JSON.stringify(editingOrder)

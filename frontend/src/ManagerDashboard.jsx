@@ -1,8 +1,7 @@
 import { useState, useEffect, useContext } from 'react';
 import { DollarSign, Package, CheckCircle, Clock, Printer } from 'lucide-react';
 import { SocketContext } from './App';
-
-const API_BASE = 'http://116.74.77.22:3000';
+import config from './config';
 
 export default function ManagerDashboard() {
   const [orders, setOrders] = useState([]);
@@ -16,17 +15,20 @@ export default function ManagerDashboard() {
   const isAdmin = role === 'ADMIN';
 
   const fetchOrders = () => {
-    fetch(`${API_BASE}/api/orders`, {
+    fetch(`${config.api.baseURL}/api/orders?limit=1000`, {
       headers: { 'Authorization': `Bearer ${localStorage.getItem('ocean_spas_auth_token')}` }
     })
       .then(res => res.json())
-      .then(data => setOrders(data))
+      .then(data => {
+        const ordersArray = Array.isArray(data) ? data : (data.data || []);
+        setOrders(ordersArray);
+      })
       .catch(() => {});
   };
 
   const fetchBackupStatus = () => {
     if (!isAdmin) return;
-    fetch(`${API_BASE}/api/backup/status`, {
+    fetch(`${config.api.baseURL}/api/backup/status`, {
       headers: { 'Authorization': `Bearer ${localStorage.getItem('ocean_spas_auth_token')}` }
     })
       .then(res => res.json())
@@ -98,7 +100,7 @@ export default function ManagerDashboard() {
 
   const handleExportJson = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/backup/download`, {
+      const res = await fetch(`${config.api.baseURL}/api/backup/download`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('ocean_spas_auth_token')}` }
       });
       if (!res.ok) throw new Error('Failed to download full backup');
@@ -173,7 +175,7 @@ export default function ManagerDashboard() {
     reader.onload = async (event) => {
       try {
         const importedData = JSON.parse(event.target.result);
-        const res = await fetch(`${API_BASE}/api/backup/restore`, {
+        const res = await fetch(`${config.api.baseURL}/api/backup/restore`, {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
@@ -200,7 +202,7 @@ export default function ManagerDashboard() {
     if (!isAdmin) return;
     setIsBackingUp(true);
     try {
-      const res = await fetch(`${API_BASE}/api/backup`, {
+      const res = await fetch(`${config.api.baseURL}/api/backup`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${localStorage.getItem('ocean_spas_auth_token')}` }
       });

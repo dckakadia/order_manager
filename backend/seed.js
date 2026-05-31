@@ -1,4 +1,7 @@
 const { PrismaClient } = require('@prisma/client');
+const bcrypt = require('bcrypt');
+require('dotenv').config();
+
 const prisma = new PrismaClient();
 
 async function main() {
@@ -11,7 +14,15 @@ async function main() {
   for (const u of users) {
     const existing = await prisma.user.findUnique({ where: { username: u.username } });
     if (!existing) {
-      await prisma.user.create({ data: u });
+      // CRITICAL FIX: Hash PIN with bcrypt
+      const hashedPin = await bcrypt.hash(u.pin, 10);
+      await prisma.user.create({ 
+        data: { 
+          username: u.username, 
+          pin: hashedPin,  // Store hashed PIN
+          role: u.role 
+        } 
+      });
       console.log(`Created user: ${u.username}`);
     } else {
       console.log(`User already exists: ${u.username}`);

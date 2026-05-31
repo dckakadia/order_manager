@@ -1,8 +1,7 @@
 import { useState, useEffect, useContext } from 'react';
 import { SocketContext } from './App';
+import config from './config';
 import { ArrowRight, Box, CheckCircle2, Pencil, Trash2, XCircle, X } from 'lucide-react';
-
-const API_BASE = 'http://116.74.77.22:3000';
 
 const STAGES = [
   'Order Form Received',
@@ -66,11 +65,14 @@ export default function LiveOrderStatus() {
   const role = localStorage.getItem('ocean_spas_role');
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/orders`, {
+    fetch(`${config.api.baseURL}/api/orders`, {
       headers: { 'Authorization': `Bearer ${localStorage.getItem('ocean_spas_auth_token')}` }
     })
       .then(res => res.json())
-      .then(data => setOrders(sortOrders(data)))
+      .then(data => {
+        const ordersArray = Array.isArray(data) ? data : (data.data || []);
+        setOrders(sortOrders(ordersArray));
+      })
       .catch(() => setError('Failed to load orders.'));
 
     if (!socket) return;
@@ -99,8 +101,8 @@ export default function LiveOrderStatus() {
     if (currentIndex < STAGES.length - 1) {
       const nextStatus = STAGES[currentIndex + 1];
       try {
-        // BUG FIX #3: Use full API_BASE URL instead of relative path
-        const res = await fetch(`${API_BASE}/api/orders/${orderId}/status`, {
+        // BUG FIX #3: Use full config.api.baseURL URL instead of relative path
+        const res = await fetch(`${config.api.baseURL}/api/orders/${orderId}/status`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -122,7 +124,7 @@ export default function LiveOrderStatus() {
       const prevStatus = STAGES[currentIndex - 1];
       if (!window.confirm(`Are you sure you want to move this order back to ${prevStatus}?`)) return;
       try {
-        const res = await fetch(`${API_BASE}/api/orders/${orderId}/status`, {
+        const res = await fetch(`${config.api.baseURL}/api/orders/${orderId}/status`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -141,7 +143,7 @@ export default function LiveOrderStatus() {
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to permanently delete this order?')) return;
     try {
-      const res = await fetch(`${API_BASE}/api/orders/${id}`, {
+      const res = await fetch(`${config.api.baseURL}/api/orders/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${localStorage.getItem('ocean_spas_auth_token')}` }
       });
@@ -155,7 +157,7 @@ export default function LiveOrderStatus() {
   const handleCancel = async (id) => {
     if (!window.confirm('Cancel this order?')) return;
     try {
-      const res = await fetch(`${API_BASE}/api/orders/${id}/status`, {
+      const res = await fetch(`${config.api.baseURL}/api/orders/${id}/status`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
@@ -173,7 +175,7 @@ export default function LiveOrderStatus() {
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch(`${API_BASE}/api/orders/${editingOrder.id}`, {
+      const res = await fetch(`${config.api.baseURL}/api/orders/${editingOrder.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -328,6 +330,48 @@ export default function LiveOrderStatus() {
               <div className="form-group">
                 <label className="form-label required">Base Model</label>
                 <input type="text" className="form-control" required value={editingOrder.baseModel} onChange={e => setEditingOrder({...editingOrder, baseModel: e.target.value})} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Variant</label>
+                <select className="form-control" value={editingOrder.variant || ''} onChange={e => setEditingOrder({...editingOrder, variant: e.target.value})}>
+                  <option value="">-- None --</option>
+                  <option value="Silver">Silver</option>
+                  <option value="Gold">Gold</option>
+                  <option value="Platinum">Platinum</option>
+                  <option value="Titanium">Titanium</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Faucet Position</label>
+                <select className="form-control" value={editingOrder.faucetPosition || ''} onChange={e => setEditingOrder({...editingOrder, faucetPosition: e.target.value})}>
+                  <option value="">-- None --</option>
+                  <option value="No Faucet">No Faucet</option>
+                  <option value="Left Side">Left Side</option>
+                  <option value="Right Side">Right Side</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Side Panel</label>
+                <select className="form-control" value={editingOrder.sidePanel || ''} onChange={e => setEditingOrder({...editingOrder, sidePanel: e.target.value})}>
+                  <option value="">-- None --</option>
+                  <option value="Head Side">Head Side</option>
+                  <option value="Leg Side">Leg Side</option>
+                  <option value="Head + Leg Side">Head + Leg Side</option>
+                  <option value="No Side Panel">No Side Panel</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Order By</label>
+                <select className="form-control" value={editingOrder.orderBy || ''} onChange={e => setEditingOrder({...editingOrder, orderBy: e.target.value})}>
+                  <option value="">-- None --</option>
+                  <option value="Manish">Manish</option>
+                  <option value="Paresh">Paresh</option>
+                  <option value="Devin">Devin</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Total Price (₹)</label>
+                <input type="number" step="any" className="form-control" value={editingOrder.totalPrice || ''} onChange={e => setEditingOrder({...editingOrder, totalPrice: e.target.value})} />
               </div>
               <div className="form-group" style={{ marginTop: '1.5rem', background: '#fff7ed', padding: '1rem', borderRadius: '8px', border: '1px solid #fed7aa' }}>
                 <label className="form-label required" style={{ color: '#9a3412', fontWeight: 'bold' }}>🚨 COMMITTED DELIVERY DATE</label>

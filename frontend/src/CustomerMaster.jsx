@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Plus, Trash2, Edit2, X } from 'lucide-react';
-
-const API_BASE = 'http://116.74.77.22:3000';
+import config from './config';
 
 export default function CustomerMaster() {
   const [customers, setCustomers] = useState([]);
@@ -17,7 +16,7 @@ export default function CustomerMaster() {
 
   const fetchCustomers = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/customers`, { headers: authHeader });
+      const res = await fetch(`${config.api.baseURL}/api/customers`, { headers: authHeader });
       const data = await res.json();
       setCustomers(data);
     } catch {
@@ -31,7 +30,7 @@ export default function CustomerMaster() {
     e.preventDefault();
     setError('');
     try {
-      const url = editingId ? `${API_BASE}/api/customers/${editingId}` : `${API_BASE}/api/customers`;
+      const url = editingId ? `${config.api.baseURL}/api/customers/${editingId}` : `${config.api.baseURL}/api/customers`;
       const method = editingId ? 'PUT' : 'POST';
       const res = await fetch(url, {
         method,
@@ -64,8 +63,8 @@ export default function CustomerMaster() {
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to delete this customer?')) return;
     try {
-      // BUG FIX #2: Use full API_BASE URL instead of relative path
-      const res = await fetch(`${API_BASE}/api/customers/${id}`, {
+      // BUG FIX #2: Use full config.api.baseURL URL instead of relative path
+      const res = await fetch(`${config.api.baseURL}/api/customers/${id}`, {
         method: 'DELETE',
         headers: authHeader
       });

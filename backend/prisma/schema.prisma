@@ -62,6 +62,11 @@ model Order {
 
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
+
+  // PHASE 3: Add indexes for frequently queried fields
+  @@index([status])
+  @@index([deliveryDate])
+  @@index([createdAt])
 }
 
 model User {
@@ -72,4 +77,24 @@ model User {
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// PHASE 3: Audit logging for compliance and security
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  userId    Int?     // User who performed the action
+  username  String?  // Username for reference
+  action    String   // e.g., 'CREATE_ORDER', 'UPDATE_CUSTOMER', 'DELETE_ITEM'
+  resource  String   // e.g., 'Order', 'Customer', 'Item'
+  resourceId Int?    // ID of the resource being modified
+  changes   String?  // JSON diff of what changed
+  status    String   @default("success") // 'success' or 'failure'
+  errorMsg  String?  // Error message if action failed
+  ipAddress String?  // IP address of requester
+  userAgent String?  // Browser/client info
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
 }
