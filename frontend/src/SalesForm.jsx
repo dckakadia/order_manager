@@ -660,14 +660,19 @@ export default function SalesForm() {
                       background: 'rgba(0,0,0,0.6)', borderRadius: '12px',
                       display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', zIndex: 10
                     }}>
-                      <span style={{ color: 'white', fontSize: '20px', fontWeight: 'bold', textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}>
-                        {photo.isCompressing ? '...' : `${photo.uploadProgress || 0}%`}
+                      <span style={{ color: 'white', fontSize: '18px', fontWeight: 'bold', textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}>
+                        {photo.isCompressing ? 'Processing' : `${photo.uploadProgress || 0}%`}
                       </span>
                       {!photo.isCompressing && (
                         <div style={{ width: '80%', height: '4px', background: 'rgba(255,255,255,0.3)', borderRadius: '2px', marginTop: '6px' }}>
                           <div style={{ width: `${photo.uploadProgress || 0}%`, height: '100%', background: '#10b981', borderRadius: '2px', transition: 'width 0.2s' }}></div>
                         </div>
                       )}
+                    </div>
+                  )}
+                  {(!photo.isUploading && !photo.isCompressing) && (
+                    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.3)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+                       <span style={{ background: 'rgba(245, 158, 11, 0.9)', color: 'white', fontSize: '10px', fontWeight: 'bold', padding: '2px 6px', borderRadius: '4px' }}>Pending Submit</span>
                     </div>
                   )}
                   {(!photo.isUploading && !photo.isCompressing) && (
