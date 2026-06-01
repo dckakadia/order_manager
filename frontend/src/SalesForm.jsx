@@ -603,11 +603,13 @@ export default function SalesForm() {
           </div>
 
           <div className="form-group" style={{ marginTop: '1.5rem' }}>
-            <label className="form-label">Order By</label>
-            <div>
-              <span className="pill-badge" style={{ background: '#eef2ff', color: 'var(--primary)', padding: '6px 14px', fontSize: '14px', border: '1px solid #e0e5f0' }}>
-                {formData.orderBy}
-              </span>
+            <label className="form-label required">Order By</label>
+            <div className="select-wrapper color-1">
+              <select className="form-control pill-select" required value={formData.orderBy} onChange={e => setFormData({...formData, orderBy: e.target.value})} form="orderForm">
+                <option value="Manish">Manish</option>
+                <option value="Paresh">Paresh</option>
+                <option value="Devin">Devin</option>
+              </select>
             </div>
           </div>
         </div>
