@@ -80,6 +80,22 @@ app.use('/api/customers', customerRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/backup', backupRoutes);
 
+app.get('/api/debug-items', (req, res) => {
+  try {
+    const path = require('path');
+    const itemsPath = path.join(__dirname, 'uploads/items');
+    const items = fs.existsSync(itemsPath) ? fs.readdirSync(itemsPath) : [];
+    const itemsStats = items.map(f => {
+      const st = fs.statSync(path.join(itemsPath, f));
+      return { name: f, size: st.size, time: st.mtime };
+    });
+    res.json({ success: true, itemsPath, __dirname, cwd: process.cwd(), files: itemsStats });
+  } catch (e) {
+    res.json({ success: false, error: e.message });
+  }
+});
+
+
 io.on('connection', (socket) => {
   console.log('A client connected');
   socket.on('disconnect', () => console.log('Client disconnected'));
