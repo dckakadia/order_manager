@@ -1,11 +1,15 @@
 import { useState, useEffect } from 'react';
 import config, { apiFetch } from './config';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
-import { ImagePlus, X, MapPin } from 'lucide-react';
+import { Geolocation } from '@capacitor/geolocation';
+import { ImagePlus, X, MapPin, RefreshCw } from 'lucide-react';
 
 export default function OrderPhotos({ orderId }) {
   const [photos, setPhotos] = useState([]);
   const [selectedPhoto, setSelectedPhoto] = useState(null);
+
+  const role = localStorage.getItem('ocean_spas_role');
+  const canAddPhotos = role === 'ADMIN' || role === 'MANAGER';
 
   const loadPhotos = async () => {
     try {
@@ -38,6 +42,7 @@ export default function OrderPhotos({ orderId }) {
         
         const formData = new FormData();
         formData.append('photo', blob, `photo_${Date.now()}.${image.format || 'jpg'}`);
+        formData.append('photoType', 'location_photo'); // Based on typical usage now
 
         const uploadRes = await apiFetch(`${config.api.baseURL}/api/orders/${orderId}/attachments`, {
           method: 'POST',
@@ -55,6 +60,38 @@ export default function OrderPhotos({ orderId }) {
     }
   };
 
+  const handleUpdateGPS = async () => {
+    try {
+      const permissions = await Geolocation.checkPermissions();
+      if (permissions.location !== 'granted') {
+        const req = await Geolocation.requestPermissions();
+        if (req.location !== 'granted') {
+          alert('Location access denied');
+          return;
+        }
+      }
+      const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: true });
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+
+      const res = await apiFetch(`${config.api.baseURL}/api/orders/${orderId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ locationLat: lat, locationLng: lng })
+      });
+      if (res.ok) {
+        alert('GPS location updated successfully');
+      } else {
+        alert('Failed to update GPS location');
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Error fetching or updating location. Make sure GPS is enabled.');
+    }
+  };
+
   const handleDelete = async (attachmentId) => {
     if (!window.confirm('Delete this photo?')) return;
     try {
@@ -69,13 +106,26 @@ export default function OrderPhotos({ orderId }) {
     }
   };
 
+  if (photos.length === 0 && !canAddPhotos) {
+    return null;
+  }
+
   return (
     <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px dashed var(--border)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-        <h4 style={{ margin: 0, fontSize: '13px', color: 'var(--text-light)' }}>Photos</h4>
-        <button onClick={handleAddPhoto} className="btn btn-secondary" style={{ padding: '0.3rem 0.6rem', fontSize: '12px', minHeight: 'auto', display: 'flex', gap: '4px' }}>
-          <ImagePlus size={14} /> Add Photo
-        </button>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+        <h4 style={{ margin: 0, fontSize: '13px', color: 'var(--text-light)' }}>Installation Location Photos</h4>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          {canAddPhotos && (
+            <button onClick={handleUpdateGPS} className="btn btn-secondary" style={{ padding: '0.3rem 0.6rem', fontSize: '12px', minHeight: 'auto', display: 'flex', gap: '4px' }}>
+              <RefreshCw size={14} /> Update GPS
+            </button>
+          )}
+          {canAddPhotos && (
+            <button onClick={handleAddPhoto} className="btn btn-secondary" style={{ padding: '0.3rem 0.6rem', fontSize: '12px', minHeight: 'auto', display: 'flex', gap: '4px' }}>
+              <ImagePlus size={14} /> Add Photo
+            </button>
+          )}
+        </div>
       </div>
       
       {photos.length > 0 && (
@@ -101,12 +151,14 @@ export default function OrderPhotos({ orderId }) {
                   <MapPin size={10} color="white" />
                 </div>
               )}
-              <button 
-                onClick={(e) => { e.stopPropagation(); handleDelete(photo.id); }}
-                style={{ position: 'absolute', top: '-4px', right: '-4px', background: 'red', color: 'white', border: 'none', borderRadius: '50%', width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 }}
-              >
-                <X size={12} />
-              </button>
+              {canAddPhotos && (
+                <button 
+                  onClick={(e) => { e.stopPropagation(); handleDelete(photo.id); }}
+                  style={{ position: 'absolute', top: '-4px', right: '-4px', background: 'red', color: 'white', border: 'none', borderRadius: '50%', width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 }}
+                >
+                  <X size={12} />
+                </button>
+              )}
             </div>
           ))}
         </div>
