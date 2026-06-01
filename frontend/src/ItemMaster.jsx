@@ -246,6 +246,7 @@ export default function ItemMaster() {
                   )}
                 </div>
               </div>
+              </div>
               {isAdmin && (
                 <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
                   <button onClick={() => handleEditClick(item)} className="option-delete-btn" style={{ color: 'var(--primary)', background: '#eff6ff', borderColor: '#bfdbfe' }} aria-label="Edit">
