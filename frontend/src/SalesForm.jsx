@@ -189,6 +189,12 @@ export default function SalesForm() {
 
       const response = await fetch(image.webPath);
       const blob = await response.blob();
+      
+      if (blob.size > 5 * 1024 * 1024) {
+        alert('The photo size is more than 5MB. Kindly upload a photo size below 5MB.');
+        return;
+      }
+      
       const timestamp = new Date().toISOString();
       const previewUrl = image.webPath;
 
@@ -212,6 +218,7 @@ export default function SalesForm() {
   };
 
   const uploadLocationPhotos = async (orderId) => {
+    let hasError = false;
     for (const photo of locationPhotos) {
       const formData = new FormData();
       formData.append("photo", photo.file, `location_${Date.now()}.${photo.format}`);
@@ -220,11 +227,19 @@ export default function SalesForm() {
       formData.append("timestamp", photo.timestamp);
       formData.append("photoType", "location_photo");
 
-      await apiFetch(`${config.api.baseURL}/api/orders/${orderId}/attachments`, {
+      const uploadRes = await apiFetch(`${config.api.baseURL}/api/orders/${orderId}/attachments`, {
         method: "POST",
         body: formData
       });
+      
+      if (!uploadRes.ok) {
+        hasError = true;
+        const errData = await uploadRes.json().catch(() => ({}));
+        const errMsg = errData.error || 'The file might be too large or the server rejected it.';
+        alert(`Location Photo Upload failed: ${errMsg}`);
+      }
     }
+    return !hasError;
   };
 
   const handleSubmit = async (e) => {

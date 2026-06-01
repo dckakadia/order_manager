@@ -54,6 +54,11 @@ export default function OrderPhotos({ orderId }) {
         const response = await fetch(image.webPath);
         const blob = await response.blob();
         
+        if (blob.size > 5 * 1024 * 1024) {
+          alert('The photo size is more than 5MB. Kindly upload a photo size below 5MB.');
+          return;
+        }
+        
         const formData = new FormData();
         formData.append('photo', blob, `photo_${Date.now()}.${image.format || 'jpg'}`);
         formData.append('photoType', 'location_photo');
@@ -69,8 +74,10 @@ export default function OrderPhotos({ orderId }) {
           alert('Photo uploaded successfully!');
           loadPhotos();
         } else {
-            console.error("Upload failed");
-            alert('Upload failed');
+            const errData = await uploadRes.json().catch(() => ({}));
+            const errMsg = errData.error || 'The file might be too large or the server rejected it.';
+            console.error("Upload failed", errData);
+            alert(`Upload failed: ${errMsg}`);
         }
       }
     } catch (e) {
@@ -165,7 +172,8 @@ export default function OrderPhotos({ orderId }) {
                 src={getImageUrl(photo.filePath)}
                 alt="Order Attachment" 
                 style={{ 
-                  width: '80px', height: '80px', objectFit: 'cover', 
+                  width: '80px', height: '80px', minWidth: '80px', minHeight: '80px',
+                  display: 'block', objectFit: 'cover', backgroundColor: '#f1f5f9', color: 'transparent',
                   borderRadius: '8px', cursor: 'pointer', border: '1px solid var(--border)',
                   ...(photo.photoType === 'location_photo' && { border: '2px solid #0f766e' })
                 }}
