@@ -1,6 +1,6 @@
 import { useState, useEffect, useContext } from 'react';
 import { SocketContext } from './App';
-import config, { apiFetch } from './config';
+import config, { apiFetch, uploadWithProgress } from './config';
 import { MapPin, Share2, CheckCircle2, Pencil, Trash2, XCircle, X, ImagePlus, User, ChevronDown, Calendar, Search } from 'lucide-react';
 import { Geolocation } from '@capacitor/geolocation';
 import { Share } from '@capacitor/share';
@@ -178,6 +178,17 @@ export default function SalesForm() {
         source: CameraSource.Prompt
       });
 
+      const previewUrl = image.webPath;
+      const tempId = `temp_${Date.now()}`;
+      
+      setLocationPhotos(prev => [...prev, {
+        id: tempId,
+        isCompressing: true,
+        previewUrl,
+        uploadProgress: 0,
+        isUploading: false
+      }]);
+
       let coords = { lat: null, lng: null };
       try {
         const permissions = await Geolocation.checkPermissions();
@@ -198,21 +209,21 @@ export default function SalesForm() {
       
       if (blob.size > 1 * 1024 * 1024) {
         alert('The photo could not be compressed below 1MB. Please choose a smaller photo.');
+        setLocationPhotos(prev => prev.filter(p => p.id !== tempId));
         return;
       }
       
       const timestamp = new Date().toISOString();
-      const previewUrl = image.webPath;
 
-      setLocationPhotos(prev => [...prev, {
+      setLocationPhotos(prev => prev.map(p => p.id === tempId ? {
+        ...p,
+        isCompressing: false,
         file: blob,
-        webPath: image.webPath,
         format: image.format || "jpg",
         lat: coords.lat,
         lng: coords.lng,
-        timestamp,
-        previewUrl
-      }]);
+        timestamp
+      } : p));
 
     } catch (err) {
       console.log("Photo cancelled or error:", err);
@@ -225,7 +236,10 @@ export default function SalesForm() {
 
   const uploadLocationPhotos = async (orderId) => {
     let hasError = false;
-    for (const photo of locationPhotos) {
+    for (let i = 0; i < locationPhotos.length; i++) {
+      const photo = locationPhotos[i];
+      setLocationPhotos(prev => prev.map((p, idx) => idx === i ? { ...p, isUploading: true, uploadProgress: 0 } : p));
+      
       const formData = new FormData();
       formData.append("photo", photo.file, `location_${Date.now()}.${photo.format}`);
       if (photo.lat !== null) formData.append("lat", photo.lat);
@@ -233,14 +247,17 @@ export default function SalesForm() {
       formData.append("timestamp", photo.timestamp);
       formData.append("photoType", "location_photo");
 
-      const uploadRes = await apiFetch(`${config.api.baseURL}/api/orders/${orderId}/attachments`, {
-        method: "POST",
-        body: formData
-      });
+      const uploadRes = await uploadWithProgress(
+        `${config.api.baseURL}/api/orders/${orderId}/attachments`,
+        formData,
+        (pct) => {
+          setLocationPhotos(prev => prev.map((p, idx) => idx === i ? { ...p, uploadProgress: pct } : p));
+        }
+      );
       
       if (!uploadRes.ok) {
         hasError = true;
-        const errData = await uploadRes.json().catch(() => ({}));
+        const errData = uploadRes.data || {};
         const errMsg = errData.error || 'The file might be too large or the server rejected it.';
         alert(`Location Photo Upload failed: ${errMsg}`);
       }
@@ -634,17 +651,35 @@ export default function SalesForm() {
               {locationPhotos.map((photo, index) => (
                 <div key={index} style={{ position: "relative", flexShrink: 0 }}>
                   <img src={photo.previewUrl} alt="Location"
-                    onClick={() => setViewerIndex(index)}
+                    onClick={() => { if(!photo.isUploading && !photo.isCompressing) setViewerIndex(index) }}
                     style={{ width: "80px", height: "80px", objectFit: "cover",
                       borderRadius: "12px", border: "1px solid var(--border)", cursor: "pointer" }} />
-                  <button type="button" onClick={() => handleRemoveLocationPhoto(index)}
-                    style={{ position: "absolute", top: "-6px", right: "-6px",
-                      background: "var(--danger)", color: "white", border: "none",
-                      borderRadius: "50%", width: "20px", height: "20px",
-                      cursor: "pointer", display: "flex", alignItems: "center",
-                      justifyContent: "center", padding: 0 }}>
-                    <X size={12} />
-                  </button>
+                  {(photo.isUploading || photo.isCompressing) && (
+                    <div style={{
+                      position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+                      background: 'rgba(0,0,0,0.6)', borderRadius: '12px',
+                      display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', zIndex: 10
+                    }}>
+                      <span style={{ color: 'white', fontSize: '11px', fontWeight: 'bold' }}>
+                        {photo.isCompressing ? '...' : `${photo.uploadProgress || 0}%`}
+                      </span>
+                      {!photo.isCompressing && (
+                        <div style={{ width: '80%', height: '4px', background: 'rgba(255,255,255,0.3)', borderRadius: '2px', marginTop: '4px' }}>
+                          <div style={{ width: `${photo.uploadProgress || 0}%`, height: '100%', background: '#10b981', borderRadius: '2px', transition: 'width 0.2s' }}></div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {(!photo.isUploading && !photo.isCompressing) && (
+                    <button type="button" onClick={() => handleRemoveLocationPhoto(index)}
+                      style={{ position: "absolute", top: "-6px", right: "-6px",
+                        background: "var(--danger)", color: "white", border: "none",
+                        borderRadius: "50%", width: "20px", height: "20px",
+                        cursor: "pointer", display: "flex", alignItems: "center",
+                        justifyContent: "center", padding: 0 }}>
+                      <X size={12} />
+                    </button>
+                  )}
                   {photo.lat && <div style={{ position: 'absolute', bottom: 4, left: 4, background: 'rgba(16, 185, 129, 0.9)', color: 'white', borderRadius: '12px', padding: '2px 4px', fontSize: '10px' }}><MapPin size={10} /></div>}
                 </div>
               ))}

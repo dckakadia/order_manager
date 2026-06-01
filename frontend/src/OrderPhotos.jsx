@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import config, { apiFetch } from './config';
+import config, { apiFetch, uploadWithProgress } from './config';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { Geolocation } from '@capacitor/geolocation';
 import { ImagePlus, X, MapPin, RefreshCw } from 'lucide-react';
@@ -65,7 +65,7 @@ function PhotoThumbnail({ photo, index, canAddPhotos, handleDelete, onClick }) {
 
   return (
     <div style={{ position: 'relative', flexShrink: 0 }}>
-      {hasError || !blobUrl ? (
+      {hasError || (!blobUrl && !photo.isUploading) ? (
         <div style={{
           width: '64px', height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'center',
           backgroundColor: '#f1f5f9', borderRadius: '8px', border: '1px solid var(--border)',
@@ -74,17 +74,31 @@ function PhotoThumbnail({ photo, index, canAddPhotos, handleDelete, onClick }) {
           <ImagePlus size={24} color="#94a3b8" />
         </div>
       ) : (
-        <img 
-          src={blobUrl}
-          alt="Order Attachment" 
-          style={{ 
-            width: '64px', height: '64px', minWidth: '64px', minHeight: '64px',
-            display: 'block', objectFit: 'cover', backgroundColor: '#f1f5f9', color: 'transparent',
-            borderRadius: '8px', cursor: 'pointer', border: '1px solid var(--border)',
-            ...(photo.photoType === 'location_photo' && { border: '2px solid #0f766e' })
-          }}
-          onClick={() => onClick(index)}
-        />
+        <div style={{ position: 'relative', width: '64px', height: '64px' }}>
+          <img 
+            src={photo.previewUrl || blobUrl}
+            alt="Order Attachment" 
+            style={{ 
+              width: '64px', height: '64px', minWidth: '64px', minHeight: '64px',
+              display: 'block', objectFit: 'cover', backgroundColor: '#f1f5f9', color: 'transparent',
+              borderRadius: '8px', cursor: 'pointer', border: '1px solid var(--border)',
+              ...(photo.photoType === 'location_photo' && { border: '2px solid #0f766e' })
+            }}
+            onClick={() => { if(!photo.isUploading) onClick(index) }}
+          />
+          {photo.isUploading && (
+            <div style={{
+              position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+              background: 'rgba(0,0,0,0.6)', borderRadius: '8px',
+              display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', zIndex: 10
+            }}>
+              <span style={{ color: 'white', fontSize: '11px', fontWeight: 'bold' }}>{photo.progress || 0}%</span>
+              <div style={{ width: '80%', height: '4px', background: 'rgba(255,255,255,0.3)', borderRadius: '2px', marginTop: '4px' }}>
+                <div style={{ width: `${photo.progress || 0}%`, height: '100%', background: '#10b981', borderRadius: '2px', transition: 'width 0.2s' }}></div>
+              </div>
+            </div>
+          )}
+        </div>
       )}
       {photo.photoType === "location_photo" && photo.photoLat && (
         <div style={{
@@ -154,13 +168,26 @@ export default function OrderPhotos({ orderId }) {
           console.warn("GPS not available:", geoErr);
         }
 
+        const tempId = `temp_${Date.now()}`;
+        setPhotos(prev => [...prev, {
+          id: tempId,
+          isUploading: true,
+          progress: 5,
+          previewUrl: image.webPath,
+          photoType: 'location_photo',
+          photoLat: coords.lat,
+          photoLng: coords.lng
+        }]);
+
         const response = await fetch(image.webPath);
         let blob = await response.blob();
         
+        setPhotos(prev => prev.map(p => p.id === tempId ? { ...p, progress: 15 } : p));
         blob = await compressImage(blob);
         
         if (blob.size > 1 * 1024 * 1024) {
           alert('The photo could not be compressed below 1MB. Please choose a smaller photo.');
+          setPhotos(prev => prev.filter(p => p.id !== tempId));
           return;
         }
         
@@ -170,19 +197,23 @@ export default function OrderPhotos({ orderId }) {
         if (coords.lat !== null) formData.append("lat", coords.lat);
         if (coords.lng !== null) formData.append("lng", coords.lng);
 
-        const uploadRes = await apiFetch(`${config.api.baseURL}/api/orders/${orderId}/attachments`, {
-          method: 'POST',
-          body: formData
-        });
+        const uploadRes = await uploadWithProgress(
+          `${config.api.baseURL}/api/orders/${orderId}/attachments`,
+          formData,
+          (pct) => {
+            const realPct = 15 + Math.floor(pct * 0.85); // Compress is 15%, upload is 85%
+            setPhotos(prev => prev.map(p => p.id === tempId ? { ...p, progress: realPct } : p));
+          }
+        );
 
         if (uploadRes.ok) {
-          alert('Photo uploaded successfully!');
           loadPhotos();
         } else {
-            const errData = await uploadRes.json().catch(() => ({}));
+            const errData = uploadRes.data || {};
             const errMsg = errData.error || 'The file might be too large or the server rejected it.';
             console.error("Upload failed", errData);
             alert(`Upload failed: ${errMsg}`);
+            setPhotos(prev => prev.filter(p => p.id !== tempId));
         }
       }
     } catch (e) {
