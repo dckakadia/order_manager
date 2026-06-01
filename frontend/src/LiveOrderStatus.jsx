@@ -1,6 +1,8 @@
 import { useState, useEffect, useContext } from 'react';
 import { SocketContext } from './App';
-import config, { apiFetch } from './config';
+import config from './config';
+import { apiFetch } from './apiUtils';
+import { STORAGE_KEYS, ERROR_MESSAGES } from './constants';
 import { ArrowRight, Box, CheckCircle2, Pencil, Trash2, XCircle, X } from 'lucide-react';
 import OrderPhotos from './OrderPhotos';
 import ItemPhoto from './ItemPhoto';
@@ -16,9 +18,17 @@ const STAGES = [
 ];
 
 const renderDeliveryDate = (dateString) => {
-  if (!dateString) return <span style={{ padding: '0.4rem 0.75rem', background: '#f1f5f9', color: '#64748b', borderRadius: '6px', fontWeight: 'bold', fontSize: '0.95rem' }}>Not Set</span>;
+  // BUG FIX #23: Add null safety and invalid date handling
+  if (!dateString || dateString === '' || dateString === 'null') {
+    return <span style={{ padding: '0.4rem 0.75rem', background: '#f1f5f9', color: '#64748b', borderRadius: '6px', fontWeight: 'bold', fontSize: '0.95rem' }}>Not Set</span>;
+  }
   
   const dDate = new Date(dateString);
+  // Check if date is valid
+  if (isNaN(dDate.getTime())) {
+    return <span style={{ padding: '0.4rem 0.75rem', background: '#f1f5f9', color: '#64748b', borderRadius: '6px', fontWeight: 'bold', fontSize: '0.95rem' }}>Invalid Date</span>;
+  }
+  
   const today = new Date();
   today.setHours(0,0,0,0);
   const diffDays = Math.floor((dDate - today) / (1000 * 60 * 60 * 24));
@@ -56,6 +66,12 @@ export default function LiveOrderStatus() {
   const [orders, setOrders] = useState([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [error, setError] = useState('');
+  const [isLoadingOrders, setIsLoadingOrders] = useState(false);
+  const [editingOrder, setEditingOrder] = useState(null);
+  const [modalPhoto, setModalPhoto] = useState(null);
+  const socket = useContext(SocketContext);
+  const role = localStorage.getItem(STORAGE_KEYS.USER_ROLE);
   
   const sortOrders = (ordersList) => {
     return [...ordersList].sort((a, b) => {
@@ -64,42 +80,57 @@ export default function LiveOrderStatus() {
       return new Date(a.deliveryDate) - new Date(b.deliveryDate);
     });
   };
-  const [error, setError] = useState('');
-  const [editingOrder, setEditingOrder] = useState(null);
-  const [modalPhoto, setModalPhoto] = useState(null);
-  const socket = useContext(SocketContext);
-  const role = localStorage.getItem('ocean_spas_role');
+
+  const fetchOrders = async () => {
+    setIsLoadingOrders(true);
+    try {
+      const result = await apiFetch(`${config.api.baseURL}/api/orders?page=${page}&limit=20`);
+      if (!result.ok) {
+        console.error('Failed to load orders:', result.error);
+        setError('Unable to load orders. Please try again.');
+        return;
+      }
+      const data = result.data;
+      const ordersArray = Array.isArray(data) ? data : (data.data || []);
+      setOrders(sortOrders(ordersArray));
+      if (data.pagination) setTotalPages(data.pagination.pages || 1);
+      setError('');
+    } catch (err) {
+      console.error('Fetch orders error:', err);
+      setError(ERROR_MESSAGES.NETWORK_ERROR);
+    } finally {
+      setIsLoadingOrders(false);
+    }
+  };
 
   useEffect(() => {
-    apiFetch(`${config.api.baseURL}/api/orders?page=${page}&limit=20`)
-      .then(res => res.json())
-      .then(data => {
-        const ordersArray = Array.isArray(data) ? data : (data.data || []);
-        setOrders(sortOrders(ordersArray));
-        if (data.pagination) setTotalPages(data.pagination.pages || 1);
-      })
-      .catch(() => setError('Failed to load orders.'));
+    fetchOrders();
   }, [page]);
 
+  // BUG FIX #24: Socket.IO listener cleanup with named handlers
   useEffect(() => {
     if (!socket) return;
 
-    socket.on('new_order', (newOrder) => {
+    const handleNewOrder = (newOrder) => {
       setOrders(prev => sortOrders([newOrder, ...prev]));
-    });
+    };
 
-    socket.on('order_status_updated', (updatedOrder) => {
+    const handleOrderStatusUpdated = (updatedOrder) => {
       setOrders(prev => sortOrders(prev.map(o => o.id === updatedOrder.id ? updatedOrder : o)));
-    });
+    };
 
-    socket.on('order_deleted', (id) => {
+    const handleOrderDeleted = (id) => {
       setOrders(prev => prev.filter(o => o.id !== id));
-    });
+    };
+
+    socket.on('new_order', handleNewOrder);
+    socket.on('order_status_updated', handleOrderStatusUpdated);
+    socket.on('order_deleted', handleOrderDeleted);
 
     return () => {
-      socket.off('new_order');
-      socket.off('order_status_updated');
-      socket.off('order_deleted');
+      socket.off('new_order', handleNewOrder);
+      socket.off('order_status_updated', handleOrderStatusUpdated);
+      socket.off('order_deleted', handleOrderDeleted);
     };
   }, [socket]);
 

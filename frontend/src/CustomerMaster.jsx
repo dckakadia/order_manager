@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Plus, Trash2, Edit2, X } from 'lucide-react';
-import config, { apiFetch } from './config';
+import config from './config';
+import { apiFetch, clearAuthStorage } from './apiUtils';
+import { STORAGE_KEYS, ERROR_MESSAGES } from './constants';
 
 export default function CustomerMaster() {
   const [customers, setCustomers] = useState([]);
@@ -10,22 +12,33 @@ export default function CustomerMaster() {
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [editingId, setEditingId] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const role = localStorage.getItem('ocean_spas_role');
+  const role = localStorage.getItem(STORAGE_KEYS.USER_ROLE);
 
   const fetchCustomers = async () => {
+    setIsLoading(true);
     try {
-      const res = await apiFetch(`${config.api.baseURL}/api/customers`);
-      if (res.status === 401) {
-        localStorage.clear();
-        window.location.href = '/login';
+      const result = await apiFetch(`${config.api.baseURL}/api/customers`);
+      if (!result.ok) {
+        if (result.status === 401) {
+          clearAuthStorage();
+          window.location.href = '/login';
+          return;
+        }
+        setError(result.error || 'Unable to load customers. Please try again.');
+        setCustomers([]);
         return;
       }
-      const data = await res.json();
+      const data = result.data;
       setCustomers(Array.isArray(data) ? data : (data.data || []));
-    } catch {
-      setError('Failed to load customers.');
+      setError('');
+    } catch (err) {
+      console.error('Fetch customers error:', err);
+      setError(ERROR_MESSAGES.NETWORK_ERROR);
       setCustomers([]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -37,12 +50,17 @@ export default function CustomerMaster() {
     try {
       const url = editingId ? `${config.api.baseURL}/api/customers/${editingId}` : `${config.api.baseURL}/api/customers`;
       const method = editingId ? 'PUT' : 'POST';
-      const res = await apiFetch(url, {
+      const result = await apiFetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
       });
-      if (!res.ok) throw new Error(editingId ? 'Failed to update customer' : 'Failed to add customer');
+      
+      if (!result.ok) {
+        setError(result.error || (editingId ? 'Failed to update customer' : 'Failed to add customer'));
+        return;
+      }
+      
       setFormData({ name: '', phone: '', email: '', shippingAddress: '', taxNumber: '' });
       setSuccessMsg(editingId ? 'Customer updated successfully!' : 'Customer added successfully!');
       setEditingId(null);

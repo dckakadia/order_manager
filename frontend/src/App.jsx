@@ -2,7 +2,9 @@ import { BrowserRouter as Router, Routes, Route, Link, Navigate, useLocation } f
 import { ClipboardList, Users, Activity, BarChart2, Settings, LogOut } from 'lucide-react';
 import { io } from 'socket.io-client';
 import { createContext, useEffect, useState } from 'react';
-import config, { apiFetch } from './config';
+import config from './config';
+import { apiFetch, clearAuthStorage } from './apiUtils';
+import { STORAGE_KEYS, USER_ROLES, ROUTES, ERROR_MESSAGES } from './constants';
 import SalesForm from './SalesForm';
 import LiveOrderStatus from './LiveOrderStatus';
 import ManagerDashboard from './ManagerDashboard';
@@ -14,20 +16,34 @@ export const SocketContext = createContext();
 
 function Navigation() {
   const location = useLocation();
-  const role = localStorage.getItem(config.storage.userRole);
+  const role = localStorage.getItem(STORAGE_KEYS.USER_ROLE);
+  const [socketConnected, setSocketConnected] = useState(false);
 
   const handleLogout = async () => {
     try {
-      await apiFetch(`${config.api.baseURL}/api/auth/logout`, { method: 'POST' });
-    } catch (e) {}
-    localStorage.clear();
-    window.location.href = '/login';
+      const result = await apiFetch(`${config.api.baseURL}/api/logout`, { method: 'POST' });
+      if (!result.ok) {
+        console.error('Logout error:', result.error);
+      }
+    } catch (error) {
+      console.error('Logout failed:', error);
+    } finally {
+      // Clear auth storage (not all localStorage)
+      clearAuthStorage();
+      window.location.href = ROUTES.LOGIN;
+    }
   };
 
   const checkForUpdates = async () => {
     try {
-      const res = await apiFetch(`${config.api.baseURL}/api/system/update-check`);
-      const data = await res.json();
+      const result = await apiFetch(`${config.api.baseURL}/api/system/update-check`);
+      
+      if (!result.ok) {
+        alert(ERROR_MESSAGES.NETWORK_ERROR);
+        return;
+      }
+      
+      const data = result.data;
       if (data.success && data.data && data.data.latestVersion) {
         if (data.data.latestVersion !== config.appVersion) {
           if (window.confirm(`New update available (v${data.data.latestVersion})! Would you like to download it now?`)) {
@@ -39,8 +55,9 @@ function Navigation() {
       } else {
         alert('You are on the latest version.');
       }
-    } catch (e) {
-      alert('Failed to check for updates. Please check your connection.');
+    } catch (error) {
+      console.error('Update check error:', error);
+      alert(ERROR_MESSAGES.NETWORK_ERROR);
     }
   };
 
@@ -96,6 +113,7 @@ function Navigation() {
           <button 
             onClick={handleLogout}
             className="bottom-nav-item"
+            title={socketConnected ? 'Connected' : 'Offline'}
           >
             <LogOut size={24} />
             <span>Sign Out</span>
@@ -107,20 +125,27 @@ function Navigation() {
 }
 
 function RootRedirect() {
-  const role = localStorage.getItem(config.storage.userRole);
+  const role = localStorage.getItem(STORAGE_KEYS.USER_ROLE);
   
-  if (!role) return <Navigate to="/login" />;
-  if (role === 'MANAGER') return <Navigate to="/status" />;
-  if (role === 'SALES') return <Navigate to="/sales" />;
-  return <Navigate to="/admin" />;
+  if (!role) return <Navigate to={ROUTES.LOGIN} />;
+  if (role === USER_ROLES.MANAGER) return <Navigate to={ROUTES.STATUS} />;
+  if (role === USER_ROLES.SALES) return <Navigate to={ROUTES.SALES} />;
+  return <Navigate to={ROUTES.ADMIN} />;
 }
 
 function App() {
   const [socket, setSocket] = useState(null);
+  const [socketConnected, setSocketConnected] = useState(false);
 
   useEffect(() => {
     // Fetch CSRF token on app load
-    apiFetch(`${config.api.baseURL}/api/csrf-token`).catch(() => {});
+    apiFetch(`${config.api.baseURL}/api/csrf-token`)
+      .then(result => {
+        if (!result.ok) {
+          console.warn('Failed to fetch CSRF token:', result.error);
+        }
+      })
+      .catch(error => console.error('CSRF token fetch error:', error));
 
     // CRITICAL FIX: Use environment variables for API URL
     const newSocket = io(config.api.socketURL, {
@@ -129,9 +154,28 @@ function App() {
       reconnectionDelayMax: 5000,
       reconnectionAttempts: 5
     });
+
+    // Track socket connection status
+    const handleConnect = () => {
+      console.log('Socket connected');
+      setSocketConnected(true);
+    };
+    
+    const handleDisconnect = () => {
+      console.log('Socket disconnected');
+      setSocketConnected(false);
+    };
+
+    newSocket.on('connect', handleConnect);
+    newSocket.on('disconnect', handleDisconnect);
+
     setSocket(newSocket);
     
-    return () => newSocket.close();
+    return () => {
+      newSocket.off('connect', handleConnect);
+      newSocket.off('disconnect', handleDisconnect);
+      newSocket.close();
+    };
   }, []);
 
   return (
@@ -159,14 +203,19 @@ function App() {
 
 // Simple Protected Route wrapper
 function ProtectedRoute({ children, allowedRoles }) {
-  const role = localStorage.getItem(config.storage.userRole);
+  const role = localStorage.getItem(STORAGE_KEYS.USER_ROLE);
   
   if (!role) {
-    return <Navigate to="/login" />;
+    return <Navigate to={ROUTES.LOGIN} />;
   }
   
   if (allowedRoles && !allowedRoles.includes(role)) {
-    return <div style={{ padding: '2rem', textAlign: 'center' }}><h2>Access Denied</h2><p>You do not have permission to view this page.</p></div>;
+    return (
+      <div style={{ padding: '2rem', textAlign: 'center' }}>
+        <h2>Access Denied</h2>
+        <p>You do not have permission to view this page.</p>
+      </div>
+    );
   }
   
   return children;

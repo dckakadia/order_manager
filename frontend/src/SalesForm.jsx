@@ -1,6 +1,8 @@
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect, useContext, useRef } from 'react';
 import { SocketContext } from './App';
-import config, { apiFetch, uploadWithProgress } from './config';
+import config, { uploadWithProgress } from './config';
+import { apiFetch } from './apiUtils';
+import { STORAGE_KEYS, ERROR_MESSAGES, FILE_LIMITS } from './constants';
 import { MapPin, Share2, CheckCircle2, Pencil, Trash2, XCircle, X, ImagePlus, User, ChevronDown, Calendar, Search } from 'lucide-react';
 import { Geolocation } from '@capacitor/geolocation';
 import { Share } from '@capacitor/share';
@@ -77,18 +79,34 @@ export default function SalesForm() {
   const [submitError, setSubmitError] = useState('');
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [editingOrder, setEditingOrder] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingItems, setIsLoadingItems] = useState(false);
+  const [isLoadingCustomers, setIsLoadingCustomers] = useState(false);
+  const [isLoadingOrders, setIsLoadingOrders] = useState(false);
+  const [itemsError, setItemsError] = useState('');
+  const [customersError, setCustomersError] = useState('');
   const socket = useContext(SocketContext);
-  const role = localStorage.getItem('ocean_spas_role');
+  const role = localStorage.getItem(STORAGE_KEYS.USER_ROLE);
+  const submitAbortController = useRef(null);
 
-  const refreshOrders = () => {
-    apiFetch(`${config.api.baseURL}/api/orders?page=${page}&limit=20`)
-      .then(res => res.json())
-      .then(data => {
-        const ordersArray = Array.isArray(data) ? data : (data.data || []);
-        setOrders(ordersArray);
-        if (data.pagination) setTotalPages(data.pagination.pages || 1);
-      })
-      .catch(() => {});
+  const refreshOrders = async () => {
+    setIsLoadingOrders(true);
+    try {
+      const result = await apiFetch(`${config.api.baseURL}/api/orders?page=${page}&limit=20`);
+      if (!result.ok) {
+        console.error('Failed to load orders:', result.error);
+        return;
+      }
+      
+      const data = result.data;
+      const ordersArray = Array.isArray(data) ? data : (data.data || []);
+      setOrders(ordersArray);
+      if (data.pagination) setTotalPages(data.pagination.pages || 1);
+    } catch (error) {
+      console.error('Error refreshing orders:', error);
+    } finally {
+      setIsLoadingOrders(false);
+    }
   };
 
   useEffect(() => {
@@ -96,31 +114,64 @@ export default function SalesForm() {
   }, [page]);
 
   useEffect(() => {
-    apiFetch(`${config.api.baseURL}/api/items`)
-      .then(res => res.json())
-      .then(data => setItems(Array.isArray(data) ? data : (data.data || [])))
-      .catch(() => {});
+    const loadData = async () => {
+      // Load items
+      setIsLoadingItems(true);
+      const itemsResult = await apiFetch(`${config.api.baseURL}/api/items`);
+      if (itemsResult.ok) {
+        const data = itemsResult.data;
+        setItems(Array.isArray(data) ? data : (data.data || []));
+        setItemsError('');
+      } else {
+        console.error('Failed to load items:', itemsResult.error);
+        setItemsError('Unable to load models. Please refresh the page.');
+        setItems([]);
+      }
+      setIsLoadingItems(false);
 
-    apiFetch(`${config.api.baseURL}/api/customers`)
-      .then(res => res.json())
-      .then(data => setCustomers(Array.isArray(data) ? data : (data.data || [])))
-      .catch(() => {});
+      // Load customers
+      setIsLoadingCustomers(true);
+      const customersResult = await apiFetch(`${config.api.baseURL}/api/customers`);
+      if (customersResult.ok) {
+        const data = customersResult.data;
+        setCustomers(Array.isArray(data) ? data : (data.data || []));
+        setCustomersError('');
+      } else {
+        console.error('Failed to load customers:', customersResult.error);
+        setCustomersError('Unable to load customers. Please refresh the page.');
+        setCustomers([]);
+      }
+      setIsLoadingCustomers(false);
+    };
 
-    if (socket) {
-      socket.on('new_order', refreshOrders);
-      socket.on('order_status_updated', (updatedOrder) => {
-        setOrders(prev => prev.map(o => o.id === updatedOrder.id ? updatedOrder : o));
-      });
-      socket.on('order_deleted', (id) => {
-        setOrders(prev => prev.filter(o => o.id !== id));
-      });
+    loadData();
+  }, []);
 
-      return () => {
-        socket.off('new_order', refreshOrders);
-        socket.off('order_status_updated');
-        socket.off('order_deleted');
-      };
-    }
+  // Socket.IO event listeners with proper cleanup
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleNewOrder = (order) => {
+      setOrders(prev => [order, ...prev]);
+    };
+    
+    const handleOrderStatusUpdated = (updatedOrder) => {
+      setOrders(prev => prev.map(o => o.id === updatedOrder.id ? updatedOrder : o));
+    };
+    
+    const handleOrderDeleted = (id) => {
+      setOrders(prev => prev.filter(o => o.id !== id));
+    };
+
+    socket.on('new_order', handleNewOrder);
+    socket.on('order_status_updated', handleOrderStatusUpdated);
+    socket.on('order_deleted', handleOrderDeleted);
+
+    return () => {
+      socket.off('new_order', handleNewOrder);
+      socket.off('order_status_updated', handleOrderStatusUpdated);
+      socket.off('order_deleted', handleOrderDeleted);
+    };
   }, [socket]);
 
   const handleCustomerSelect = (custId) => {
@@ -204,10 +255,17 @@ export default function SalesForm() {
       const response = await fetch(image.webPath);
       let blob = await response.blob();
       
-      // Compress the image before checking size limits
+      // BUG FIX #20: Check ORIGINAL file size BEFORE compression
+      if (blob.size > FILE_LIMITS.MAX_ORIGINAL_SIZE) {
+        alert(`Photo is too large (${(blob.size / (1024 * 1024)).toFixed(2)}MB). Max ${(FILE_LIMITS.MAX_ORIGINAL_SIZE / (1024 * 1024)).toFixed(0)}MB allowed.`);
+        setLocationPhotos(prev => prev.filter(p => p.id !== tempId));
+        return;
+      }
+      
+      // Compress the image after size validation
       blob = await compressImage(blob);
       
-      if (blob.size > 1 * 1024 * 1024) {
+      if (blob.size > FILE_LIMITS.MAX_COMPRESSED_SIZE) {
         alert('The photo could not be compressed below 1MB. Please choose a smaller photo.');
         setLocationPhotos(prev => prev.filter(p => p.id !== tempId));
         return;
@@ -231,6 +289,11 @@ export default function SalesForm() {
   };
 
   const handleRemoveLocationPhoto = (index) => {
+    // BUG FIX #21: Revoke blob URL to prevent memory leaks
+    const photo = locationPhotos[index];
+    if (photo.previewUrl && photo.previewUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(photo.previewUrl);
+    }
     setLocationPhotos(prev => prev.filter((_, i) => i !== index));
   };
 
@@ -268,8 +331,26 @@ export default function SalesForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitError('');
+    
+    // BUG FIX #22: Prevent double submission with race condition prevention
+    if (isSubmitting) {
+      console.warn('Submission already in progress');
+      return;
+    }
+    
     if (!formData.baseModel) return alert('Please select a base model');
     if (!selectedCustomerId) return alert('Please select a customer');
+
+    // Cancel any previous request
+    if (submitAbortController.current) {
+      submitAbortController.current.abort();
+    }
+    
+    // Create new AbortController for this submission
+    submitAbortController.current = new AbortController();
+    const signal = submitAbortController.current.signal;
+    
+    setIsSubmitting(true);
 
     const orderPayload = {
       ...formData,
@@ -289,7 +370,8 @@ export default function SalesForm() {
       const res = await apiFetch(`${config.api.baseURL}/api/orders`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(orderPayload)
+        body: JSON.stringify(orderPayload),
+        signal
       });
 
       // BUG FIX #5: Check response before marking as submitted
@@ -310,10 +392,23 @@ export default function SalesForm() {
         setSelectedCustomerId('');
         setCustomerSearchTerm('');
         setFormData({ customerName: '', phone: '', email: '', shippingAddress: '', taxNumber: '', baseModel: '', variant: '', deliveryDate: '', notes: '', faucetPosition: '', sidePanel: '', orderBy: 'Manish', manualPrice: '' });
+        
+        // BUG FIX #21: Clean up blob URLs on successful submission
+        locationPhotos.forEach(photo => {
+          if (photo.previewUrl && photo.previewUrl.startsWith('blob:')) {
+            URL.revokeObjectURL(photo.previewUrl);
+          }
+        });
         setLocationPhotos([]);
       }, 3000);
-    } catch {
-      setSubmitError('Failed to submit order. Please try again.');
+    } catch (err) {
+      // Don't show error if request was aborted (user submitted again)
+      if (err.name !== 'AbortError') {
+        setSubmitError('Failed to submit order. Please try again.');
+        console.error('Order submission error:', err);
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 

@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Plus, Trash2, Edit2, X, Upload } from 'lucide-react';
-import config, { apiFetch } from './config';
+import config, { uploadWithProgress } from './config';
+import { apiFetch, clearAuthStorage } from './apiUtils';
+import { STORAGE_KEYS, ERROR_MESSAGES } from './constants';
 import ItemPhoto from './ItemPhoto';
 import PhotoModal from './PhotoModal';
 import { compressImage } from './imageUtils';
@@ -18,19 +20,33 @@ export default function ItemMaster() {
   const [removePhoto, setRemovePhoto] = useState(false);
   const [modalPhoto, setModalPhoto] = useState(null);
   const [editingId, setEditingId] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const fetchItems = async () => {
+    setIsLoading(true);
     try {
-      const res = await apiFetch(`${config.api.baseURL}/api/items`);
-      if (res.status === 401) {
-        localStorage.clear();
-        window.location.href = '/login';
+      const result = await apiFetch(`${config.api.baseURL}/api/items`);
+      if (!result.ok) {
+        if (result.status === 401) {
+          clearAuthStorage();
+          window.location.href = '/login';
+          return;
+        }
+        console.error('Failed to load items:', result.error);
+        setError('Unable to load items. Please try again.');
+        setItems([]);
         return;
       }
-      const data = await res.json();
+      const data = result.data;
       setItems(Array.isArray(data) ? data : (data.data || []));
-    } catch (e) {
+      setError('');
+    } catch (err) {
+      console.error('Fetch items error:', err);
+      setError(ERROR_MESSAGES.NETWORK_ERROR);
       setItems([]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -62,6 +78,10 @@ export default function ItemMaster() {
   };
 
   const handleRemovePhoto = () => {
+    // BUG FIX #21: Revoke blob URL to prevent memory leaks
+    if (photoPreview && photoPreview.startsWith('blob:')) {
+      URL.revokeObjectURL(photoPreview);
+    }
     setPhotoFile(null);
     setPhotoPreview(null);
     setRemovePhoto(true);
@@ -89,14 +109,19 @@ export default function ItemMaster() {
 
     // Omit Content-Type header so the browser sets it automatically with the correct boundary for FormData
     try {
-      const res = await apiFetch(url, {
+      const result = await apiFetch(url, {
         method,
         body: formData
       });
       
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || (data.errors ? data.errors.map(e => e.msg).join(', ') : 'Failed to save item.'));
+      if (!result.ok) {
+        const errorMsg = result.data?.error || result.data?.errors?.map(e => e.msg).join(', ') || 'Failed to save item.';
+        throw new Error(errorMsg);
+      }
+      
+      // BUG FIX #21: Clean up blob URL on successful submission
+      if (photoPreview && photoPreview.startsWith('blob:')) {
+        URL.revokeObjectURL(photoPreview);
       }
       
       setName('');
@@ -113,6 +138,7 @@ export default function ItemMaster() {
       
       alert(editingId ? 'Option updated successfully!' : 'Option added successfully!');
     } catch (error) {
+      console.error('Submit error:', error);
       alert(error.message);
     }
   };
@@ -131,14 +157,16 @@ export default function ItemMaster() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const role = localStorage.getItem('ocean_spas_role');
+  const role = localStorage.getItem(STORAGE_KEYS.USER_ROLE);
   const isAdmin = role === 'ADMIN';
 
   const handleDelete = async (id) => {
     try {
-      const checkRes = await apiFetch(`${config.api.baseURL}/api/items/${id}/check-links`);
-      if (!checkRes.ok) throw new Error('Failed to verify item links.');
-      const checkData = await checkRes.json();
+      const checkResult = await apiFetch(`${config.api.baseURL}/api/items/${id}/check-links`);
+      if (!checkResult.ok) {
+        throw new Error('Failed to verify item links.');
+      }
+      const checkData = checkResult.data;
       
       if (checkData.count > 0) {
         alert(`Cannot delete. '${checkData.name}' is used in ${checkData.count} Sales Orders.`);
@@ -147,16 +175,16 @@ export default function ItemMaster() {
 
       if (!window.confirm('Are you sure you want to permanently delete this option?')) return;
 
-      const res = await apiFetch(`${config.api.baseURL}/api/items/${id}`, {
+      const result = await apiFetch(`${config.api.baseURL}/api/items/${id}`, {
         method: 'DELETE'
       });
       
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || 'Delete failed');
+      if (!result.ok) {
+        throw new Error(result.data?.error || 'Delete failed');
       }
       fetchItems();
     } catch (err) {
+      console.error('Delete error:', err);
       alert(err.message || 'Failed to delete item.');
     }
   };

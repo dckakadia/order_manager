@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import config, { apiFetch } from './config';
+import config from './config';
+import { apiFetch, setAuthStorage } from './apiUtils';
+import { STORAGE_KEYS, USER_ROLES, ROUTES, ERROR_MESSAGES } from './constants';
 
 export default function Login() {
   const [username, setUsername] = useState('');
@@ -14,30 +16,37 @@ export default function Login() {
     setLoading(true);
     setError('');
     try {
-      const response = await apiFetch(`${config.api.baseURL}/api/auth/login`, {
+      const result = await apiFetch(`${config.api.baseURL}/api/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, pin })
       });
-      const data = await response.json();
 
+      if (!result.ok) {
+        setError(result.error || ERROR_MESSAGES.VALIDATION_ERROR);
+        return;
+      }
+
+      const data = result.data;
       if (data.success) {
-        localStorage.setItem(config.storage.userRole, data.role);
-        localStorage.setItem('ocean_spas_username', username.toLowerCase());
+        // Use centralized storage utility with proper keys
+        setAuthStorage(data.token, data.role, data.id || '');
 
-        // BUG FIX #1: Navigate based on role, not always to /sales
-        if (data.role === 'MANAGER') {
-          navigate('/status');
-        } else if (data.role === 'SALES') {
-          navigate('/sales');
-        } else {
-          navigate('/admin');
-        }
+        // Navigate based on role
+        const roleRoutes = {
+          [USER_ROLES.MANAGER]: ROUTES.STATUS,
+          [USER_ROLES.SALES]: ROUTES.SALES,
+          [USER_ROLES.ADMIN]: ROUTES.ADMIN
+        };
+        
+        const route = roleRoutes[data.role] || ROUTES.SALES;
+        navigate(route);
       } else {
-        setError(data.message || 'Invalid credentials');
+        setError(data.message || ERROR_MESSAGES.VALIDATION_ERROR);
       }
     } catch (err) {
-      setError('Connection error. Please check your network.');
+      console.error('Login error:', err);
+      setError(ERROR_MESSAGES.NETWORK_ERROR);
     } finally {
       setLoading(false);
     }

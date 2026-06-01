@@ -1,7 +1,9 @@
 import { useState, useEffect, useContext } from 'react';
 import { DollarSign, Package, CheckCircle, Clock, Printer, History, X } from 'lucide-react';
 import { SocketContext } from './App';
-import config, { apiFetch } from './config';
+import config from './config';
+import { apiFetch } from './apiUtils';
+import { STORAGE_KEYS, ERROR_MESSAGES } from './constants';
 
 export default function ManagerDashboard() {
   const [orders, setOrders] = useState([]);
@@ -13,29 +15,44 @@ export default function ManagerDashboard() {
   const [historyModalOrder, setHistoryModalOrder] = useState(null);
   const [orderHistory, setOrderHistory] = useState([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [isLoadingOrders, setIsLoadingOrders] = useState(false);
+  const [error, setError] = useState('');
   const socket = useContext(SocketContext);
 
-  const role = localStorage.getItem('ocean_spas_role');
+  const role = localStorage.getItem(STORAGE_KEYS.USER_ROLE);
   const isAdmin = role === 'ADMIN';
 
-  const fetchOrders = () => {
-    apiFetch(`${config.api.baseURL}/api/orders?limit=1000${showDeleted ? '&includeDeleted=true' : ''}`)
-      .then(res => res.json())
-      .then(data => {
-        const ordersArray = Array.isArray(data) ? data : (data.data || []);
-        setOrders(ordersArray);
-      })
-      .catch(() => {});
+  const fetchOrders = async () => {
+    setIsLoadingOrders(true);
+    try {
+      const result = await apiFetch(`${config.api.baseURL}/api/orders?limit=1000${showDeleted ? '&includeDeleted=true' : ''}`);
+      if (!result.ok) {
+        console.error('Failed to load orders:', result.error);
+        setError('Unable to load orders. Please try again.');
+        return;
+      }
+      const data = result.data;
+      const ordersArray = Array.isArray(data) ? data : (data.data || []);
+      setOrders(ordersArray);
+      setError('');
+    } catch (err) {
+      console.error('Fetch orders error:', err);
+      setError(ERROR_MESSAGES.NETWORK_ERROR);
+    } finally {
+      setIsLoadingOrders(false);
+    }
   };
 
-  const fetchBackupStatus = () => {
+  const fetchBackupStatus = async () => {
     if (!isAdmin) return;
-    apiFetch(`${config.api.baseURL}/api/backup/status`)
-      .then(res => res.json())
-      .then(data => {
-        if (data.lastBackup) setLastBackup(data.lastBackup);
-      })
-      .catch(() => {});
+    try {
+      const result = await apiFetch(`${config.api.baseURL}/api/backup/status`);
+      if (result.ok && result.data.lastBackup) {
+        setLastBackup(result.data.lastBackup);
+      }
+    } catch (err) {
+      console.error('Fetch backup status error:', err);
+    }
   };
 
   useEffect(() => {
@@ -43,26 +60,30 @@ export default function ManagerDashboard() {
     fetchBackupStatus();
   }, [showDeleted]);
 
-  // BUG FIX #9: Subscribe to Socket.IO events so dashboard updates in real-time
+  // BUG FIX #9: Subscribe to Socket.IO events with proper cleanup
   useEffect(() => {
     if (!socket) return;
 
-    socket.on('new_order', (newOrder) => {
+    const handleNewOrder = (newOrder) => {
       setOrders(prev => [newOrder, ...prev]);
-    });
+    };
 
-    socket.on('order_status_updated', (updatedOrder) => {
+    const handleOrderStatusUpdated = (updatedOrder) => {
       setOrders(prev => prev.map(o => o.id === updatedOrder.id ? updatedOrder : o));
-    });
+    };
 
-    socket.on('bulk_orders_imported', () => {
+    const handleBulkOrdersImported = () => {
       fetchOrders();
-    });
+    };
+
+    socket.on('new_order', handleNewOrder);
+    socket.on('order_status_updated', handleOrderStatusUpdated);
+    socket.on('bulk_orders_imported', handleBulkOrdersImported);
 
     return () => {
-      socket.off('new_order');
-      socket.off('order_status_updated');
-      socket.off('bulk_orders_imported');
+      socket.off('new_order', handleNewOrder);
+      socket.off('order_status_updated', handleOrderStatusUpdated);
+      socket.off('bulk_orders_imported', handleBulkOrdersImported);
     };
   }, [socket]);
 
