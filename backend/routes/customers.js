@@ -18,7 +18,7 @@ router.get('/', authMiddleware, async (req, res) => {
 router.post('/', authMiddleware, [
   body('name').trim().isLength({ min: 2 }).withMessage('Name must be at least 2 characters long'),
   body('phone').optional().trim(),
-  body('email').optional().isEmail().withMessage('Valid email is required'),
+  body('email').optional({ checkFalsy: true }).isEmail().withMessage('Valid email is required'),
 ], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -79,7 +79,7 @@ router.put('/:id', authMiddleware, requireRole(['ADMIN']), [
   param('id').isInt(),
   body('name').trim().isLength({ min: 2 }).withMessage('Name must be at least 2 characters long'),
   body('phone').optional().trim(),
-  body('email').optional().isEmail().withMessage('Valid email is required'),
+  body('email').optional({ checkFalsy: true }).isEmail().withMessage('Valid email is required'),
 ], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
