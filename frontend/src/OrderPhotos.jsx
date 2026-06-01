@@ -7,7 +7,7 @@ import PhotoModal from './PhotoModal';
 import { compressImage } from './imageUtils';
 
 // Add a new component at the top to handle individual photo rendering
-function PhotoThumbnail({ photo, canAddPhotos, handleDelete, setSelectedPhoto }) {
+function PhotoThumbnail({ photo, index, canAddPhotos, handleDelete, onClick }) {
   const [blobUrl, setBlobUrl] = useState('');
   const [hasError, setHasError] = useState(false);
 
@@ -66,7 +66,7 @@ function PhotoThumbnail({ photo, canAddPhotos, handleDelete, setSelectedPhoto })
             borderRadius: '8px', cursor: 'pointer', border: '1px solid var(--border)',
             ...(photo.photoType === 'location_photo' && { border: '2px solid #0f766e' })
           }}
-          onClick={() => setSelectedPhoto(photo)}
+          onClick={() => onClick(index)}
         />
       )}
       {photo.photoType === "location_photo" && photo.photoLat && (
@@ -92,7 +92,7 @@ function PhotoThumbnail({ photo, canAddPhotos, handleDelete, setSelectedPhoto })
 
 export default function OrderPhotos({ orderId }) {
   const [photos, setPhotos] = useState([]);
-  const [selectedPhoto, setSelectedPhoto] = useState(null);
+  const [viewerIndex, setViewerIndex] = useState(null);
 
   const role = localStorage.getItem('ocean_spas_role');
   const username = localStorage.getItem('ocean_spas_username');
@@ -248,41 +248,21 @@ export default function OrderPhotos({ orderId }) {
             <PhotoThumbnail 
               key={photo.id}
               photo={photo}
+              index={index}
               canAddPhotos={canAddPhotos}
               handleDelete={handleDelete}
-              setSelectedPhoto={setSelectedPhoto}
+              onClick={setViewerIndex}
             />
           ))}
         </div>
       )}
 
-      {selectedPhoto && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 2000, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '16px' }} onClick={() => setSelectedPhoto(null)}>
-          <div style={{ position: 'relative', maxWidth: '100%', maxHeight: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <button 
-              onClick={() => setSelectedPhoto(null)}
-              style={{ position: 'absolute', top: '-40px', right: 0, background: 'none', border: 'none', color: 'white', cursor: 'pointer' }}
-            >
-              <X size={32} />
-            </button>
-            <PhotoModal photoFilename={selectedPhoto.filePath} onClose={() => setSelectedPhoto(null)} />
-            {selectedPhoto.photoType === "location_photo" && selectedPhoto.photoLat && (
-              <div style={{
-                marginTop: "12px", textAlign: "center",
-                background: "rgba(0,0,0,0.6)", borderRadius: "8px", padding: "8px 16px"
-              }}>
-                <div style={{ color: "#6ee7b7", fontSize: "13px", marginBottom: "4px" }}>
-                  <MapPin size={14} style={{ display: "inline" }} /> GPS: {selectedPhoto.photoLat.toFixed(6)}, {selectedPhoto.photoLng.toFixed(6)}
-                </div>
-                <a href={`https://maps.google.com/?q=${selectedPhoto.photoLat},${selectedPhoto.photoLng}`}
-                  target="_blank" rel="noopener noreferrer"
-                  style={{ color: "#93c5fd", fontSize: "12px" }}>
-                  Open in Google Maps ↗
-                </a>
-              </div>
-            )}
-          </div>
-        </div>
+      {viewerIndex !== null && (
+        <PhotoModal 
+          photos={photos} 
+          initialIndex={viewerIndex} 
+          onClose={() => setViewerIndex(null)} 
+        />
       )}
     </div>
   );

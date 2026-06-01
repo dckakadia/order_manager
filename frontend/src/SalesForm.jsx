@@ -8,6 +8,7 @@ import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import html2canvas from 'html2canvas';
 import OrderPhotos from './OrderPhotos';
+import PhotoModal from './PhotoModal';
 import { compressImage } from './imageUtils';
 
 const renderDeliveryDate = (dateString) => {
@@ -59,6 +60,7 @@ export default function SalesForm() {
     baseModel: '', variant: '', deliveryDate: '', notes: '', faucetPosition: '', sidePanel: '', orderBy: 'Manish', manualPrice: ''
   });
   const [locationPhotos, setLocationPhotos] = useState([]);
+  const [viewerIndex, setViewerIndex] = useState(null);
 
   const getVariantPrice = (modelId, variantName) => {
     if (!modelId || !variantName) return '';
@@ -630,8 +632,9 @@ export default function SalesForm() {
               {locationPhotos.map((photo, index) => (
                 <div key={index} style={{ position: "relative", flexShrink: 0 }}>
                   <img src={photo.previewUrl} alt="Location"
+                    onClick={() => setViewerIndex(index)}
                     style={{ width: "80px", height: "80px", objectFit: "cover",
-                      borderRadius: "12px", border: "1px solid var(--border)" }} />
+                      borderRadius: "12px", border: "1px solid var(--border)", cursor: "pointer" }} />
                   <button type="button" onClick={() => handleRemoveLocationPhoto(index)}
                     style={{ position: "absolute", top: "-6px", right: "-6px",
                       background: "var(--danger)", color: "white", border: "none",
@@ -644,6 +647,14 @@ export default function SalesForm() {
                 </div>
               ))}
             </div>
+          )}
+
+          {viewerIndex !== null && (
+            <PhotoModal 
+              photos={locationPhotos} 
+              initialIndex={viewerIndex} 
+              onClose={() => setViewerIndex(null)} 
+            />
           )}
         </div>
 
