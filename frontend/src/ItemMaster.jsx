@@ -69,6 +69,7 @@ export default function ItemMaster() {
     
     const formData = new FormData();
     formData.append('name', name);
+    formData.append('price', 0);
     formData.append('silverPrice', silverPrice ? Number(silverPrice) : 0);
     formData.append('goldPrice', goldPrice ? Number(goldPrice) : 0);
     formData.append('platinumPrice', platinumPrice ? Number(platinumPrice) : 0);
@@ -82,22 +83,33 @@ export default function ItemMaster() {
     }
 
     // Omit Content-Type header so the browser sets it automatically with the correct boundary for FormData
-    await apiFetch(url, {
-      method,
-      body: formData
-    });
-    
-    setName('');
-    setSilverPrice('');
-    setGoldPrice('');
-    setPlatinumPrice('');
-    setTitaniumPrice('');
-    setPhotoFile(null);
-    setPhotoPreview(null);
-    setPhotoFilename(null);
-    setRemovePhoto(false);
-    setEditingId(null);
-    fetchItems();
+    try {
+      const res = await apiFetch(url, {
+        method,
+        body: formData
+      });
+      
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || (data.errors ? data.errors.map(e => e.msg).join(', ') : 'Failed to save item.'));
+      }
+      
+      setName('');
+      setSilverPrice('');
+      setGoldPrice('');
+      setPlatinumPrice('');
+      setTitaniumPrice('');
+      setPhotoFile(null);
+      setPhotoPreview(null);
+      setPhotoFilename(null);
+      setRemovePhoto(false);
+      setEditingId(null);
+      fetchItems();
+      
+      alert(editingId ? 'Option updated successfully!' : 'Option added successfully!');
+    } catch (error) {
+      alert(error.message);
+    }
   };
 
   const handleEditClick = (item) => {
