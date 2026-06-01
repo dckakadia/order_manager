@@ -8,6 +8,7 @@ import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import html2canvas from 'html2canvas';
 import OrderPhotos from './OrderPhotos';
+import { compressImage } from './imageUtils';
 
 const renderDeliveryDate = (dateString) => {
   if (!dateString) return <span style={{ padding: '0.4rem 0.75rem', background: '#f1f5f9', color: '#64748b', borderRadius: '6px', fontWeight: 'bold', fontSize: '0.95rem' }}>Not Set</span>;
@@ -188,10 +189,13 @@ export default function SalesForm() {
       }
 
       const response = await fetch(image.webPath);
-      const blob = await response.blob();
+      let blob = await response.blob();
+      
+      // Compress the image before checking size limits
+      blob = await compressImage(blob);
       
       if (blob.size > 5 * 1024 * 1024) {
-        alert('The photo size is more than 5MB. Kindly upload a photo size below 5MB.');
+        alert('The photo could not be compressed below 5MB. Please choose a smaller photo.');
         return;
       }
       

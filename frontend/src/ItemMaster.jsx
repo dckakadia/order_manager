@@ -3,6 +3,7 @@ import { Plus, Trash2, Edit2, X, Upload } from 'lucide-react';
 import config, { apiFetch } from './config';
 import ItemPhoto from './ItemPhoto';
 import PhotoModal from './PhotoModal';
+import { compressImage } from './imageUtils';
 
 export default function ItemMaster() {
   const [items, setItems] = useState([]);
@@ -37,21 +38,25 @@ export default function ItemMaster() {
     fetchItems();
   }, []);
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        alert('Photo must be under 5 MB.');
-        e.target.value = '';
-        return;
-      }
       if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
         alert('Only JPG, PNG, or WEBP images are accepted.');
         e.target.value = '';
         return;
       }
-      setPhotoFile(file);
-      setPhotoPreview(URL.createObjectURL(file));
+      
+      const compressedBlob = await compressImage(file);
+      
+      if (compressedBlob.size > 5 * 1024 * 1024) {
+        alert('Photo must be under 5 MB and could not be compressed further.');
+        e.target.value = '';
+        return;
+      }
+
+      setPhotoFile(compressedBlob);
+      setPhotoPreview(URL.createObjectURL(compressedBlob));
       setRemovePhoto(false);
     }
   };

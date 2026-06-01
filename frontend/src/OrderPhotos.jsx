@@ -4,6 +4,7 @@ import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { Geolocation } from '@capacitor/geolocation';
 import { ImagePlus, X, MapPin, RefreshCw } from 'lucide-react';
 import PhotoModal from './PhotoModal';
+import { compressImage } from './imageUtils';
 
 // Add a new component at the top to handle individual photo rendering
 function PhotoThumbnail({ photo, canAddPhotos, handleDelete, setSelectedPhoto }) {
@@ -137,10 +138,12 @@ export default function OrderPhotos({ orderId }) {
         }
 
         const response = await fetch(image.webPath);
-        const blob = await response.blob();
+        let blob = await response.blob();
+        
+        blob = await compressImage(blob);
         
         if (blob.size > 5 * 1024 * 1024) {
-          alert('The photo size is more than 5MB. Kindly upload a photo size below 5MB.');
+          alert('The photo could not be compressed below 5MB. Please choose a smaller photo.');
           return;
         }
         
