@@ -37,12 +37,27 @@ export default function OrderPhotos({ orderId }) {
       });
 
       if (image.webPath) {
+        // Capture GPS location automatically
+        let coords = { lat: null, lng: null };
+        try {
+          const permissions = await Geolocation.checkPermissions();
+          if (permissions.location !== "granted") {
+            await Geolocation.requestPermissions();
+          }
+          const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: true });
+          coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        } catch (geoErr) {
+          console.warn("GPS not available:", geoErr);
+        }
+
         const response = await fetch(image.webPath);
         const blob = await response.blob();
         
         const formData = new FormData();
         formData.append('photo', blob, `photo_${Date.now()}.${image.format || 'jpg'}`);
-        formData.append('photoType', 'location_photo'); // Based on typical usage now
+        formData.append('photoType', 'location_photo');
+        if (coords.lat !== null) formData.append("lat", coords.lat);
+        if (coords.lng !== null) formData.append("lng", coords.lng);
 
         const uploadRes = await apiFetch(`${config.api.baseURL}/api/orders/${orderId}/attachments`, {
           method: 'POST',
@@ -50,9 +65,11 @@ export default function OrderPhotos({ orderId }) {
         });
 
         if (uploadRes.ok) {
+          alert('Photo uploaded successfully!');
           loadPhotos();
         } else {
             console.error("Upload failed");
+            alert('Upload failed');
         }
       }
     } catch (e) {
@@ -110,6 +127,17 @@ export default function OrderPhotos({ orderId }) {
     return null;
   }
 
+  const getImageUrl = (path) => {
+    if (!path) return '';
+    if (path.startsWith('http')) return path;
+    let cleanPath = path.startsWith('/') ? path : `/${path}`;
+    if (!cleanPath.startsWith('/api')) {
+      cleanPath = `/api${cleanPath}`;
+    }
+    const baseUrl = config.api.baseURL.replace(/\/$/, '');
+    return `${baseUrl}${cleanPath}`;
+  };
+
   return (
     <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px dashed var(--border)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
@@ -133,7 +161,7 @@ export default function OrderPhotos({ orderId }) {
           {photos.map(photo => (
             <div key={photo.id} style={{ position: 'relative', flexShrink: 0 }}>
               <img 
-                src={`${config.api.baseURL}${photo.filePath.startsWith('/uploads') ? '/api' + photo.filePath : photo.filePath}`}
+                src={getImageUrl(photo.filePath)}
                 alt="Order Attachment" 
                 style={{ 
                   width: '80px', height: '80px', objectFit: 'cover', 
@@ -174,7 +202,7 @@ export default function OrderPhotos({ orderId }) {
               <X size={32} />
             </button>
             <img 
-              src={`${config.api.baseURL}${selectedPhoto.filePath.startsWith('/uploads') ? '/api' + selectedPhoto.filePath : selectedPhoto.filePath}`}
+              src={getImageUrl(selectedPhoto.filePath)}
               alt="Full size" 
               style={{ maxWidth: '100%', maxHeight: '80vh', objectFit: 'contain', borderRadius: '8px' }}
               onClick={e => e.stopPropagation()}
