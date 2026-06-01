@@ -62,7 +62,6 @@ body {
 }
 
 .glass-card:hover {
-  transform: translateY(-2px);
   box-shadow: var(--shadow-lg);
 }
 
@@ -107,7 +106,6 @@ h2 { font-size: 1.75rem; }
 
 .btn-primary:hover {
   background: var(--primary-hover);
-  transform: translateY(-1px);
 }
 
 .btn-secondary {
