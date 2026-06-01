@@ -47,8 +47,9 @@ router.post('/', authMiddleware, [
     if (io) {
       const flatOrder = {
         ...order,
-        customerName: order.customer.name,
-        phone: order.customer.phone
+        customerName: order.customer?.name,
+        phone: order.customer?.phone,
+        itemPhoto: order.item?.photo_filename
       };
       io.emit('new_order', flatOrder);
     }
@@ -72,7 +73,8 @@ router.get('/', authMiddleware, async (req, res) => {
     const flatOrders = result.orders.map(o => ({
       ...o,
       customerName: o.customer?.name,
-      phone: o.customer?.phone
+      phone: o.customer?.phone,
+      itemPhoto: o.item?.photo_filename
     }));
 
     res.json({
@@ -127,7 +129,8 @@ router.put('/:id/status', authMiddleware, requireRole(['ADMIN', 'MANAGER']), [pa
       const flatOrder = {
         ...order,
         customerName: order.customer?.name,
-        phone: order.customer?.phone
+        phone: order.customer?.phone,
+        itemPhoto: order.item?.photo_filename
       };
       io.emit('order_status_updated', flatOrder);
     }
@@ -180,7 +183,8 @@ router.put('/:id', authMiddleware, requireRole(['ADMIN']), [param('id').isInt()]
       const flatOrder = {
         ...order,
         customerName: order.customer?.name,
-        phone: order.customer?.phone
+        phone: order.customer?.phone,
+        itemPhoto: order.item?.photo_filename
       };
       io.emit('order_status_updated', flatOrder);
     }

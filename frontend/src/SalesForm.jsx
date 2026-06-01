@@ -6,6 +6,7 @@ import { Geolocation } from '@capacitor/geolocation';
 import { Share } from '@capacitor/share';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import html2canvas from 'html2canvas';
+import OrderPhotos from './OrderPhotos';
 
 const renderDeliveryDate = (dateString) => {
   if (!dateString) return <span style={{ padding: '0.4rem 0.75rem', background: '#f1f5f9', color: '#64748b', borderRadius: '6px', fontWeight: 'bold', fontSize: '0.95rem' }}>Not Set</span>;
@@ -603,6 +604,8 @@ export default function SalesForm() {
                   <div><strong>Notes:</strong> {order.notes || '—'}</div>
                 </div>
                 
+                <OrderPhotos orderId={order.id} />
+
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', paddingTop: '12px', borderTop: '1px solid var(--border)' }}>
                   <div className="order-date">
                     {order.status === 'Delivered' ? (

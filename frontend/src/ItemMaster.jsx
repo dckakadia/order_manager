@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Plus, Trash2, Edit2, X } from 'lucide-react';
+import { Plus, Trash2, Edit2, X, Upload } from 'lucide-react';
 import config, { apiFetch } from './config';
+import ItemPhoto from './ItemPhoto';
+import PhotoModal from './PhotoModal';
 
 export default function ItemMaster() {
   const [items, setItems] = useState([]);
@@ -9,6 +11,11 @@ export default function ItemMaster() {
   const [goldPrice, setGoldPrice] = useState('');
   const [platinumPrice, setPlatinumPrice] = useState('');
   const [titaniumPrice, setTitaniumPrice] = useState('');
+  const [photoFile, setPhotoFile] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState(null);
+  const [photoFilename, setPhotoFilename] = useState(null);
+  const [removePhoto, setRemovePhoto] = useState(false);
+  const [modalPhoto, setModalPhoto] = useState(null);
   const [editingId, setEditingId] = useState(null);
 
   const fetchItems = async () => {
@@ -30,29 +37,65 @@ export default function ItemMaster() {
     fetchItems();
   }, []);
 
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        alert('Photo must be under 5 MB.');
+        e.target.value = '';
+        return;
+      }
+      if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+        alert('Only JPG, PNG, or WEBP images are accepted.');
+        e.target.value = '';
+        return;
+      }
+      setPhotoFile(file);
+      setPhotoPreview(URL.createObjectURL(file));
+      setRemovePhoto(false);
+    }
+  };
+
+  const handleRemovePhoto = () => {
+    setPhotoFile(null);
+    setPhotoPreview(null);
+    setRemovePhoto(true);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     const url = editingId ? `${config.api.baseURL}/api/items/${editingId}` : `${config.api.baseURL}/api/items`;
     const method = editingId ? 'PUT' : 'POST';
     
+    const formData = new FormData();
+    formData.append('name', name);
+    formData.append('silverPrice', silverPrice ? Number(silverPrice) : 0);
+    formData.append('goldPrice', goldPrice ? Number(goldPrice) : 0);
+    formData.append('platinumPrice', platinumPrice ? Number(platinumPrice) : 0);
+    formData.append('titaniumPrice', titaniumPrice ? Number(titaniumPrice) : 0);
+    
+    if (photoFile) {
+      formData.append('photo', photoFile);
+    }
+    if (removePhoto) {
+      formData.append('remove_photo', 'true');
+    }
+
+    // Omit Content-Type header so the browser sets it automatically with the correct boundary for FormData
     await apiFetch(url, {
       method,
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ 
-        name, 
-        silverPrice: silverPrice ? Number(silverPrice) : 0, 
-        goldPrice: goldPrice ? Number(goldPrice) : 0, 
-        platinumPrice: platinumPrice ? Number(platinumPrice) : 0, 
-        titaniumPrice: titaniumPrice ? Number(titaniumPrice) : 0 
-      })
+      body: formData
     });
+    
     setName('');
     setSilverPrice('');
     setGoldPrice('');
     setPlatinumPrice('');
     setTitaniumPrice('');
+    setPhotoFile(null);
+    setPhotoPreview(null);
+    setPhotoFilename(null);
+    setRemovePhoto(false);
     setEditingId(null);
     fetchItems();
   };
@@ -63,6 +106,10 @@ export default function ItemMaster() {
     setGoldPrice(item.goldPrice !== null ? item.goldPrice : '');
     setPlatinumPrice(item.platinumPrice !== null ? item.platinumPrice : '');
     setTitaniumPrice(item.titaniumPrice !== null ? item.titaniumPrice : '');
+    setPhotoFilename(item.photo_filename || null);
+    setPhotoFile(null);
+    setPhotoPreview(null);
+    setRemovePhoto(false);
     setEditingId(item.id);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -104,7 +151,10 @@ export default function ItemMaster() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
             <h2 style={{ margin: 0 }}>{editingId ? 'Edit Option' : 'Add New Option'}</h2>
             {editingId && (
-              <button onClick={() => { setEditingId(null); setName(''); setSilverPrice(''); setGoldPrice(''); setPlatinumPrice(''); setTitaniumPrice(''); }} className="btn btn-secondary" style={{ padding: '0.25rem 0.5rem', minHeight: 'auto' }}>
+              <button onClick={() => { 
+                setEditingId(null); setName(''); setSilverPrice(''); setGoldPrice(''); setPlatinumPrice(''); setTitaniumPrice('');
+                setPhotoFile(null); setPhotoPreview(null); setPhotoFilename(null); setRemovePhoto(false);
+              }} className="btn btn-secondary" style={{ padding: '0.25rem 0.5rem', minHeight: 'auto' }}>
                 <X size={16} /> Cancel
               </button>
             )}
@@ -113,6 +163,37 @@ export default function ItemMaster() {
           <div className="form-group">
             <label className="form-label">Name</label>
             <input type="text" className="form-control" required value={name} onChange={e => setName(e.target.value)} />
+          </div>
+          
+          <div className="form-group">
+            <label className="form-label">Product Photo</label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+              {(photoPreview || (photoFilename && !removePhoto)) ? (
+                <div style={{ position: 'relative' }}>
+                  <img 
+                    src={photoPreview || `${config.api.baseURL}/uploads/items/${photoFilename}`} 
+                    alt="Preview" 
+                    style={{ width: '160px', height: '160px', objectFit: 'cover', borderRadius: '8px', border: '1px solid var(--border)' }} 
+                  />
+                  <button type="button" onClick={handleRemovePhoto} style={{ position: 'absolute', top: '4px', right: '4px', background: 'rgba(255,255,255,0.8)', border: 'none', borderRadius: '50%', padding: '4px', cursor: 'pointer', color: 'var(--danger)' }} aria-label="Remove photo">
+                    <X size={16} />
+                  </button>
+                </div>
+              ) : (
+                <div style={{ width: '160px', height: '160px', borderRadius: '8px', border: '2px dashed var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc', color: 'var(--text-light)' }}>
+                  No Photo
+                </div>
+              )}
+              
+              <div style={{ flex: 1 }}>
+                <label className="btn btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                  <Upload size={16} />
+                  {(photoFilename || photoFile) && !removePhoto ? 'Change Photo' : 'Upload Photo'}
+                  <input type="file" accept="image/jpeg, image/png, image/webp" style={{ display: 'none' }} onChange={handleFileChange} />
+                </label>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-light)', marginTop: '0.5rem' }}>Max 5MB. JPG, PNG, WEBP.</div>
+              </div>
+            </div>
           </div>
           
           <div className="form-group">
@@ -147,9 +228,11 @@ export default function ItemMaster() {
         <div className="option-list">
           {items.map(item => (
             <div className="option-card" key={item.id}>
-              <div className="option-card-main">
-                <span className="option-category-badge">{item.category || 'Model'}</span>
-                <div className="option-name">{item.name}</div>
+              <div style={{ display: 'flex', gap: '1rem', flex: 1 }}>
+                <ItemPhoto photoFilename={item.photo_filename} onClick={() => setModalPhoto(item.photo_filename)} size={48} />
+                <div className="option-card-main">
+                  <span className="option-category-badge">{item.category || 'Model'}</span>
+                  <div className="option-name">{item.name}</div>
                 <div className="option-prices" style={{ fontSize: '0.85rem', color: 'var(--text-light)', marginTop: '0.5rem' }}>
                   {item.silverPrice !== undefined && item.silverPrice !== null ? (
                     <>
@@ -182,6 +265,7 @@ export default function ItemMaster() {
           )}
         </div>
       </div>
+      <PhotoModal photoFilename={modalPhoto} onClose={() => setModalPhoto(null)} />
     </div>
   );
 }

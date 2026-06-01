@@ -17,6 +17,7 @@ model Item {
   platinumPrice Float?
   titaniumPrice Float?
   isActive      Boolean  @default(true)
+  photo_filename String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   orders        Order[]

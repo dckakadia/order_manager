@@ -6,7 +6,7 @@ const getActiveItems = async () => {
 };
 
 const createItem = async (data) => {
-  const { category, name, price, silverPrice, goldPrice, platinumPrice, titaniumPrice } = data;
+  const { category, name, price, silverPrice, goldPrice, platinumPrice, titaniumPrice, photo_filename } = data;
   return await prisma.item.create({
     data: { 
       category: category || 'Model', 
@@ -15,7 +15,8 @@ const createItem = async (data) => {
       silverPrice: silverPrice !== undefined && silverPrice !== null ? parseFloat(silverPrice) : null,
       goldPrice: goldPrice !== undefined && goldPrice !== null ? parseFloat(goldPrice) : null,
       platinumPrice: platinumPrice !== undefined && platinumPrice !== null ? parseFloat(platinumPrice) : null,
-      titaniumPrice: titaniumPrice !== undefined && titaniumPrice !== null ? parseFloat(titaniumPrice) : null
+      titaniumPrice: titaniumPrice !== undefined && titaniumPrice !== null ? parseFloat(titaniumPrice) : null,
+      photo_filename: photo_filename || null
     }
   });
 };
@@ -53,22 +54,30 @@ const deleteItem = async (id) => {
     throw new Error(`Cannot delete. '${item.name}' is used in ${orderCount} Sales Orders.`);
   }
 
-  return await prisma.item.delete({ where: { id: parseInt(id) } });
+  const deletedItem = await prisma.item.delete({ where: { id: parseInt(id) } });
+  return deletedItem;
 };
 
 const updateItem = async (id, data) => {
-  const { category, name, price, silverPrice, goldPrice, platinumPrice, titaniumPrice } = data;
+  const { category, name, price, silverPrice, goldPrice, platinumPrice, titaniumPrice, photo_filename } = data;
+  
+  const updateData = { 
+    category: category || 'Model', 
+    name, 
+    price: parseFloat(price) || 0,
+    silverPrice: silverPrice !== undefined && silverPrice !== null ? parseFloat(silverPrice) : null,
+    goldPrice: goldPrice !== undefined && goldPrice !== null ? parseFloat(goldPrice) : null,
+    platinumPrice: platinumPrice !== undefined && platinumPrice !== null ? parseFloat(platinumPrice) : null,
+    titaniumPrice: titaniumPrice !== undefined && titaniumPrice !== null ? parseFloat(titaniumPrice) : null
+  };
+  
+  if (photo_filename !== undefined) {
+    updateData.photo_filename = photo_filename;
+  }
+
   return await prisma.item.update({
     where: { id: parseInt(id) },
-    data: { 
-      category: category || 'Model', 
-      name, 
-      price: parseFloat(price) || 0,
-      silverPrice: silverPrice !== undefined && silverPrice !== null ? parseFloat(silverPrice) : null,
-      goldPrice: goldPrice !== undefined && goldPrice !== null ? parseFloat(goldPrice) : null,
-      platinumPrice: platinumPrice !== undefined && platinumPrice !== null ? parseFloat(platinumPrice) : null,
-      titaniumPrice: titaniumPrice !== undefined && titaniumPrice !== null ? parseFloat(titaniumPrice) : null
-    }
+    data: updateData
   });
 };
 

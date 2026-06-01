@@ -3,6 +3,8 @@ import { SocketContext } from './App';
 import config, { apiFetch } from './config';
 import { ArrowRight, Box, CheckCircle2, Pencil, Trash2, XCircle, X } from 'lucide-react';
 import OrderPhotos from './OrderPhotos';
+import ItemPhoto from './ItemPhoto';
+import PhotoModal from './PhotoModal';
 
 const STAGES = [
   'Order Form Received',
@@ -64,6 +66,7 @@ export default function LiveOrderStatus() {
   };
   const [error, setError] = useState('');
   const [editingOrder, setEditingOrder] = useState(null);
+  const [modalPhoto, setModalPhoto] = useState(null);
   const socket = useContext(SocketContext);
   const role = localStorage.getItem('ocean_spas_role');
 
@@ -225,7 +228,8 @@ export default function LiveOrderStatus() {
               <div style={{ fontSize: '12px', color: 'var(--text-light)', marginBottom: '8px' }}>
                 Placed: {new Date(order.createdAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
               </div>
-              <div style={{ marginBottom: '8px' }}>
+              <div style={{ marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <ItemPhoto photoFilename={order.itemPhoto} onClick={() => setModalPhoto(order.itemPhoto)} />
                 <span className="order-model">{order.baseModel} {order.variant && `(${order.variant})`}</span>
               </div>
               <div style={{ fontSize: '13px', color: 'var(--text)', marginBottom: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -405,6 +409,8 @@ export default function LiveOrderStatus() {
           </div>
         </div>
       )}
+      
+      <PhotoModal photoFilename={modalPhoto} onClose={() => setModalPhoto(null)} />
     </div>
   );
 }

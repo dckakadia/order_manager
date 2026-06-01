@@ -21,7 +21,7 @@ const createOrder = async (data, userId) => {
         deliveryDate: data.deliveryDate ? new Date(data.deliveryDate) : null,
         status: 'Order Form Received'
       },
-      include: { customer: true }
+      include: { customer: true, item: true }
     });
 
     await tx.orderStatusHistory.create({
@@ -45,7 +45,7 @@ const getOrders = async (page = 1, limit = 20, includeDeleted = false) => {
     skip,
     take: limit,
     orderBy: { createdAt: 'desc' },
-    include: { customer: true }
+    include: { customer: true, item: true }
   });
 
   const total = await prisma.order.count({
@@ -63,7 +63,7 @@ const updateOrderStatus = async (id, status, userId) => {
     const order = await tx.order.update({ 
       where: { id: parseInt(id) }, 
       data: { status },
-      include: { customer: true }
+      include: { customer: true, item: true }
     });
 
     await tx.orderStatusHistory.create({
@@ -101,7 +101,7 @@ const updateOrder = async (id, data) => {
   return await prisma.order.update({
     where: { id: parseInt(id) },
     data: updateData,
-    include: { customer: true }
+    include: { customer: true, item: true }
   });
 };
 
