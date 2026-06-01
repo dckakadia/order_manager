@@ -1,13 +1,14 @@
+import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import config from './config';
 
 export default function PhotoModal({ photoFilename, onClose }) {
   if (!photoFilename) return null;
   
-  const [blobUrl, setBlobUrl] = React.useState('');
-  const [error, setError] = React.useState(false);
+  const [blobUrl, setBlobUrl] = useState('');
+  const [error, setError] = useState(false);
 
-  React.useEffect(() => {
+  useEffect(() => {
     let isMounted = true;
     if (!photoFilename) {
       if (isMounted) setError(true);
