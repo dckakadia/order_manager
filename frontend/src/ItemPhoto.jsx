@@ -28,7 +28,7 @@ export default function ItemPhoto({ photoFilename, onClick, size = 40, style = {
     );
   }
 
-  const imageUrl = `${config.api.baseURL}/uploads/items/${photoFilename}`;
+  const imageUrl = `${config.api.baseURL}/api/uploads/items/${photoFilename}`;
 
   return (
     <div style={containerStyle} onClick={onClick}>

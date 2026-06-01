@@ -183,7 +183,7 @@ export default function ItemMaster() {
               {(photoPreview || (photoFilename && !removePhoto)) ? (
                 <div style={{ position: 'relative' }}>
                   <img 
-                    src={photoPreview || `${config.api.baseURL}/uploads/items/${photoFilename}`} 
+                    src={photoPreview || `${config.api.baseURL}/api/uploads/items/${photoFilename}`} 
                     alt="Preview" 
                     style={{ width: '160px', height: '160px', objectFit: 'cover', borderRadius: '8px', border: '1px solid var(--border)' }} 
                   />

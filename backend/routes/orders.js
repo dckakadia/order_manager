@@ -224,7 +224,7 @@ router.post('/:id/attachments', authMiddleware, upload.single('photo'), async (r
       data: {
         orderId,
         fileName: req.file.originalname,
-        filePath: `/uploads/order_attachments/${req.file.filename}`,
+        filePath: `/api/uploads/order_attachments/${req.file.filename}`,
         uploadedBy: req.user.id
       }
     });

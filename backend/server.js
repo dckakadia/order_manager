@@ -104,12 +104,8 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => console.log('Client disconnected'));
 });
 
-app.get('/uploads/items/:filename', (req, res) => {
-  res.sendFile(path.join(__dirname, 'uploads/items', req.params.filename));
-});
-
-// Serve uploads directory statically
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Serve uploads directory statically via /api to bypass Nginx SPA intercept
+app.use('/api/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Serve frontend static files
 app.use(express.static(path.join(__dirname, '../frontend/dist')));

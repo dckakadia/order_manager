@@ -83,7 +83,7 @@ export default function OrderPhotos({ orderId }) {
           {photos.map(photo => (
             <div key={photo.id} style={{ position: 'relative', flexShrink: 0 }}>
               <img 
-                src={`${config.api.baseURL}${photo.filePath}`} 
+                src={`${config.api.baseURL}${photo.filePath.startsWith('/uploads') ? '/api' + photo.filePath : photo.filePath}`}
                 alt="Order Attachment" 
                 style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '8px', cursor: 'pointer', border: '1px solid var(--border)' }}
                 onClick={() => setSelectedPhoto(photo)}
@@ -109,7 +109,7 @@ export default function OrderPhotos({ orderId }) {
               <X size={32} />
             </button>
             <img 
-              src={`${config.api.baseURL}${selectedPhoto.filePath}`} 
+              src={`${config.api.baseURL}${selectedPhoto.filePath.startsWith('/uploads') ? '/api' + selectedPhoto.filePath : selectedPhoto.filePath}`}
               alt="Full size" 
               style={{ maxWidth: '100%', maxHeight: '80vh', objectFit: 'contain', borderRadius: '8px' }}
               onClick={e => e.stopPropagation()}

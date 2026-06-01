@@ -4,7 +4,9 @@ import config from './config';
 export default function PhotoModal({ photoFilename, onClose }) {
   if (!photoFilename) return null;
   
-  const imageUrl = `${config.api.baseURL}/uploads/items/${photoFilename}`;
+  const imageUrl = photoFilename?.startsWith('blob:') 
+    ? photoFilename 
+    : `${config.api.baseURL}/api/uploads/items/${photoFilename}`;
 
   return (
     <div 
