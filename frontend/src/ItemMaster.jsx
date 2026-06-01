@@ -49,8 +49,8 @@ export default function ItemMaster() {
       
       const compressedBlob = await compressImage(file);
       
-      if (compressedBlob.size > 5 * 1024 * 1024) {
-        alert('Photo must be under 5 MB and could not be compressed further.');
+      if (compressedBlob.size > 1 * 1024 * 1024) {
+        alert('Photo must be under 1 MB and could not be compressed further.');
         e.target.value = '';
         return;
       }
@@ -208,7 +208,7 @@ export default function ItemMaster() {
                   {(photoFilename || photoFile) && !removePhoto ? 'Change Photo' : 'Upload Photo'}
                   <input type="file" accept="image/jpeg, image/png, image/webp" style={{ display: 'none' }} onChange={handleFileChange} />
                 </label>
-                <div style={{ fontSize: '0.8rem', color: 'var(--text-light)', marginTop: '0.5rem' }}>Max 5MB. JPG, PNG, WEBP.</div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-light)', marginTop: '0.5rem' }}>Max 1MB. JPG, PNG, WEBP.</div>
               </div>
             </div>
           </div>

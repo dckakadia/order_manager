@@ -194,8 +194,8 @@ export default function SalesForm() {
       // Compress the image before checking size limits
       blob = await compressImage(blob);
       
-      if (blob.size > 5 * 1024 * 1024) {
-        alert('The photo could not be compressed below 5MB. Please choose a smaller photo.');
+      if (blob.size > 1 * 1024 * 1024) {
+        alert('The photo could not be compressed below 1MB. Please choose a smaller photo.');
         return;
       }
       
