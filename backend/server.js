@@ -84,12 +84,15 @@ app.get('/api/debug-items', (req, res) => {
   try {
     const path = require('path');
     const itemsPath = path.join(__dirname, 'uploads/items');
+    const attachmentsPath = path.join(__dirname, 'uploads/order_attachments');
+    const attachments = fs.existsSync(attachmentsPath) ? fs.readdirSync(attachmentsPath) : [];
+    const attachmentsStats = attachments.map(f => { const st = fs.statSync(path.join(attachmentsPath, f)); return { name: f, size: st.size }; });
     const fs = require('fs'); const items = fs.existsSync(itemsPath) ? fs.readdirSync(itemsPath) : [];
     const itemsStats = items.map(f => {
       const st = fs.statSync(path.join(itemsPath, f));
       return { name: f, size: st.size, time: st.mtime };
     });
-    res.json({ success: true, itemsPath, __dirname, cwd: process.cwd(), files: itemsStats });
+    res.json({ success: true, itemsPath, __dirname, cwd: process.cwd(), files: itemsStats, attachments: attachmentsStats });
   } catch (e) {
     res.json({ success: false, error: e.message });
   }
