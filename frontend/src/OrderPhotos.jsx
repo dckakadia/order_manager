@@ -9,7 +9,8 @@ export default function OrderPhotos({ orderId }) {
   const [selectedPhoto, setSelectedPhoto] = useState(null);
 
   const role = localStorage.getItem('ocean_spas_role');
-  const canAddPhotos = role === 'ADMIN' || role === 'MANAGER';
+  const username = localStorage.getItem('ocean_spas_username');
+  const canAddPhotos = role === 'ADMIN' || role === 'MANAGER' || username === 'manish';
 
   const loadPhotos = async () => {
     try {

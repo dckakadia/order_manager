@@ -23,6 +23,7 @@ export default function Login() {
 
       if (data.success) {
         localStorage.setItem(config.storage.userRole, data.role);
+        localStorage.setItem('ocean_spas_username', username.toLowerCase());
 
         // BUG FIX #1: Navigate based on role, not always to /sales
         if (data.role === 'MANAGER') {
