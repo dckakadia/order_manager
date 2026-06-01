@@ -70,7 +70,6 @@ export default function SalesForm() {
   const [isCustomerDropdownOpen, setIsCustomerDropdownOpen] = useState(false);
   const [customerSearchTerm, setCustomerSearchTerm] = useState('');
 
-  const [location, setLocation] = useState(null);
   const [submitted, setSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -167,27 +166,6 @@ export default function SalesForm() {
   const baseModels = items.filter(i => i.category === 'Base Model' || i.category === 'Model' || !i.category);
   const selectedModel = baseModels.find(m => m.id.toString() === formData.baseModel);
 
-  const handleCheckIn = async () => {
-    try {
-      const permissions = await Geolocation.checkPermissions();
-      if (permissions.location !== 'granted') {
-        const req = await Geolocation.requestPermissions();
-        if (req.location !== 'granted') {
-          alert('Location access denied');
-          return;
-        }
-      }
-      const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: true });
-      setLocation({
-        lat: pos.coords.latitude,
-        lng: pos.coords.longitude,
-        time: new Date().toISOString()
-      });
-    } catch (err) {
-      alert('Error fetching location. Make sure GPS is enabled.');
-    }
-  };
-
   const handleAddLocationPhoto = async () => {
     try {
       const image = await Camera.getPhoto({
@@ -266,10 +244,7 @@ export default function SalesForm() {
       deliveryDate: formData.deliveryDate,
       notes: formData.notes,
       faucetPosition: formData.faucetPosition,
-      sidePanel: formData.sidePanel,
-      locationLat: location?.lat,
-      locationLng: location?.lng,
-      checkInTime: location?.time
+      sidePanel: formData.sidePanel
     };
 
     try {
@@ -297,7 +272,6 @@ export default function SalesForm() {
         setSelectedCustomerId('');
         setCustomerSearchTerm('');
         setFormData({ customerName: '', phone: '', email: '', shippingAddress: '', taxNumber: '', baseModel: '', variant: '', deliveryDate: '', notes: '', faucetPosition: '', sidePanel: '', orderBy: 'Manish', manualPrice: '' });
-        setLocation(null);
         setLocationPhotos([]);
       }, 3000);
     } catch {
@@ -305,15 +279,15 @@ export default function SalesForm() {
     }
   };
 
-  const handleShare = async () => {
+  const handleShareOrder = async (order) => {
     try {
-      const receiptElement = document.getElementById('receipt-capture');
+      const receiptElement = document.getElementById(`receipt-capture-${order.id}`);
       if (!receiptElement) return;
       
       const canvas = await html2canvas(receiptElement, { scale: 2 });
       const base64Data = canvas.toDataURL('image/png').split(',')[1];
       
-      const fileName = `order_${Date.now()}.png`;
+      const fileName = `order_${order.id}_${Date.now()}.png`;
       const savedFile = await Filesystem.writeFile({
         path: fileName,
         data: base64Data,
@@ -321,19 +295,19 @@ export default function SalesForm() {
       });
       
       await Share.share({
-        title: 'Ocean Spas Order',
-        text: 'Here are the order details from Ocean Spas.',
+        title: `Ocean Spas Order #${order.id}`,
+        text: `Here are the details for Order #${order.id}.`,
         url: savedFile.uri,
         dialogTitle: 'Share Order Receipt'
       });
     } catch (err) {
       console.error('Share error:', err);
       // Fallback
-      const text = `Ocean Spas Order\n\nCustomer: ${formData.customerName}\nModel: ${selectedModel?.name}\nTotal Price: ₹${Number(formData.manualPrice).toLocaleString('en-IN')}\nNotes: ${formData.notes || 'None'}`;
+      const text = `Ocean Spas Order #${order.id}\n\nCustomer: ${order.customerName}\nModel: ${order.baseModel} ${order.variant ? `(${order.variant})` : ''}\nTotal Price: ₹${Number(order.totalPrice || 0).toLocaleString('en-IN')}\nNotes: ${order.notes || 'None'}`;
       if (navigator.share) {
-        navigator.share({ title: 'Ocean Spas Order Details', text }).catch(() => {});
+        navigator.share({ title: `Ocean Spas Order #${order.id}`, text }).catch(() => {});
       } else {
-        window.open(`mailto:?subject=Order Details&body=${encodeURIComponent(text)}`);
+        window.open(`mailto:?subject=Order ${order.id} Details&body=${encodeURIComponent(text)}`);
       }
     }
   };
@@ -394,31 +368,6 @@ export default function SalesForm() {
 
   return (
     <div className="grid-2">
-      {/* Hidden Receipt for Share */}
-      <div id="receipt-capture" style={{ position: 'absolute', top: '-9999px', left: '-9999px', background: '#fff', padding: '30px', width: '500px', fontFamily: 'sans-serif', borderRadius: '12px' }}>
-        <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-          <h2 style={{ color: '#0f172a', margin: '0 0 8px 0', fontSize: '24px' }}>OCEAN SPAS</h2>
-          <p style={{ color: '#64748b', margin: 0 }}>Order Receipt</p>
-        </div>
-        <table style={{ width: '100%', borderCollapse: 'collapse', color: '#1e293b' }}>
-          <tbody>
-            <tr><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0', fontWeight: 'bold' }}>Customer</td><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0' }}>{formData.customerName}</td></tr>
-            <tr><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0', fontWeight: 'bold' }}>Phone</td><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0' }}>{formData.phone}</td></tr>
-            <tr><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0', fontWeight: 'bold' }}>Model</td><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0' }}>{selectedModel?.name}</td></tr>
-            <tr><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0', fontWeight: 'bold' }}>Variant</td><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0' }}>{formData.variant || 'None'}</td></tr>
-            <tr><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0', fontWeight: 'bold' }}>Faucet</td><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0' }}>{formData.faucetPosition}</td></tr>
-            <tr><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0', fontWeight: 'bold' }}>Side Panel</td><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0' }}>{formData.sidePanel}</td></tr>
-            <tr><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0', fontWeight: 'bold' }}>Delivery</td><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0' }}>{formData.deliveryDate ? new Date(formData.deliveryDate).toLocaleDateString('en-IN') : 'Not Set'}</td></tr>
-            <tr><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0', fontWeight: 'bold' }}>Order By</td><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0' }}>{formData.orderBy}</td></tr>
-            <tr><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0', fontWeight: 'bold' }}>Notes</td><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0' }}>{formData.notes || 'None'}</td></tr>
-            <tr><td style={{ padding: '16px 8px', fontWeight: 'bold', fontSize: '20px' }}>Total Price</td><td style={{ padding: '16px 8px', fontWeight: 'bold', fontSize: '22px', color: '#10b981' }}>₹{Number(formData.manualPrice || 0).toLocaleString('en-IN')}</td></tr>
-          </tbody>
-        </table>
-        <div style={{ textAlign: 'center', marginTop: '30px', color: '#64748b', fontSize: '12px' }}>
-          Thank you for choosing Ocean Spas!
-        </div>
-      </div>
-
       <div className="glass-card">
         <h2>Customer Details</h2>
         {submitError && <div className="badge badge-start" style={{ display: 'block', marginBottom: '1rem', padding: '0.5rem' }}>{submitError}</div>}
@@ -697,15 +646,7 @@ export default function SalesForm() {
         </div>
 
         <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <button type="button" onClick={handleCheckIn} className={`btn ${location ? 'btn-success' : 'btn-secondary'}`}>
-            <MapPin size={18} /> {location ? 'Checked In ✓' : 'Check-In (Location)'}
-          </button>
-
-          <button type="button" onClick={handleShare} className="btn btn-secondary" disabled={!selectedModel || !formData.customerName}>
-            <Share2 size={18} /> Share Order
-          </button>
-
-          <button type="submit" form="orderForm" className="btn btn-primary" style={{ marginTop: '1rem' }} disabled={!selectedCustomerId || !formData.baseModel}>
+          <button type="submit" form="orderForm" className="btn btn-primary" disabled={!selectedCustomerId || !formData.baseModel}>
             Submit Order Now
           </button>
         </div>
@@ -767,18 +708,51 @@ export default function SalesForm() {
                   </div>
                 </div>
                 
-                {role === 'ADMIN' && (
-                  <div style={{ display: 'flex', gap: '8px', marginTop: '12px', paddingTop: '12px', borderTop: '1px dashed var(--border)' }}>
-                    <button onClick={() => setEditingOrder(order)} className="btn btn-secondary" style={{ flex: 1, padding: '0.4rem', fontSize: '12px', minHeight: '32px' }}>
+                <div id={`receipt-capture-${order.id}`} style={{ position: 'absolute', top: '-9999px', left: '-9999px', background: '#fff', padding: '30px', width: '500px', fontFamily: 'sans-serif', borderRadius: '12px', zIndex: -1 }}>
+                  <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+                    <h2 style={{ color: '#0f172a', margin: '0 0 8px 0', fontSize: '24px' }}>OCEAN SPAS</h2>
+                    <p style={{ color: '#64748b', margin: 0 }}>Order Receipt #{order.id}</p>
+                  </div>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', color: '#1e293b' }}>
+                    <tbody>
+                      <tr><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0', fontWeight: 'bold' }}>Customer</td><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0' }}>{order.customerName}</td></tr>
+                      <tr><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0', fontWeight: 'bold' }}>Phone</td><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0' }}>{order.phone || 'N/A'}</td></tr>
+                      <tr><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0', fontWeight: 'bold' }}>Model</td><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0' }}>{order.baseModel}</td></tr>
+                      <tr><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0', fontWeight: 'bold' }}>Variant</td><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0' }}>{order.variant || 'None'}</td></tr>
+                      <tr><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0', fontWeight: 'bold' }}>Faucet</td><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0' }}>{order.faucetPosition || 'Not Specified'}</td></tr>
+                      <tr><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0', fontWeight: 'bold' }}>Side Panel</td><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0' }}>{order.sidePanel || 'Not Specified'}</td></tr>
+                      <tr><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0', fontWeight: 'bold' }}>Delivery</td><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0' }}>{order.deliveryDate ? new Date(order.deliveryDate).toLocaleDateString('en-IN') : 'Not Set'}</td></tr>
+                      <tr><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0', fontWeight: 'bold' }}>Order By</td><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0' }}>{order.orderBy}</td></tr>
+                      <tr><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0', fontWeight: 'bold' }}>Notes</td><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0' }}>{order.notes || 'None'}</td></tr>
+                      <tr><td style={{ padding: '16px 8px', fontWeight: 'bold', fontSize: '20px' }}>Total Price</td><td style={{ padding: '16px 8px', fontWeight: 'bold', fontSize: '22px', color: '#10b981' }}>₹{Number(order.totalPrice || 0).toLocaleString('en-IN')}</td></tr>
+                    </tbody>
+                  </table>
+                  <div style={{ textAlign: 'center', marginTop: '30px', color: '#64748b', fontSize: '12px' }}>
+                    Thank you for choosing Ocean Spas!
+                  </div>
+                </div>
+
+                {role === 'ADMIN' ? (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '12px', paddingTop: '12px', borderTop: '1px dashed var(--border)' }}>
+                    <button onClick={() => handleShareOrder(order)} className="btn btn-secondary" style={{ flex: '1 1 calc(50% - 4px)', padding: '0.4rem', fontSize: '12px', minHeight: '32px' }}>
+                      <Share2 size={14} /> Share
+                    </button>
+                    <button onClick={() => setEditingOrder(order)} className="btn btn-secondary" style={{ flex: '1 1 calc(50% - 4px)', padding: '0.4rem', fontSize: '12px', minHeight: '32px' }}>
                       <Pencil size={14} /> Edit
                     </button>
                     {order.status !== 'Cancelled' && (
-                      <button onClick={() => handleCancel(order.id)} className="btn btn-secondary" style={{ flex: 1, padding: '0.4rem', fontSize: '12px', minHeight: '32px', color: '#b91c1c' }}>
+                      <button onClick={() => handleCancel(order.id)} className="btn btn-secondary" style={{ flex: '1 1 calc(50% - 4px)', padding: '0.4rem', fontSize: '12px', minHeight: '32px', color: '#b91c1c' }}>
                         <XCircle size={14} /> Cancel
                       </button>
                     )}
-                    <button onClick={() => handleDelete(order.id)} className="btn btn-secondary" style={{ flex: 1, padding: '0.4rem', fontSize: '12px', minHeight: '32px', color: '#b91c1c', borderColor: '#fee2e2', background: '#fff5f5' }}>
+                    <button onClick={() => handleDelete(order.id)} className="btn btn-secondary" style={{ flex: '1 1 calc(50% - 4px)', padding: '0.4rem', fontSize: '12px', minHeight: '32px', color: '#b91c1c', borderColor: '#fee2e2', background: '#fff5f5' }}>
                       <Trash2 size={14} /> Delete
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '12px', paddingTop: '12px', borderTop: '1px dashed var(--border)' }}>
+                    <button onClick={() => handleShareOrder(order)} className="btn btn-secondary" style={{ flex: 1, padding: '0.4rem', fontSize: '12px', minHeight: '32px' }}>
+                      <Share2 size={14} /> Share
                     </button>
                   </div>
                 )}
