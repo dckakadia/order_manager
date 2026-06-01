@@ -4,9 +4,23 @@ import config from './config';
 export default function PhotoModal({ photoFilename, onClose }) {
   if (!photoFilename) return null;
   
-  const imageUrl = photoFilename?.startsWith('blob:') 
-    ? photoFilename 
-    : `${config.api.baseURL}/api/uploads/items/${photoFilename}`;
+  const getImageUrl = (filename) => {
+    if (!filename) return '';
+    if (filename.startsWith('http') || filename.startsWith('blob:')) return filename;
+    
+    let cleanPath = filename;
+    if (!cleanPath.includes('/api/uploads/items/')) {
+        cleanPath = cleanPath.startsWith('/') ? cleanPath : `/${cleanPath}`;
+        cleanPath = `/api/uploads/items${cleanPath}`;
+    } else if (!cleanPath.startsWith('/')) {
+        cleanPath = `/${cleanPath}`;
+    }
+
+    const baseUrl = (config.api.baseURL || '').replace(/\/$/, '');
+    return `${baseUrl}${cleanPath}`;
+  };
+
+  const imageUrl = getImageUrl(photoFilename);
 
   return (
     <div 
