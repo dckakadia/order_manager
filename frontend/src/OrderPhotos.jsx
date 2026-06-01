@@ -278,11 +278,6 @@ export default function OrderPhotos({ orderId }) {
         <h4 style={{ margin: 0, fontSize: '13px', color: 'var(--text-light)' }}>Installation Location Photos</h4>
         <div style={{ display: 'flex', gap: '8px' }}>
           {canAddPhotos && (
-            <button onClick={handleUpdateGPS} style={{ padding: '4px 10px', fontSize: '11px', fontWeight: '600', border: '1.5px solid var(--border)', background: 'transparent', color: 'var(--text)', borderRadius: '99px', display: 'flex', gap: '4px', alignItems: 'center', cursor: 'pointer' }}>
-              <RefreshCw size={12} /> Update GPS
-            </button>
-          )}
-          {canAddPhotos && (
             <button onClick={handleAddPhoto} style={{ padding: '4px 10px', fontSize: '11px', fontWeight: '600', border: 'none', background: 'var(--primary)', color: '#ffffff', borderRadius: '99px', display: 'flex', gap: '4px', alignItems: 'center', cursor: 'pointer' }}>
               <ImagePlus size={12} /> Add Photo
             </button>
