@@ -56,6 +56,12 @@ jobs:
             echo "Updating Database Schema..."
             npx prisma db push --accept-data-loss
             
+            echo "Building Frontend..."
+            cd ../frontend
+            npm install
+            npm run build
+            cd ../backend
+            
             echo "Restarting PM2 Service..."
             pm2 restart order_manager
             
