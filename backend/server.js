@@ -84,7 +84,7 @@ app.get('/api/debug-items', (req, res) => {
   try {
     const path = require('path');
     const itemsPath = path.join(__dirname, 'uploads/items');
-    const items = fs.existsSync(itemsPath) ? fs.readdirSync(itemsPath) : [];
+    const fs = require('fs'); const items = fs.existsSync(itemsPath) ? fs.readdirSync(itemsPath) : [];
     const itemsStats = items.map(f => {
       const st = fs.statSync(path.join(itemsPath, f));
       return { name: f, size: st.size, time: st.mtime };
