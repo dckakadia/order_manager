@@ -2,9 +2,9 @@
  * Utility functions for client-side image manipulation and compression.
  */
 
-const MAX_SIZE_MB = 0.9; // Target slightly under 1MB to leave room for FormData headers
+const MAX_SIZE_MB = 0.5; // Target approx 500kb
 const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
-const MAX_DIMENSION = 1200;
+const MAX_DIMENSION = 1000;
 const QUALITIES = [0.8, 0.6, 0.4];
 
 /**

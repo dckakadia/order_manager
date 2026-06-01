@@ -25,22 +25,39 @@ function PhotoThumbnail({ photo, index, canAddPhotos, handleDelete, onClick }) {
     };
 
     const imageUrl = getImageUrl(photo.filePath);
+    const thumbPath = photo.filePath ? photo.filePath.replace(/([^\/]+)$/, 'thumb_$1') : '';
+    const thumbUrl = getImageUrl(thumbPath);
     
     if (imageUrl.startsWith('blob:')) {
       if (isMounted) setBlobUrl(imageUrl);
       return;
     }
 
-    apiFetch(imageUrl)
+    const loadOriginal = () => {
+      apiFetch(imageUrl)
+        .then(res => {
+          if (!res.ok) throw new Error('Original missing');
+          return res.blob();
+        })
+        .then(blob => {
+          if (isMounted) setBlobUrl(URL.createObjectURL(blob));
+        })
+        .catch(() => {
+          if (isMounted) setHasError(true);
+        });
+    };
+
+    apiFetch(thumbUrl)
       .then(res => {
-        if (!res.ok) throw new Error('Network response was not ok');
+        if (!res.ok) throw new Error('Thumbnail missing');
         return res.blob();
       })
       .then(blob => {
         if (isMounted) setBlobUrl(URL.createObjectURL(blob));
       })
       .catch(() => {
-        if (isMounted) setHasError(true);
+        // Fallback to original image if thumbnail isn't found
+        loadOriginal();
       });
 
     return () => { isMounted = false; };

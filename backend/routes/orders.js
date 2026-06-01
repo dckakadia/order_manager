@@ -6,6 +6,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { PrismaClient } = require('@prisma/client');
+const sharp = require('sharp');
 
 const prisma = new PrismaClient();
 const router = express.Router();
@@ -225,6 +226,17 @@ router.post('/:id/attachments', authMiddleware, upload.single('photo'), async (r
     const photoLng = req.body.lng ? parseFloat(req.body.lng) : null;
     const photoType = req.body.photoType || "general";
 
+    try {
+      const thumbFilename = `thumb_${req.file.filename}`;
+      const thumbPath = path.join(req.file.destination, thumbFilename);
+      await sharp(req.file.path)
+        .resize(250, 250, { fit: 'cover' })
+        .jpeg({ quality: 70 })
+        .toFile(thumbPath);
+    } catch (err) {
+      console.warn("Failed to generate thumbnail:", err);
+    }
+
     const attachment = await prisma.orderAttachment.create({
       data: {
         orderId,
@@ -267,6 +279,10 @@ router.delete('/:id/attachments/:attachmentId', authMiddleware, async (req, res)
     const absolutePath = path.join(__dirname, '..', attachment.filePath);
     if (fs.existsSync(absolutePath)) {
       fs.unlinkSync(absolutePath);
+    }
+    const thumbAbsolutePath = absolutePath.replace(/([\\\/])([^\\\/]+)$/, '$1thumb_$2');
+    if (fs.existsSync(thumbAbsolutePath)) {
+      fs.unlinkSync(thumbAbsolutePath);
     }
 
     res.json({ success: true });
