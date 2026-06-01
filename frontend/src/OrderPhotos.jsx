@@ -244,7 +244,7 @@ export default function OrderPhotos({ orderId }) {
       
       {photos.length > 0 && (
         <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px' }}>
-          {photos.map(photo => (
+          {photos.map((photo, index) => (
             <PhotoThumbnail 
               key={photo.id}
               photo={photo}
