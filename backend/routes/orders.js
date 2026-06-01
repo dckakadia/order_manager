@@ -259,6 +259,10 @@ router.post('/:id/attachments', authMiddleware, upload.single('photo'), async (r
 // DELETE /api/orders/:id/attachments/:attachmentId
 router.delete('/:id/attachments/:attachmentId', authMiddleware, async (req, res) => {
   try {
+    if (req.user && req.user.username === 'sunil') {
+      return res.status(403).json({ success: false, error: 'You do not have permission to delete photos' });
+    }
+    
     const attachmentId = parseInt(req.params.attachmentId);
     
     // Find attachment first

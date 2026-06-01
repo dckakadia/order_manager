@@ -7,7 +7,7 @@ import PhotoModal from './PhotoModal';
 import { compressImage } from './imageUtils';
 
 // Add a new component at the top to handle individual photo rendering
-function PhotoThumbnail({ photo, index, canAddPhotos, handleDelete, onClick }) {
+function PhotoThumbnail({ photo, index, canDeletePhotos, handleDelete, onClick }) {
   const [blobUrl, setBlobUrl] = useState('');
   const [hasError, setHasError] = useState(false);
 
@@ -111,7 +111,7 @@ function PhotoThumbnail({ photo, index, canAddPhotos, handleDelete, onClick }) {
           <MapPin size={10} color="white" />
         </div>
       )}
-      {canAddPhotos && (
+      {canDeletePhotos && (
         <button 
           onClick={(e) => { e.stopPropagation(); handleDelete(photo.id); }}
           style={{ position: 'absolute', top: '-4px', right: '-4px', background: 'red', color: 'white', border: 'none', borderRadius: '50%', width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 }}
@@ -130,6 +130,7 @@ export default function OrderPhotos({ orderId }) {
   const role = localStorage.getItem('ocean_spas_role');
   const username = localStorage.getItem('ocean_spas_username');
   const canAddPhotos = role === 'ADMIN' || role === 'MANAGER' || username === 'manish';
+  const canDeletePhotos = canAddPhotos && username !== 'sunil';
 
   const loadPhotos = async () => {
     try {
@@ -294,7 +295,7 @@ export default function OrderPhotos({ orderId }) {
               key={photo.id}
               photo={photo}
               index={index}
-              canAddPhotos={canAddPhotos}
+              canDeletePhotos={canDeletePhotos}
               handleDelete={handleDelete}
               onClick={setViewerIndex}
             />
