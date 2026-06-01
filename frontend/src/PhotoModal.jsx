@@ -4,23 +4,51 @@ import config from './config';
 export default function PhotoModal({ photoFilename, onClose }) {
   if (!photoFilename) return null;
   
-  const getImageUrl = (filename) => {
-    if (!filename) return '';
-    if (filename.startsWith('http') || filename.startsWith('blob:')) return filename;
-    
-    let cleanPath = filename;
-    if (!cleanPath.includes('/api/uploads/items/')) {
-        cleanPath = cleanPath.startsWith('/') ? cleanPath : `/${cleanPath}`;
-        cleanPath = `/api/uploads/items${cleanPath}`;
-    } else if (!cleanPath.startsWith('/')) {
-        cleanPath = `/${cleanPath}`;
+  const [blobUrl, setBlobUrl] = React.useState('');
+  const [error, setError] = React.useState(false);
+
+  React.useEffect(() => {
+    let isMounted = true;
+    if (!photoFilename) {
+      if (isMounted) setError(true);
+      return;
     }
 
-    const baseUrl = (config.api.baseURL || '').replace(/\/$/, '');
-    return `${baseUrl}${cleanPath}`;
-  };
+    const getImageUrl = (filename) => {
+      if (filename.startsWith('http') || filename.startsWith('blob:')) return filename;
+      let cleanPath = filename;
+      if (!cleanPath.includes('/api/uploads/')) {
+          cleanPath = cleanPath.startsWith('/') ? cleanPath : `/${cleanPath}`;
+          cleanPath = `/api/uploads/items${cleanPath}`;
+      } else if (!cleanPath.startsWith('/')) {
+          cleanPath = `/${cleanPath}`;
+      }
+      const baseUrl = (config.api.baseURL || '').replace(/\/$/, '');
+      return `${baseUrl}${cleanPath}`;
+    };
 
-  const imageUrl = getImageUrl(photoFilename);
+    const imageUrl = getImageUrl(photoFilename);
+    if (imageUrl.startsWith('blob:')) {
+      if (isMounted) setBlobUrl(imageUrl);
+      return;
+    }
+
+    import('./config').then(({ apiFetch }) => {
+      apiFetch(imageUrl)
+        .then(res => {
+          if (!res.ok) throw new Error('Image fetch failed');
+          return res.blob();
+        })
+        .then(blob => {
+          if (isMounted) setBlobUrl(URL.createObjectURL(blob));
+        })
+        .catch(() => {
+          if (isMounted) setError(true);
+        });
+    });
+
+    return () => { isMounted = false; };
+  }, [photoFilename]);
 
   return (
     <div 
@@ -58,17 +86,26 @@ export default function PhotoModal({ photoFilename, onClose }) {
         <X size={24} />
       </button>
       
-      <img 
-        src={imageUrl} 
-        alt="Full size item" 
-        style={{
-          maxWidth: '90vw',
-          maxHeight: '80vh',
-          objectFit: 'contain',
-          borderRadius: '8px'
-        }}
-        onClick={e => e.stopPropagation()} // prevent closing when clicking the image itself
-      />
+      {error ? (
+        <div style={{ color: 'white', textAlign: 'center' }}>
+          <X size={48} color="red" />
+          <p>Failed to load image</p>
+        </div>
+      ) : blobUrl ? (
+        <img 
+          src={blobUrl} 
+          alt="Full size item" 
+          style={{
+            maxWidth: '90vw',
+            maxHeight: '80vh',
+            objectFit: 'contain',
+            borderRadius: '8px'
+          }}
+          onClick={e => e.stopPropagation()}
+        />
+      ) : (
+        <div style={{ color: 'white' }}>Loading...</div>
+      )}
     </div>
   );
 }

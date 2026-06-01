@@ -3,6 +3,91 @@ import config, { apiFetch } from './config';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { Geolocation } from '@capacitor/geolocation';
 import { ImagePlus, X, MapPin, RefreshCw } from 'lucide-react';
+import PhotoModal from './PhotoModal';
+
+// Add a new component at the top to handle individual photo rendering
+function PhotoThumbnail({ photo, canAddPhotos, handleDelete, setSelectedPhoto }) {
+  const [blobUrl, setBlobUrl] = useState('');
+  const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    const getImageUrl = (path) => {
+      if (!path) return '';
+      if (path.startsWith('http')) return path;
+      let cleanPath = path.startsWith('/') ? path : `/${path}`;
+      if (!cleanPath.startsWith('/api')) {
+        cleanPath = `/api${cleanPath}`;
+      }
+      const baseUrl = config.api.baseURL.replace(/\/$/, '');
+      return `${baseUrl}${cleanPath}`;
+    };
+
+    const imageUrl = getImageUrl(photo.filePath);
+    
+    if (imageUrl.startsWith('blob:')) {
+      if (isMounted) setBlobUrl(imageUrl);
+      return;
+    }
+
+    apiFetch(imageUrl)
+      .then(res => {
+        if (!res.ok) throw new Error('Network response was not ok');
+        return res.blob();
+      })
+      .then(blob => {
+        if (isMounted) setBlobUrl(URL.createObjectURL(blob));
+      })
+      .catch(() => {
+        if (isMounted) setHasError(true);
+      });
+
+    return () => { isMounted = false; };
+  }, [photo.filePath]);
+
+  return (
+    <div style={{ position: 'relative', flexShrink: 0 }}>
+      {hasError || !blobUrl ? (
+        <div style={{
+          width: '80px', height: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          backgroundColor: '#f1f5f9', borderRadius: '8px', border: '1px solid var(--border)',
+          ...(photo.photoType === 'location_photo' && { border: '2px solid #0f766e' })
+        }}>
+          <ImagePlus size={24} color="#94a3b8" />
+        </div>
+      ) : (
+        <img 
+          src={blobUrl}
+          alt="Order Attachment" 
+          style={{ 
+            width: '80px', height: '80px', minWidth: '80px', minHeight: '80px',
+            display: 'block', objectFit: 'cover', backgroundColor: '#f1f5f9', color: 'transparent',
+            borderRadius: '8px', cursor: 'pointer', border: '1px solid var(--border)',
+            ...(photo.photoType === 'location_photo' && { border: '2px solid #0f766e' })
+          }}
+          onClick={() => setSelectedPhoto(photo)}
+        />
+      )}
+      {photo.photoType === "location_photo" && photo.photoLat && (
+        <div style={{
+          position: "absolute", bottom: "2px", left: "2px",
+          background: "#0f766e", borderRadius: "3px",
+          padding: "1px 4px", display: "flex", alignItems: "center"
+        }}>
+          <MapPin size={10} color="white" />
+        </div>
+      )}
+      {canAddPhotos && (
+        <button 
+          onClick={(e) => { e.stopPropagation(); handleDelete(photo.id); }}
+          style={{ position: 'absolute', top: '-4px', right: '-4px', background: 'red', color: 'white', border: 'none', borderRadius: '50%', width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 }}
+        >
+          <X size={12} />
+        </button>
+      )}
+    </div>
+  );
+}
 
 export default function OrderPhotos({ orderId }) {
   const [photos, setPhotos] = useState([]);
@@ -135,16 +220,6 @@ export default function OrderPhotos({ orderId }) {
     return null;
   }
 
-  const getImageUrl = (path) => {
-    if (!path) return '';
-    if (path.startsWith('http')) return path;
-    let cleanPath = path.startsWith('/') ? path : `/${path}`;
-    if (!cleanPath.startsWith('/api')) {
-      cleanPath = `/api${cleanPath}`;
-    }
-    const baseUrl = config.api.baseURL.replace(/\/$/, '');
-    return `${baseUrl}${cleanPath}`;
-  };
 
   return (
     <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px dashed var(--border)' }}>
@@ -167,55 +242,27 @@ export default function OrderPhotos({ orderId }) {
       {photos.length > 0 && (
         <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px' }}>
           {photos.map(photo => (
-            <div key={photo.id} style={{ position: 'relative', flexShrink: 0 }}>
-              <img 
-                src={getImageUrl(photo.filePath)}
-                alt="Order Attachment" 
-                style={{ 
-                  width: '80px', height: '80px', minWidth: '80px', minHeight: '80px',
-                  display: 'block', objectFit: 'cover', backgroundColor: '#f1f5f9', color: 'transparent',
-                  borderRadius: '8px', cursor: 'pointer', border: '1px solid var(--border)',
-                  ...(photo.photoType === 'location_photo' && { border: '2px solid #0f766e' })
-                }}
-                onClick={() => setSelectedPhoto(photo)}
-              />
-              {photo.photoType === "location_photo" && photo.photoLat && (
-                <div style={{
-                  position: "absolute", bottom: "2px", left: "2px",
-                  background: "#0f766e", borderRadius: "3px",
-                  padding: "1px 4px", display: "flex", alignItems: "center"
-                }}>
-                  <MapPin size={10} color="white" />
-                </div>
-              )}
-              {canAddPhotos && (
-                <button 
-                  onClick={(e) => { e.stopPropagation(); handleDelete(photo.id); }}
-                  style={{ position: 'absolute', top: '-4px', right: '-4px', background: 'red', color: 'white', border: 'none', borderRadius: '50%', width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 }}
-                >
-                  <X size={12} />
-                </button>
-              )}
-            </div>
+            <PhotoThumbnail 
+              key={photo.id}
+              photo={photo}
+              canAddPhotos={canAddPhotos}
+              handleDelete={handleDelete}
+              setSelectedPhoto={setSelectedPhoto}
+            />
           ))}
         </div>
       )}
 
       {selectedPhoto && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 2000, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '16px' }} onClick={() => setSelectedPhoto(null)}>
-          <div style={{ position: 'relative', maxWidth: '100%', maxHeight: '100%' }}>
+          <div style={{ position: 'relative', maxWidth: '100%', maxHeight: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             <button 
               onClick={() => setSelectedPhoto(null)}
               style={{ position: 'absolute', top: '-40px', right: 0, background: 'none', border: 'none', color: 'white', cursor: 'pointer' }}
             >
               <X size={32} />
             </button>
-            <img 
-              src={getImageUrl(selectedPhoto.filePath)}
-              alt="Full size" 
-              style={{ maxWidth: '100%', maxHeight: '80vh', objectFit: 'contain', borderRadius: '8px' }}
-              onClick={e => e.stopPropagation()}
-            />
+            <PhotoModal photoFilename={selectedPhoto.filePath} onClose={() => setSelectedPhoto(null)} />
             {selectedPhoto.photoType === "location_photo" && selectedPhoto.photoLat && (
               <div style={{
                 marginTop: "12px", textAlign: "center",
