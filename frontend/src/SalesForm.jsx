@@ -1,7 +1,7 @@
 import { useState, useEffect, useContext } from 'react';
 import { SocketContext } from './App';
 import config, { apiFetch } from './config';
-import { MapPin, Share2, CheckCircle2, Pencil, Trash2, XCircle, X, ImagePlus } from 'lucide-react';
+import { MapPin, Share2, CheckCircle2, Pencil, Trash2, XCircle, X, ImagePlus, User, ChevronDown, Calendar, Search } from 'lucide-react';
 import { Geolocation } from '@capacitor/geolocation';
 import { Share } from '@capacitor/share';
 import { Filesystem, Directory } from '@capacitor/filesystem';
@@ -388,15 +388,18 @@ export default function SalesForm() {
   return (
     <div className="grid-2">
       <div className="glass-card">
-        <h2>Customer Details</h2>
+        <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <User size={22} color="var(--secondary)" /> Customer Details
+        </h2>
         {submitError && <div className="badge badge-start" style={{ display: 'block', marginBottom: '1rem', padding: '0.5rem' }}>{submitError}</div>}
         <form id="orderForm" onSubmit={handleSubmit}>
           <div className="form-group" style={{ position: 'relative' }}>
             <label className="form-label required">Select Customer</label>
-            <div style={{ position: 'relative' }} onClick={() => setIsCustomerDropdownOpen(true)}>
+            <div className="search-input-wrapper" onClick={() => setIsCustomerDropdownOpen(true)}>
+              <Search className="search-icon" size={18} />
               <input
                 type="text"
-                className="form-control primary"
+                className="form-control"
                 placeholder="-- Search or Choose Customer --"
                 value={customerSearchTerm}
                 onChange={(e) => {
@@ -478,25 +481,25 @@ export default function SalesForm() {
 
           <div className="form-group">
             <label className="form-label">Customer Name</label>
-            <input type="text" className="form-control" value={formData.customerName} readOnly placeholder="Auto-filled from selection" />
+            <input type="text" className="form-control auto-filled" value={formData.customerName} readOnly placeholder="Auto-filled from selection" />
           </div>
           <div className="form-group">
             <label className="form-label">Phone</label>
-            <input type="tel" inputMode="tel" className="form-control" value={formData.phone} readOnly />
+            <input type="tel" inputMode="tel" className="form-control auto-filled" value={formData.phone} readOnly />
           </div>
           <div className="form-group">
             <label className="form-label">Email</label>
-            <input type="email" inputMode="email" className="form-control" value={formData.email} readOnly />
+            <input type="email" inputMode="email" className="form-control auto-filled" value={formData.email} readOnly />
           </div>
           <div className="form-group">
             <label className="form-label">Shipping Address</label>
-            <textarea className="form-control" rows={3} value={formData.shippingAddress} readOnly></textarea>
+            <textarea className="form-control auto-filled" rows={3} value={formData.shippingAddress} readOnly></textarea>
           </div>
           
           <button 
             type="button" 
             onClick={() => setShowAdvanced(!showAdvanced)}
-            style={{ background: 'none', border: 'none', color: 'var(--primary)', fontWeight: 500, fontSize: '13px', cursor: 'pointer', marginBottom: '1rem', padding: 0 }}
+            style={{ background: 'none', border: 'none', color: '#20c997', fontWeight: 600, fontSize: '13px', cursor: 'pointer', marginBottom: '1rem', padding: 0 }}
           >
             {showAdvanced ? '- Hide Advanced Options' : '+ Show Advanced Options (Tax No.)'}
           </button>
@@ -504,7 +507,7 @@ export default function SalesForm() {
           {showAdvanced && (
             <div className="form-group">
               <label className="form-label">Tax / Business Number</label>
-              <input type="text" className="form-control" value={formData.taxNumber} readOnly />
+              <input type="text" className="form-control auto-filled" value={formData.taxNumber} readOnly />
             </div>
           )}
         </form>
@@ -515,58 +518,67 @@ export default function SalesForm() {
           <h2>Configuration</h2>
           <div className="form-group">
             <label className="form-label required">Select Model</label>
-            <select className="form-control" required value={formData.baseModel} onChange={e => {
-              const modelId = e.target.value;
-              const price = getVariantPrice(modelId, formData.variant);
-              setFormData({...formData, baseModel: modelId, manualPrice: price});
-            }} form="orderForm">
-              <option value="">-- Select Model --</option>
-              {baseModels.map(m => (
-                <option key={m.id} value={m.id}>{m.name}</option>
-              ))}
-            </select>
+            <div className="select-wrapper color-1">
+              <select className="form-control pill-select" required value={formData.baseModel} onChange={e => {
+                const modelId = e.target.value;
+                const price = getVariantPrice(modelId, formData.variant);
+                setFormData({...formData, baseModel: modelId, manualPrice: price});
+              }} form="orderForm">
+                <option value="">-- Select Model --</option>
+                {baseModels.map(m => (
+                  <option key={m.id} value={m.id}>{m.name}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div className="form-group" style={{ marginTop: '1.5rem' }}>
             <label className="form-label required">Select Variant</label>
-            <select className="form-control" required value={formData.variant} onChange={e => {
-              const newVariant = e.target.value;
-              const price = getVariantPrice(formData.baseModel, newVariant);
-              setFormData({...formData, variant: newVariant, manualPrice: price});
-            }} form="orderForm">
-              <option value="">-- Select Variant --</option>
-              <option value="Silver">Silver</option>
-              <option value="Gold">Gold</option>
-              <option value="Platinum">Platinum</option>
-              <option value="Titanium">Titanium</option>
-            </select>
+            <div className="select-wrapper color-2">
+              <select className="form-control pill-select" required value={formData.variant} onChange={e => {
+                const newVariant = e.target.value;
+                const price = getVariantPrice(formData.baseModel, newVariant);
+                setFormData({...formData, variant: newVariant, manualPrice: price});
+              }} form="orderForm">
+                <option value="">-- Select Variant --</option>
+                <option value="Silver">Silver</option>
+                <option value="Gold">Gold</option>
+                <option value="Platinum">Platinum</option>
+                <option value="Titanium">Titanium</option>
+              </select>
+            </div>
           </div>
 
           <div className="form-group" style={{ marginTop: '1.5rem' }}>
             <label className="form-label required">Faucet Position</label>
-            <select className="form-control" required value={formData.faucetPosition} onChange={e => setFormData({...formData, faucetPosition: e.target.value})} form="orderForm">
-              <option value="" disabled>-- Select Faucet Position --</option>
-              <option value="No Faucet">No Faucet</option>
-              <option value="Left Side">Left Side</option>
-              <option value="Right Side">Right Side</option>
-            </select>
+            <div className="select-wrapper color-3">
+              <select className="form-control pill-select" required value={formData.faucetPosition} onChange={e => setFormData({...formData, faucetPosition: e.target.value})} form="orderForm">
+                <option value="" disabled>-- Select Faucet Position --</option>
+                <option value="No Faucet">No Faucet</option>
+                <option value="Left Side">Left Side</option>
+                <option value="Right Side">Right Side</option>
+              </select>
+            </div>
           </div>
 
           <div className="form-group" style={{ marginTop: '1.5rem' }}>
             <label className="form-label required">Side Panel</label>
-            <select className="form-control" required value={formData.sidePanel} onChange={e => setFormData({...formData, sidePanel: e.target.value})} form="orderForm">
-              <option value="" disabled>-- Select Side Panel --</option>
-              <option value="Head Side">Head Side</option>
-              <option value="Leg Side">Leg Side</option>
-              <option value="Head + Leg Side">Head + Leg Side</option>
-              <option value="No Side Panel">No Side Panel</option>
-            </select>
+            <div className="select-wrapper color-4">
+              <select className="form-control pill-select" required value={formData.sidePanel} onChange={e => setFormData({...formData, sidePanel: e.target.value})} form="orderForm">
+                <option value="" disabled>-- Select Side Panel --</option>
+                <option value="Head Side">Head Side</option>
+                <option value="Leg Side">Leg Side</option>
+                <option value="Head + Leg Side">Head + Leg Side</option>
+                <option value="No Side Panel">No Side Panel</option>
+              </select>
+            </div>
           </div>
 
           <div className="form-group" style={{ marginTop: '1.5rem' }}>
             <label className="form-label">Notes</label>
             <textarea
               className="form-control"
+              style={{ minHeight: '80px', borderRadius: '10px', fontStyle: 'italic' }}
               rows={3}
               form="orderForm"
               placeholder="Any special instructions, customizations, or remarks..."
@@ -575,156 +587,158 @@ export default function SalesForm() {
             ></textarea>
           </div>
 
-          <div className="form-group" style={{ marginTop: '1.5rem', background: '#F9FAFB', padding: '1rem', borderRadius: '8px' }}>
-            <label className="form-label required" style={{ marginBottom: '0.5rem', display: 'block' }}>Total Price (₹)</label>
-            <input type="number" step="any" className="form-control" required value={formData.manualPrice} onChange={e => setFormData({...formData, manualPrice: e.target.value})} form="orderForm" style={{ fontSize: '1.25rem', fontWeight: 'bold' }} />
+          <div className="form-group" style={{ marginTop: '1.5rem', padding: '1rem 0' }}>
+            <label className="form-label required" style={{ marginBottom: '0.5rem', display: 'block' }}>Total Price</label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '22px', fontWeight: 'bold', color: 'var(--primary)' }}>₹</span>
+              <input type="number" step="any" className="form-control" required value={formData.manualPrice} onChange={e => setFormData({...formData, manualPrice: e.target.value})} form="orderForm" style={{ fontSize: '22px', fontWeight: 'bold', color: 'var(--primary)', border: 'none', borderBottom: '2px solid var(--border)', borderRadius: 0, padding: '4px 0', background: 'transparent' }} />
+            </div>
           </div>
 
-          <div className="form-group" style={{ marginTop: '1.5rem', background: '#fff7ed', padding: '1rem', borderRadius: '8px', border: '1px solid #fed7aa' }}>
-            <label className="form-label required" style={{ color: '#9a3412', fontWeight: 'bold' }}>🚨 COMMITTED DELIVERY DATE</label>
-            <input type="date" className="form-control" required value={formData.deliveryDate} onChange={e => setFormData({...formData, deliveryDate: e.target.value})} form="orderForm" style={{ fontWeight: 'bold', fontSize: '1.1rem', color: '#9a3412', borderColor: '#fed7aa' }} />
+          <div className="form-group" style={{ marginTop: '1.5rem', background: '#fff5f0', padding: '1rem', borderRadius: '12px', border: '1.5px solid #ff6b35' }}>
+            <label className="form-label required" style={{ color: '#ff6b35', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}><Calendar size={18} /> COMMITTED DELIVERY DATE</label>
+            <input type="date" className="form-control" required value={formData.deliveryDate} onChange={e => setFormData({...formData, deliveryDate: e.target.value})} form="orderForm" style={{ fontWeight: 'bold', fontSize: '16px', color: '#ff6b35', borderColor: '#ff6b35', background: '#ffffff' }} />
           </div>
 
           <div className="form-group" style={{ marginTop: '1.5rem' }}>
-            <label className="form-label required">Order By</label>
-            <select className="form-control" required value={formData.orderBy} onChange={e => setFormData({...formData, orderBy: e.target.value})} form="orderForm">
-              <option value="Manish">Manish</option>
-              <option value="Paresh">Paresh</option>
-              <option value="Devin">Devin</option>
-            </select>
+            <label className="form-label">Order By</label>
+            <div>
+              <span className="pill-badge" style={{ background: '#eef2ff', color: 'var(--primary)', padding: '6px 14px', fontSize: '14px', border: '1px solid #e0e5f0' }}>
+                {formData.orderBy}
+              </span>
+            </div>
           </div>
         </div>
 
         <div className="glass-card" style={{ marginBottom: "1.5rem" }}>
-          <h2 style={{ color: "#0f766e" }}>
+          <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             📸 Installation Location Photos
           </h2>
           <p style={{ fontSize: "13px", color: "var(--text-light)", marginBottom: "1rem" }}>
-            Take photos of the installation space. GPS is captured automatically with each photo.
+            Take photos of the installation space. GPS is captured automatically.
           </p>
 
           <button type="button" onClick={handleAddLocationPhoto}
-            className="btn btn-secondary"
-            style={{ marginBottom: "1rem", display: "flex", gap: "6px", alignItems: "center" }}>
-            <ImagePlus size={18} /> Add Location Photo
+            className="btn-camera-dashed"
+            style={{ marginBottom: "1rem" }}>
+            <ImagePlus size={24} /> 
+            <span>Add Location Photo</span>
           </button>
 
           {locationPhotos.length > 0 && (
-            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            <div style={{ display: "flex", gap: "12px", overflowX: "auto", paddingBottom: "4px" }}>
               {locationPhotos.map((photo, index) => (
-                <div key={index} style={{
-                  display: "flex", gap: "12px", alignItems: "flex-start",
-                  background: "#f0fdfa", borderRadius: "8px", padding: "10px",
-                  border: "1px solid #99f6e4"
-                }}>
-                  <div style={{ position: "relative", flexShrink: 0 }}>
-                    <img src={photo.previewUrl} alt="Location"
-                      style={{ width: "90px", height: "90px", objectFit: "cover",
-                        borderRadius: "6px", border: "1px solid #ccfbf1" }} />
-                    <button type="button" onClick={() => handleRemoveLocationPhoto(index)}
-                      style={{ position: "absolute", top: "-6px", right: "-6px",
-                        background: "#ef4444", color: "white", border: "none",
-                        borderRadius: "50%", width: "20px", height: "20px",
-                        cursor: "pointer", display: "flex", alignItems: "center",
-                        justifyContent: "center", padding: 0 }}>
-                      <X size={12} />
-                    </button>
-                  </div>
-                  <div style={{ flex: 1, fontSize: "12px" }}>
-                    {photo.lat && photo.lng ? (
-                      <>
-                        <div style={{ display: "flex", gap: "4px", alignItems: "center",
-                          color: "#0f766e", fontWeight: "bold", marginBottom: "4px" }}>
-                          <MapPin size={14} /> GPS Captured
-                        </div>
-                        <div style={{ color: "#374151" }}>
-                          Lat: {photo.lat.toFixed(6)}
-                        </div>
-                        <div style={{ color: "#374151" }}>
-                          Lng: {photo.lng.toFixed(6)}
-                        </div>
-                        <a href={`https://maps.google.com/?q=${photo.lat},${photo.lng}`}
-                          target="_blank" rel="noopener noreferrer"
-                          style={{ color: "#2563eb", fontSize: "11px",
-                          textDecoration: "underline", marginTop: "4px",
-                          display: "inline-block" }}>
-                          View on Maps
-                        </a>
-                      </>
-                    ) : (
-                      <div style={{ color: "#9ca3af" }}>GPS not available</div>
-                    )}
-                    <div style={{ color: "#6b7280", marginTop: "4px" }}>
-                      {new Date(photo.timestamp).toLocaleString("en-IN")}
-                    </div>
-                  </div>
+                <div key={index} style={{ position: "relative", flexShrink: 0 }}>
+                  <img src={photo.previewUrl} alt="Location"
+                    style={{ width: "80px", height: "80px", objectFit: "cover",
+                      borderRadius: "12px", border: "1px solid var(--border)" }} />
+                  <button type="button" onClick={() => handleRemoveLocationPhoto(index)}
+                    style={{ position: "absolute", top: "-6px", right: "-6px",
+                      background: "var(--danger)", color: "white", border: "none",
+                      borderRadius: "50%", width: "20px", height: "20px",
+                      cursor: "pointer", display: "flex", alignItems: "center",
+                      justifyContent: "center", padding: 0 }}>
+                    <X size={12} />
+                  </button>
+                  {photo.lat && <div style={{ position: 'absolute', bottom: 4, left: 4, background: 'rgba(16, 185, 129, 0.9)', color: 'white', borderRadius: '12px', padding: '2px 4px', fontSize: '10px' }}><MapPin size={10} /></div>}
                 </div>
               ))}
             </div>
           )}
         </div>
 
-        <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <button type="submit" form="orderForm" className="btn btn-primary" disabled={!selectedCustomerId || !formData.baseModel}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
+          <button type="submit" form="orderForm" className="btn-submit" disabled={!selectedCustomerId || !formData.baseModel}>
             Submit Order Now
           </button>
         </div>
       </div>
 
       {/* LIVE ORDERS SECTION */}
-      <div className="glass-card" style={{ gridColumn: '1 / -1', marginTop: '2rem' }}>
-        <h2>My Submitted Orders</h2>
-        <div className="order-list">
+      <div className="glass-card" style={{ gridColumn: '1 / -1', marginTop: '1rem', background: 'transparent', border: 'none', boxShadow: 'none', padding: 0 }}>
+        <h2 style={{ fontFamily: 'DM Serif Display', fontSize: '20px', color: 'var(--primary)', paddingLeft: '8px', marginBottom: '16px' }}>My Submitted Orders</h2>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {orders.slice(0, 10).map(order => {
             const isDelivered = order.status === 'Delivered';
             return (
-              <div className="order-card" key={order.id} style={{ opacity: isDelivered ? 0.6 : 1 }}>
-                <div className="order-card-header">
-                  <span className="order-id">#{order.id}</span>
-                  <span className={`badge ${
-                    order.status === 'Order Form Received' ? 'badge-received' :
-                    order.status === 'Start Production' ? 'badge-start' :
-                    order.status === 'Finish Production' ? 'badge-finish' :
-                    order.status === 'Order Ready For Dispatch' ? 'badge-ready' :
-                    order.status === 'Order Dispatched' ? 'badge-dispatched' : 'badge-delivered'
-                  }`}>{order.status}</span>
+              <div className="order-card-premium" key={order.id} style={{ opacity: isDelivered ? 0.7 : 1 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                  <div>
+                    <div style={{ fontSize: '16px', fontWeight: 'bold', color: 'var(--text)' }}>{order.customerName}</div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-light)', marginTop: '2px' }}>
+                      Placed: {new Date(order.createdAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}>
+                    <span className={`pill-badge ${
+                      order.status === 'Order Form Received' ? 'badge-received' :
+                      order.status === 'Start Production' ? 'badge-start' :
+                      order.status === 'Finish Production' ? 'badge-finish' :
+                      order.status === 'Order Ready For Dispatch' ? 'badge-ready' :
+                      order.status === 'Order Dispatched' ? 'badge-dispatched' : 'badge-delivered'
+                    }`} style={{ 
+                      background: order.status === 'Order Form Received' ? '#eef2ff' : order.status === 'Delivered' ? '#e6fcf5' : '#ebfbee',
+                      color: order.status === 'Order Form Received' ? '#3b5bdb' : order.status === 'Delivered' ? '#0ca678' : '#2b8a3e',
+                      border: '1px solid currentColor'
+                    }}>
+                      {order.status}
+                    </span>
+                    <span style={{ fontFamily: 'monospace', fontSize: '12px', color: '#94a3b8' }}>#{order.id}</span>
+                  </div>
                 </div>
-                <div className="order-customer-name">{order.customerName}</div>
-                <div style={{ fontSize: '12px', color: 'var(--text-light)', marginBottom: '8px' }}>
-                  Placed: {new Date(order.createdAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                  <div style={{ fontSize: '13px', fontWeight: '500', color: 'var(--text)' }}>
+                    {order.baseModel} {order.variant && `(${order.variant})`}
+                  </div>
+                  <div style={{ fontSize: '18px', fontWeight: 'bold', color: 'var(--primary)' }}>
+                    ₹{order.totalPrice?.toLocaleString('en-IN')}
+                  </div>
                 </div>
-                <div style={{ marginBottom: '8px' }}>
-                  <span className="order-model">{order.baseModel} {order.variant && `(${order.variant})`}</span>
+
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '16px' }}>
+                  {order.faucetPosition && order.faucetPosition !== 'Not Specified' && (
+                    <span className="pill-badge" style={{ background: '#f8fafc', color: '#64748b', border: '1px solid #e2e8f0' }}>Faucet: {order.faucetPosition}</span>
+                  )}
+                  {order.sidePanel && order.sidePanel !== 'Not Specified' && (
+                    <span className="pill-badge" style={{ background: '#f8fafc', color: '#64748b', border: '1px solid #e2e8f0' }}>Panel: {order.sidePanel}</span>
+                  )}
+                  {order.orderBy && (
+                    <span className="pill-badge" style={{ background: '#f8fafc', color: '#64748b', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '4px', paddingLeft: '4px' }}>
+                      <div style={{ width: '16px', height: '16px', borderRadius: '50%', background: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px' }}>
+                        {order.orderBy.charAt(0).toUpperCase()}
+                      </div>
+                      {order.orderBy}
+                    </span>
+                  )}
                 </div>
-                <div style={{ fontSize: '13px', color: 'var(--text)', marginBottom: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <div><strong>Total Price:</strong> ₹{order.totalPrice?.toLocaleString('en-IN')}</div>
-                  <div><strong>Faucet Position:</strong> {order.faucetPosition || 'Not Specified'}</div>
-                  <div><strong>Side Panel:</strong> {order.sidePanel || 'Not Specified'}</div>
-                  <div><strong>Order By:</strong> {order.orderBy || 'Not Specified'}</div>
-                  <div><strong>Notes:</strong> {order.notes || '—'}</div>
-                </div>
+                
+                {order.notes && (
+                  <div style={{ fontSize: '12px', color: '#64748b', fontStyle: 'italic', marginBottom: '12px', padding: '8px', background: '#f8fafc', borderRadius: '8px' }}>
+                    "{order.notes}"
+                  </div>
+                )}
                 
                 <OrderPhotos orderId={order.id} />
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', paddingTop: '12px', borderTop: '1px solid var(--border)' }}>
-                  <div className="order-date">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
+                  <div className="order-date" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     {order.status === 'Delivered' ? (
-                      <span style={{ 
-                        padding: '0.4rem 0.75rem', 
-                        background: '#f0fdf4', 
-                        color: '#166534', 
-                        border: '1px solid #bbf7d0',
-                        borderRadius: '6px', 
-                        fontWeight: 'bold', 
-                        fontSize: '0.95rem',
-                        display: 'inline-block' 
-                      }}>
-                        Delivered: {new Date(order.updatedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}, {new Date(order.updatedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }).toLowerCase()}
+                      <span style={{ color: '#0ca678', fontWeight: 'bold', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <CheckCircle2 size={14} /> Delivered: {new Date(order.updatedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
                       </span>
                     ) : (
-                      renderDeliveryDate(order.deliveryDate)
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: new Date(order.deliveryDate) < new Date().setHours(0,0,0,0) ? '#e03131' : '#2b8a3e', fontWeight: 'bold', fontSize: '12px' }}>
+                        <Calendar size={14} /> {order.deliveryDate ? `Delivery: ${new Date(order.deliveryDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}` : 'No Delivery Date'}
+                      </div>
                     )}
                   </div>
+                  
+                  {role !== 'ADMIN' && (
+                    <button onClick={() => handleShareOrder(order)} style={{ background: 'transparent', border: '1.5px solid #e0e5f0', borderRadius: '99px', padding: '6px 12px', color: 'var(--text)', fontSize: '12px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
+                      <Share2 size={14} /> Share
+                    </button>
+                  )}
                 </div>
                 
                 <div id={`receipt-capture-${order.id}`} style={{ position: 'absolute', top: '-9999px', left: '-9999px', background: '#fff', padding: '30px', width: '500px', fontFamily: 'sans-serif', borderRadius: '12px', zIndex: -1 }}>
@@ -751,27 +765,21 @@ export default function SalesForm() {
                   </div>
                 </div>
 
-                {role === 'ADMIN' ? (
+                {role === 'ADMIN' && (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '12px', paddingTop: '12px', borderTop: '1px dashed var(--border)' }}>
-                    <button onClick={() => handleShareOrder(order)} className="btn btn-secondary" style={{ flex: '1 1 calc(50% - 4px)', padding: '0.4rem', fontSize: '12px', minHeight: '32px' }}>
+                    <button onClick={() => handleShareOrder(order)} className="btn btn-secondary" style={{ flex: '1 1 calc(50% - 4px)', padding: '0.4rem', fontSize: '12px', minHeight: '32px', borderRadius: '99px' }}>
                       <Share2 size={14} /> Share
                     </button>
-                    <button onClick={() => setEditingOrder(order)} className="btn btn-secondary" style={{ flex: '1 1 calc(50% - 4px)', padding: '0.4rem', fontSize: '12px', minHeight: '32px' }}>
+                    <button onClick={() => setEditingOrder(order)} className="btn btn-secondary" style={{ flex: '1 1 calc(50% - 4px)', padding: '0.4rem', fontSize: '12px', minHeight: '32px', borderRadius: '99px' }}>
                       <Pencil size={14} /> Edit
                     </button>
                     {order.status !== 'Cancelled' && (
-                      <button onClick={() => handleCancel(order.id)} className="btn btn-secondary" style={{ flex: '1 1 calc(50% - 4px)', padding: '0.4rem', fontSize: '12px', minHeight: '32px', color: '#b91c1c' }}>
+                      <button onClick={() => handleCancel(order.id)} className="btn btn-secondary" style={{ flex: '1 1 calc(50% - 4px)', padding: '0.4rem', fontSize: '12px', minHeight: '32px', color: '#e03131', borderRadius: '99px' }}>
                         <XCircle size={14} /> Cancel
                       </button>
                     )}
-                    <button onClick={() => handleDelete(order.id)} className="btn btn-secondary" style={{ flex: '1 1 calc(50% - 4px)', padding: '0.4rem', fontSize: '12px', minHeight: '32px', color: '#b91c1c', borderColor: '#fee2e2', background: '#fff5f5' }}>
+                    <button onClick={() => handleDelete(order.id)} className="btn btn-secondary" style={{ flex: '1 1 calc(50% - 4px)', padding: '0.4rem', fontSize: '12px', minHeight: '32px', color: '#e03131', borderColor: '#fee2e2', background: '#fff5f5', borderRadius: '99px' }}>
                       <Trash2 size={14} /> Delete
-                    </button>
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', gap: '8px', marginTop: '12px', paddingTop: '12px', borderTop: '1px dashed var(--border)' }}>
-                    <button onClick={() => handleShareOrder(order)} className="btn btn-secondary" style={{ flex: 1, padding: '0.4rem', fontSize: '12px', minHeight: '32px' }}>
-                      <Share2 size={14} /> Share
                     </button>
                   </div>
                 )}
@@ -785,19 +793,19 @@ export default function SalesForm() {
           )}
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginTop: '2rem', gap: '1rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginTop: '1rem', gap: '1rem', paddingBottom: '2rem' }}>
           <button 
             onClick={() => setPage(p => Math.max(1, p - 1))} 
             disabled={page === 1}
-            className="btn btn-secondary"
+            style={{ background: page === 1 ? '#f8fafc' : '#ffffff', color: page === 1 ? '#cbd5e1' : 'var(--text)', border: '1px solid #e0e5f0', borderRadius: '99px', padding: '8px 16px', fontSize: '13px', fontWeight: '600', cursor: page === 1 ? 'default' : 'pointer', transition: 'all 0.2s ease' }}
           >
             Previous
           </button>
-          <span style={{ fontWeight: '500' }}>Page {page} of {totalPages}</span>
+          <span style={{ fontWeight: '600', fontSize: '13px', color: '#64748b' }}>Page {page} of {totalPages}</span>
           <button 
             onClick={() => setPage(p => Math.min(totalPages, p + 1))} 
             disabled={page >= totalPages}
-            className="btn btn-secondary"
+            style={{ background: page >= totalPages ? '#f8fafc' : '#ffffff', color: page >= totalPages ? '#cbd5e1' : 'var(--text)', border: '1px solid #e0e5f0', borderRadius: '99px', padding: '8px 16px', fontSize: '13px', fontWeight: '600', cursor: page >= totalPages ? 'default' : 'pointer', transition: 'all 0.2s ease' }}
           >
             Next
           </button>

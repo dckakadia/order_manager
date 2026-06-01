@@ -50,7 +50,7 @@ function PhotoThumbnail({ photo, canAddPhotos, handleDelete, setSelectedPhoto })
     <div style={{ position: 'relative', flexShrink: 0 }}>
       {hasError || !blobUrl ? (
         <div style={{
-          width: '80px', height: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          width: '64px', height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'center',
           backgroundColor: '#f1f5f9', borderRadius: '8px', border: '1px solid var(--border)',
           ...(photo.photoType === 'location_photo' && { border: '2px solid #0f766e' })
         }}>
@@ -61,7 +61,7 @@ function PhotoThumbnail({ photo, canAddPhotos, handleDelete, setSelectedPhoto })
           src={blobUrl}
           alt="Order Attachment" 
           style={{ 
-            width: '80px', height: '80px', minWidth: '80px', minHeight: '80px',
+            width: '64px', height: '64px', minWidth: '64px', minHeight: '64px',
             display: 'block', objectFit: 'cover', backgroundColor: '#f1f5f9', color: 'transparent',
             borderRadius: '8px', cursor: 'pointer', border: '1px solid var(--border)',
             ...(photo.photoType === 'location_photo' && { border: '2px solid #0f766e' })
@@ -230,13 +230,13 @@ export default function OrderPhotos({ orderId }) {
         <h4 style={{ margin: 0, fontSize: '13px', color: 'var(--text-light)' }}>Installation Location Photos</h4>
         <div style={{ display: 'flex', gap: '8px' }}>
           {canAddPhotos && (
-            <button onClick={handleUpdateGPS} className="btn btn-secondary" style={{ padding: '0.3rem 0.6rem', fontSize: '12px', minHeight: 'auto', display: 'flex', gap: '4px' }}>
-              <RefreshCw size={14} /> Update GPS
+            <button onClick={handleUpdateGPS} style={{ padding: '4px 10px', fontSize: '11px', fontWeight: '600', border: '1.5px solid var(--border)', background: 'transparent', color: 'var(--text)', borderRadius: '99px', display: 'flex', gap: '4px', alignItems: 'center', cursor: 'pointer' }}>
+              <RefreshCw size={12} /> Update GPS
             </button>
           )}
           {canAddPhotos && (
-            <button onClick={handleAddPhoto} className="btn btn-secondary" style={{ padding: '0.3rem 0.6rem', fontSize: '12px', minHeight: 'auto', display: 'flex', gap: '4px' }}>
-              <ImagePlus size={14} /> Add Photo
+            <button onClick={handleAddPhoto} style={{ padding: '4px 10px', fontSize: '11px', fontWeight: '600', border: 'none', background: 'var(--primary)', color: '#ffffff', borderRadius: '99px', display: 'flex', gap: '4px', alignItems: 'center', cursor: 'pointer' }}>
+              <ImagePlus size={12} /> Add Photo
             </button>
           )}
         </div>
