@@ -43,7 +43,10 @@ const config = {
   // Environment
   env: import.meta.env.VITE_ENV || 'development',
   isDevelopment: import.meta.env.VITE_ENV === 'development',
-  isProduction: import.meta.env.VITE_ENV === 'production'
+  isProduction: import.meta.env.VITE_ENV === 'production',
+
+  // Version
+  appVersion: '1.0.1'
 };
 
 export default config;

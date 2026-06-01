@@ -64,6 +64,23 @@ app.get('/api/csrf-token', csrfProtection, (req, res) => {
   });
 });
 
+// GET /api/system/update-check
+app.get('/api/system/update-check', (req, res) => {
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const releasePath = path.join(__dirname, 'uploads/releases/release.json');
+    if (fs.existsSync(releasePath)) {
+      const data = JSON.parse(fs.readFileSync(releasePath, 'utf8'));
+      res.json({ success: true, data });
+    } else {
+      res.json({ success: true, data: null });
+    }
+  } catch (error) {
+    res.json({ success: false, error: 'Failed to check for updates' });
+  }
+});
+
 app.get('/health', (req, res) => {
   res.json({ 
     success: true, 

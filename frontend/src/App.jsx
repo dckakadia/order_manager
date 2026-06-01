@@ -24,11 +24,41 @@ function Navigation() {
     window.location.href = '/login';
   };
 
+  const checkForUpdates = async () => {
+    try {
+      const res = await apiFetch(`${config.api.baseURL}/api/system/update-check`);
+      const data = await res.json();
+      if (data.success && data.data && data.data.latestVersion) {
+        if (data.data.latestVersion !== config.appVersion) {
+          if (window.confirm(`New update available (v${data.data.latestVersion})! Would you like to download it now?`)) {
+            window.location.href = `${config.api.baseURL}${data.data.downloadUrl}`;
+          }
+        } else {
+          alert('You are on the latest version.');
+        }
+      } else {
+        alert('You are on the latest version.');
+      }
+    } catch (e) {
+      alert('Failed to check for updates. Please check your connection.');
+    }
+  };
+
   return (
     <>
-      <header className="app-header">
-        <div className="logo-icon">🌊</div>
-        <h1 className="app-name">Ocean Spas</h1>
+      <header className="app-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div className="logo-icon">🌊</div>
+          <h1 className="app-name" style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', margin: 0 }}>
+            Ocean Spas
+            <span style={{ fontSize: '11px', fontWeight: 'normal', opacity: 0.7, background: 'rgba(255,255,255,0.15)', padding: '2px 6px', borderRadius: '4px', letterSpacing: '0.5px' }}>
+              v{config.appVersion}
+            </span>
+          </h1>
+        </div>
+        <button onClick={checkForUpdates} style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: 'white', padding: '0.4rem 0.6rem', borderRadius: '6px', fontSize: '12px', cursor: 'pointer' }}>
+          Check Update
+        </button>
       </header>
       {role && (
         <nav className="bottom-nav">
