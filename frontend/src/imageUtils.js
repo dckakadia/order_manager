@@ -14,16 +14,15 @@ const QUALITIES = [0.85, 0.7, 0.5];
  * @returns {Promise<Blob>} The compressed image blob.
  */
 export async function compressImage(fileOrBlob) {
-  // 1. If already under size limit, return original
-  if (fileOrBlob.size <= MAX_SIZE_BYTES) {
+  // 1. If size is known and explicitly under size limit, we can return original
+  // BUT if size is missing/0 (common in Capacitor fetch), we MUST process it!
+  if (fileOrBlob.size && fileOrBlob.size <= MAX_SIZE_BYTES) {
     return fileOrBlob;
   }
 
-  // Ensure it's an image
-  if (!fileOrBlob.type.startsWith('image/')) {
-    // If it's not an image (e.g., pdf or unknown), we can't compress it this way
-    return fileOrBlob;
-  }
+  // We remove the strict `type.startsWith('image/')` check because Capacitor 
+  // sometimes returns blobs with empty types (`""`) for local files.
+  // We will just attempt to load it into an Image object. If it fails, it's not an image.
 
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(fileOrBlob);
