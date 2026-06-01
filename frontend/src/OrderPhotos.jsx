@@ -92,8 +92,10 @@ function PhotoThumbnail({ photo, index, canAddPhotos, handleDelete, onClick }) {
               background: 'rgba(0,0,0,0.6)', borderRadius: '8px',
               display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', zIndex: 10
             }}>
-              <span style={{ color: 'white', fontSize: '11px', fontWeight: 'bold' }}>{photo.progress || 0}%</span>
-              <div style={{ width: '80%', height: '4px', background: 'rgba(255,255,255,0.3)', borderRadius: '2px', marginTop: '4px' }}>
+              <span style={{ color: 'white', fontSize: '18px', fontWeight: 'bold', textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}>
+                {photo.progress || 0}%
+              </span>
+              <div style={{ width: '80%', height: '4px', background: 'rgba(255,255,255,0.3)', borderRadius: '2px', marginTop: '6px' }}>
                 <div style={{ width: `${photo.progress || 0}%`, height: '100%', background: '#10b981', borderRadius: '2px', transition: 'width 0.2s' }}></div>
               </div>
             </div>
