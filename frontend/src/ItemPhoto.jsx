@@ -28,7 +28,23 @@ export default function ItemPhoto({ photoFilename, onClick, size = 40, style = {
     );
   }
 
-  const imageUrl = `${config.api.baseURL}/api/uploads/items/${photoFilename}`;
+  const getImageUrl = (filename) => {
+    if (!filename) return '';
+    if (filename.startsWith('http')) return filename;
+    
+    let cleanPath = filename;
+    if (!cleanPath.includes('/api/uploads/items/')) {
+        cleanPath = cleanPath.startsWith('/') ? cleanPath : `/${cleanPath}`;
+        cleanPath = `/api/uploads/items${cleanPath}`;
+    } else if (!cleanPath.startsWith('/')) {
+        cleanPath = `/${cleanPath}`;
+    }
+
+    const baseUrl = (config.api.baseURL || '').replace(/\/$/, '');
+    return `${baseUrl}${cleanPath}`;
+  };
+
+  const imageUrl = getImageUrl(photoFilename);
 
   return (
     <div style={containerStyle} onClick={onClick}>
