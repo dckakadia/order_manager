@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import config, { apiFetch } from './config';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
-import { ImagePlus, X } from 'lucide-react';
+import { ImagePlus, X, MapPin } from 'lucide-react';
 
 export default function OrderPhotos({ orderId }) {
   const [photos, setPhotos] = useState([]);
@@ -85,9 +85,22 @@ export default function OrderPhotos({ orderId }) {
               <img 
                 src={`${config.api.baseURL}${photo.filePath.startsWith('/uploads') ? '/api' + photo.filePath : photo.filePath}`}
                 alt="Order Attachment" 
-                style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '8px', cursor: 'pointer', border: '1px solid var(--border)' }}
+                style={{ 
+                  width: '80px', height: '80px', objectFit: 'cover', 
+                  borderRadius: '8px', cursor: 'pointer', border: '1px solid var(--border)',
+                  ...(photo.photoType === 'location_photo' && { border: '2px solid #0f766e' })
+                }}
                 onClick={() => setSelectedPhoto(photo)}
               />
+              {photo.photoType === "location_photo" && photo.photoLat && (
+                <div style={{
+                  position: "absolute", bottom: "2px", left: "2px",
+                  background: "#0f766e", borderRadius: "3px",
+                  padding: "1px 4px", display: "flex", alignItems: "center"
+                }}>
+                  <MapPin size={10} color="white" />
+                </div>
+              )}
               <button 
                 onClick={(e) => { e.stopPropagation(); handleDelete(photo.id); }}
                 style={{ position: 'absolute', top: '-4px', right: '-4px', background: 'red', color: 'white', border: 'none', borderRadius: '50%', width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 }}
@@ -114,6 +127,21 @@ export default function OrderPhotos({ orderId }) {
               style={{ maxWidth: '100%', maxHeight: '80vh', objectFit: 'contain', borderRadius: '8px' }}
               onClick={e => e.stopPropagation()}
             />
+            {selectedPhoto.photoType === "location_photo" && selectedPhoto.photoLat && (
+              <div style={{
+                marginTop: "12px", textAlign: "center",
+                background: "rgba(0,0,0,0.6)", borderRadius: "8px", padding: "8px 16px"
+              }}>
+                <div style={{ color: "#6ee7b7", fontSize: "13px", marginBottom: "4px" }}>
+                  <MapPin size={14} style={{ display: "inline" }} /> GPS: {selectedPhoto.photoLat.toFixed(6)}, {selectedPhoto.photoLng.toFixed(6)}
+                </div>
+                <a href={`https://maps.google.com/?q=${selectedPhoto.photoLat},${selectedPhoto.photoLng}`}
+                  target="_blank" rel="noopener noreferrer"
+                  style={{ color: "#93c5fd", fontSize: "12px" }}>
+                  Open in Google Maps ↗
+                </a>
+              </div>
+            )}
           </div>
         </div>
       )}

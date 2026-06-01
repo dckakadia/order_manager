@@ -1,10 +1,11 @@
 import { useState, useEffect, useContext } from 'react';
 import { SocketContext } from './App';
 import config, { apiFetch } from './config';
-import { MapPin, Share2, CheckCircle2, Pencil, Trash2, XCircle, X } from 'lucide-react';
+import { MapPin, Share2, CheckCircle2, Pencil, Trash2, XCircle, X, ImagePlus } from 'lucide-react';
 import { Geolocation } from '@capacitor/geolocation';
 import { Share } from '@capacitor/share';
 import { Filesystem, Directory } from '@capacitor/filesystem';
+import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import html2canvas from 'html2canvas';
 import OrderPhotos from './OrderPhotos';
 
@@ -56,6 +57,7 @@ export default function SalesForm() {
     customerName: '', phone: '', email: '', shippingAddress: '', taxNumber: '',
     baseModel: '', variant: '', deliveryDate: '', notes: '', faucetPosition: '', sidePanel: '', orderBy: 'Manish', manualPrice: ''
   });
+  const [locationPhotos, setLocationPhotos] = useState([]);
 
   const getVariantPrice = (modelId, variantName) => {
     if (!modelId || !variantName) return '';
@@ -186,6 +188,67 @@ export default function SalesForm() {
     }
   };
 
+  const handleAddLocationPhoto = async () => {
+    try {
+      const image = await Camera.getPhoto({
+        quality: 85,
+        allowEditing: false,
+        resultType: CameraResultType.Uri,
+        source: CameraSource.Prompt
+      });
+
+      let coords = { lat: null, lng: null };
+      try {
+        const permissions = await Geolocation.checkPermissions();
+        if (permissions.location !== "granted") {
+          await Geolocation.requestPermissions();
+        }
+        const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: true });
+        coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      } catch (geoErr) {
+        console.warn("GPS not available:", geoErr);
+      }
+
+      const response = await fetch(image.webPath);
+      const blob = await response.blob();
+      const timestamp = new Date().toISOString();
+      const previewUrl = image.webPath;
+
+      setLocationPhotos(prev => [...prev, {
+        file: blob,
+        webPath: image.webPath,
+        format: image.format || "jpg",
+        lat: coords.lat,
+        lng: coords.lng,
+        timestamp,
+        previewUrl
+      }]);
+
+    } catch (err) {
+      console.log("Photo cancelled or error:", err);
+    }
+  };
+
+  const handleRemoveLocationPhoto = (index) => {
+    setLocationPhotos(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const uploadLocationPhotos = async (orderId) => {
+    for (const photo of locationPhotos) {
+      const formData = new FormData();
+      formData.append("photo", photo.file, `location_${Date.now()}.${photo.format}`);
+      if (photo.lat !== null) formData.append("lat", photo.lat);
+      if (photo.lng !== null) formData.append("lng", photo.lng);
+      formData.append("timestamp", photo.timestamp);
+      formData.append("photoType", "location_photo");
+
+      await apiFetch(`${config.api.baseURL}/api/orders/${orderId}/attachments`, {
+        method: "POST",
+        body: formData
+      });
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitError('');
@@ -219,6 +282,13 @@ export default function SalesForm() {
       // BUG FIX #5: Check response before marking as submitted
       if (!res.ok) throw new Error('Order submission failed');
 
+      const newOrder = await res.json();
+      const orderId = newOrder.data?.id || newOrder.id;
+
+      if (locationPhotos.length > 0 && orderId) {
+        await uploadLocationPhotos(orderId);
+      }
+
       refreshOrders();
       setSubmitted(true);
       setTimeout(() => {
@@ -228,6 +298,7 @@ export default function SalesForm() {
         setCustomerSearchTerm('');
         setFormData({ customerName: '', phone: '', email: '', shippingAddress: '', taxNumber: '', baseModel: '', variant: '', deliveryDate: '', notes: '', faucetPosition: '', sidePanel: '', orderBy: 'Manish', manualPrice: '' });
         setLocation(null);
+        setLocationPhotos([]);
       }, 3000);
     } catch {
       setSubmitError('Failed to submit order. Please try again.');
@@ -554,6 +625,75 @@ export default function SalesForm() {
               <option value="Devin">Devin</option>
             </select>
           </div>
+        </div>
+
+        <div className="glass-card" style={{ marginBottom: "1.5rem" }}>
+          <h2 style={{ color: "#0f766e" }}>
+            📸 Installation Location Photos
+          </h2>
+          <p style={{ fontSize: "13px", color: "var(--text-light)", marginBottom: "1rem" }}>
+            Take photos of the installation space. GPS is captured automatically with each photo.
+          </p>
+
+          <button type="button" onClick={handleAddLocationPhoto}
+            className="btn btn-secondary"
+            style={{ marginBottom: "1rem", display: "flex", gap: "6px", alignItems: "center" }}>
+            <ImagePlus size={18} /> Add Location Photo
+          </button>
+
+          {locationPhotos.length > 0 && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              {locationPhotos.map((photo, index) => (
+                <div key={index} style={{
+                  display: "flex", gap: "12px", alignItems: "flex-start",
+                  background: "#f0fdfa", borderRadius: "8px", padding: "10px",
+                  border: "1px solid #99f6e4"
+                }}>
+                  <div style={{ position: "relative", flexShrink: 0 }}>
+                    <img src={photo.previewUrl} alt="Location"
+                      style={{ width: "90px", height: "90px", objectFit: "cover",
+                        borderRadius: "6px", border: "1px solid #ccfbf1" }} />
+                    <button type="button" onClick={() => handleRemoveLocationPhoto(index)}
+                      style={{ position: "absolute", top: "-6px", right: "-6px",
+                        background: "#ef4444", color: "white", border: "none",
+                        borderRadius: "50%", width: "20px", height: "20px",
+                        cursor: "pointer", display: "flex", alignItems: "center",
+                        justifyContent: "center", padding: 0 }}>
+                      <X size={12} />
+                    </button>
+                  </div>
+                  <div style={{ flex: 1, fontSize: "12px" }}>
+                    {photo.lat && photo.lng ? (
+                      <>
+                        <div style={{ display: "flex", gap: "4px", alignItems: "center",
+                          color: "#0f766e", fontWeight: "bold", marginBottom: "4px" }}>
+                          <MapPin size={14} /> GPS Captured
+                        </div>
+                        <div style={{ color: "#374151" }}>
+                          Lat: {photo.lat.toFixed(6)}
+                        </div>
+                        <div style={{ color: "#374151" }}>
+                          Lng: {photo.lng.toFixed(6)}
+                        </div>
+                        <a href={`https://maps.google.com/?q=${photo.lat},${photo.lng}`}
+                          target="_blank" rel="noopener noreferrer"
+                          style={{ color: "#2563eb", fontSize: "11px",
+                          textDecoration: "underline", marginTop: "4px",
+                          display: "inline-block" }}>
+                          View on Maps
+                        </a>
+                      </>
+                    ) : (
+                      <div style={{ color: "#9ca3af" }}>GPS not available</div>
+                    )}
+                    <div style={{ color: "#6b7280", marginTop: "4px" }}>
+                      {new Date(photo.timestamp).toLocaleString("en-IN")}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>

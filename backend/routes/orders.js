@@ -220,12 +220,20 @@ router.post('/:id/attachments', authMiddleware, upload.single('photo'), async (r
       return res.status(400).json({ success: false, error: 'No photo file provided' });
     }
 
+    // Parse optional geo fields from form data
+    const photoLat = req.body.lat ? parseFloat(req.body.lat) : null;
+    const photoLng = req.body.lng ? parseFloat(req.body.lng) : null;
+    const photoType = req.body.photoType || "general";
+
     const attachment = await prisma.orderAttachment.create({
       data: {
         orderId,
         fileName: req.file.originalname,
         filePath: `/api/uploads/order_attachments/${req.file.filename}`,
-        uploadedBy: req.user.id
+        uploadedBy: req.user.id,
+        photoLat,
+        photoLng,
+        photoType
       }
     });
 

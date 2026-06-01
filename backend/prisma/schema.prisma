@@ -131,6 +131,11 @@ model OrderAttachment {
   uploadedBy  Int?
   user        User?    @relation(fields: [uploadedBy], references: [id], onDelete: SetNull)
   createdAt   DateTime @default(now())
+
+  // NEW FIELDS
+  photoLat    Float?   // GPS latitude at time of photo
+  photoLng    Float?   // GPS longitude at time of photo
+  photoType   String?  // e.g. "location_photo" or "general"
   
   @@index([orderId])
 }
