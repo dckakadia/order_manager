@@ -297,8 +297,8 @@ export default function LiveOrderStatus() {
                     )}
                     <button
                       onClick={() => advanceStatus(order.id, order.status)}
-                      className="btn btn-primary"
-                      style={{ padding: '0.5rem 1rem', fontSize: '0.875rem', minHeight: '36px' }}
+                      className={`btn ${getBadgeClass(order.status)}`}
+                      style={{ padding: '0.5rem 1rem', fontSize: '0.875rem', minHeight: '36px', border: '1px solid currentColor' }}
                     >
                       Advance <ArrowRight size={14} />
                     </button>
