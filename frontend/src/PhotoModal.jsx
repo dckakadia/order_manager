@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { X, ChevronLeft, ChevronRight, MapPin } from 'lucide-react';
 import config from './config';
 
@@ -191,7 +192,7 @@ export default function PhotoModal({ photos, initialIndex = 0, onClose, photoFil
       }
   };
 
-  return (
+  return createPortal(
     <div 
       style={{
         position: 'fixed',
@@ -356,6 +357,7 @@ export default function PhotoModal({ photos, initialIndex = 0, onClose, photoFil
           </a>
         </div>
       )}
-    </div>
+    </div>,
+    document.body
   );
 }
