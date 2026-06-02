@@ -165,7 +165,8 @@ app.use((req, res, next) => {
   }
 });
 
-const PORT = process.env.PORT || 3000;
+// Hardcoded to 3000 to match frontend .env.production and user's expected URL
+const PORT = 3000;
 if (require.main === module) {
   server.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on port ${PORT}`);
