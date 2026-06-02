@@ -1,1 +1,4 @@
-{ "latestVersion": "1.0.6", "downloadUrl": "/api/system/update-page" }
+{
+  "latestVersion": "1.0.7",
+  "downloadUrl": "/api/system/update-page"
+}
