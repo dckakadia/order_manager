@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Link, Navigate, useLocation } f
 import { ClipboardList, Users, Activity, BarChart2, Settings, LogOut } from 'lucide-react';
 import { io } from 'socket.io-client';
 import { createContext, useEffect, useState } from 'react';
+import { Browser } from '@capacitor/browser';
 import config from './config';
 import { apiFetch, clearAuthStorage } from './apiUtils';
 import { STORAGE_KEYS, USER_ROLES, ROUTES, ERROR_MESSAGES } from './constants';
@@ -45,9 +46,25 @@ function Navigation() {
       
       const data = result.data;
       if (data.success && data.data && data.data.latestVersion) {
-        if (data.data.latestVersion !== config.appVersion) {
+        const isNewer = (latest, current) => {
+          const lParts = latest.split('.').map(Number);
+          const cParts = current.split('.').map(Number);
+          for (let i = 0; i < Math.max(lParts.length, cParts.length); i++) {
+            const l = lParts[i] || 0;
+            const c = cParts[i] || 0;
+            if (l > c) return true;
+            if (l < c) return false;
+          }
+          return false;
+        };
+
+        if (isNewer(data.data.latestVersion, config.appVersion)) {
           if (window.confirm(`New update available (v${data.data.latestVersion})! Would you like to download it now?`)) {
-            window.location.href = `${config.api.baseURL}${data.data.downloadUrl}`;
+            let downloadUrl = data.data.downloadUrl;
+            if (downloadUrl.startsWith('/')) {
+              downloadUrl = `${config.api.baseURL || window.location.origin}${downloadUrl}`;
+            }
+            await Browser.open({ url: downloadUrl });
           }
         } else {
           alert('You are on the latest version.');

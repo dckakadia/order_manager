@@ -81,6 +81,36 @@ app.get('/api/system/update-check', (req, res) => {
   }
 });
 
+// GET /api/system/update-page
+// This provides a fallback HTML page for users on v1.0.5 (or older) where window.location.href directly to an APK fails inside Capacitor.
+app.get('/api/system/update-page', (req, res) => {
+  const apkUrl = 'http://116.74.77.22:3000/api/uploads/releases/OceanSpas-OrderManager.apk';
+  const intentUrl = `intent://116.74.77.22:3000/api/uploads/releases/OceanSpas-OrderManager.apk#Intent;scheme=http;package=com.android.chrome;end`;
+  
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Download Update</title>
+      <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; background-color: #0f172a; color: white; text-align: center; padding: 20px; }
+        .btn { background: #3b82f6; color: white; text-decoration: none; padding: 15px 30px; border-radius: 8px; font-size: 18px; font-weight: bold; margin-top: 20px; display: inline-block; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .btn-alt { background: #475569; margin-top: 15px; }
+        h1 { margin-bottom: 10px; }
+        p { color: #94a3b8; margin-bottom: 30px; }
+      </style>
+    </head>
+    <body>
+      <h1>Update Available</h1>
+      <p>Please click the button below to download the latest version in your browser.</p>
+      <a href="\${intentUrl}" class="btn">Download Update Now</a>
+      <a href="\${apkUrl}" class="btn btn-alt">Alternative Download Link</a>
+    </body>
+    </html>
+  `);
+});
+
 app.get('/health', (req, res) => {
   res.json({ 
     success: true, 
