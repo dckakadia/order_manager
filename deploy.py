@@ -210,6 +210,13 @@ def main():
         
         print(f"Uploading release.json to remote: {remote_release_path} ...")
         sftp.put(release_json_path, remote_release_path)
+
+        # Upload google-credentials.json via SFTP
+        remote_creds_path = f"{remote_project_dir}/backend/google-credentials.json"
+        local_creds_path = os.path.join('backend', 'google-credentials.json')
+        if os.path.exists(local_creds_path):
+            print(f"Uploading google-credentials.json to remote: {remote_creds_path} ...")
+            sftp.put(local_creds_path, remote_creds_path)
         
         sftp.close()
         client.close()
