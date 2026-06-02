@@ -22,7 +22,7 @@ function Navigation() {
 
   const handleLogout = async () => {
     try {
-      const result = await apiFetch(`${config.api.baseURL}/api/logout`, { method: 'POST' });
+      const result = await apiFetch(`${config.api.baseURL}/api/auth/logout`, { method: 'POST' });
       if (!result.ok) {
         console.error('Logout error:', result.error);
       }

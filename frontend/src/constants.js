@@ -56,8 +56,8 @@ export const ROUTES = {
 
 // API Endpoints (for reference)
 export const API_ENDPOINTS = {
-  LOGIN: '/api/login',
-  LOGOUT: '/api/logout',
+  LOGIN: '/api/auth/login',
+  LOGOUT: '/api/auth/logout',
   ORDERS: '/api/orders',
   CUSTOMERS: '/api/customers',
   ITEMS: '/api/items',
