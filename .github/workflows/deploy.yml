@@ -38,10 +38,13 @@ jobs:
     steps:
       - name: SSH Deploy
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
           password: ${{ secrets.SSH_PASSWORD }}
+          envs: GITHUB_TOKEN
           script: |
             cd ~/order_manager
             
@@ -67,6 +70,11 @@ jobs:
             
             echo "Fetching PM2 Logs for debugging..."
             pm2 logs order_manager --lines 100 --nostream > pm2_error.log
-            nohup python3 -m http.server 8080 >/dev/null 2>&1 &
+            git config user.email "bot@example.com"
+            git config user.name "Bot"
+            git remote set-url origin https://x-access-token:$GITHUB_TOKEN@github.com/dckakadia/order_manager.git
+            git add pm2_error.log
+            git commit -m "Add pm2 logs" || true
+            git push origin master || true
             
             echo "Deployment Completed Successfully!"
