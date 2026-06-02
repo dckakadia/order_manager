@@ -269,8 +269,8 @@ export default function SalesForm() {
       // BUG FIX #5: Check response before marking as submitted
       if (!res.ok) throw new Error('Order submission failed');
 
-      const newOrder = await res.json();
-      const orderId = newOrder.data?.id || newOrder.id;
+      const newOrder = res.data;
+      const orderId = newOrder?.data?.id || newOrder?.id;
 
       if (locationPhotos.length > 0 && orderId) {
         await uploadLocationPhotos(orderId);

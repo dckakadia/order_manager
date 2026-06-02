@@ -2,7 +2,10 @@ const { PrismaClient } = require('@prisma/client');
 const fs = require('fs');
 const path = require('path');
 const cron = require('node-cron');
+const { exec } = require('child_process');
+const util = require('util');
 
+const execPromise = util.promisify(exec);
 const prisma = new PrismaClient();
 
 // Setup local backups directory
@@ -13,8 +16,54 @@ if (!fs.existsSync(BACKUPS_DIR)) {
 
 let lastBackupTime = null;
 
+async function runRcloneBackup() {
+  // Check if rclone is installed
+  try {
+    await execPromise('rclone --version');
+  } catch (err) {
+    console.warn('rclone is not installed or not in PATH. Skipping remote backup.');
+    return;
+  }
+
+  const dbPath = path.join(__dirname, 'prisma', 'dev.db');
+  const uploadsPath = path.join(__dirname, 'uploads');
+  const localBackupsPath = BACKUPS_DIR;
+  
+  const rcloneConfigPath = process.platform === 'win32'
+    ? path.join(process.env.USERPROFILE || 'C:', '.config', 'rclone', 'rclone.conf')
+    : '/home/dckakadia/.config/rclone/rclone.conf';
+
+  try {
+    console.log('Starting Google Drive backup via rclone...');
+    
+    // 1. Copy SQLite db file
+    const dbCmd = `rclone --config ${rcloneConfigPath} copy "${dbPath}" gdrive:backups/db`;
+    console.log(`Running: ${dbCmd}`);
+    await execPromise(dbCmd);
+    
+    // 2. Copy uploads folder (attachment photos)
+    const uploadsCmd = `rclone --config ${rcloneConfigPath} copy "${uploadsPath}" gdrive:backups/uploads`;
+    console.log(`Running: ${uploadsCmd}`);
+    await execPromise(uploadsCmd);
+
+    // 3. Copy JSON backups folder
+    const jsonCmd = `rclone --config ${rcloneConfigPath} copy "${localBackupsPath}" gdrive:backups/json`;
+    console.log(`Running: ${jsonCmd}`);
+    await execPromise(jsonCmd);
+
+    console.log('Google Drive backup completed successfully!');
+  } catch (error) {
+    console.error('Rclone backup failed:', error);
+    const errorMsg = error.message || error.stderr || '';
+    if (errorMsg.includes('invalid_grant') || errorMsg.includes('Invalid JWT Signature') || errorMsg.includes('token: 400 Bad Request')) {
+      throw new Error('Google Drive service account key is invalid or revoked. Please update backend/google-credentials.json on the Ubuntu server.');
+    }
+    throw new Error(`Rclone backup failed: ${errorMsg}`);
+  }
+}
+
 async function performBackup() {
-  console.log('Starting automated local database backup...');
+  console.log('Starting automated database backup...');
   try {
     const orders = await prisma.order.findMany();
     const customers = await prisma.customer.findMany();
@@ -38,6 +87,9 @@ async function performBackup() {
     // Write full backup to local disk
     fs.writeFileSync(filePath, JSON.stringify(backupData, null, 2));
     console.log(`Local backup saved successfully: ${fileName}`);
+    
+    // Trigger Google Drive backup using rclone
+    await runRcloneBackup();
     
     lastBackupTime = new Date().toISOString();
 

@@ -123,7 +123,7 @@ export default function ManagerDashboard() {
     try {
       const res = await apiFetch(`${config.api.baseURL}/api/backup/download`);
       if (!res.ok) throw new Error('Failed to download full backup');
-      const data = await res.json();
+      const data = res.data;
       
       const dataStr = JSON.stringify(data, null, 2);
       const blob = new Blob([dataStr], { type: "application/json" });
@@ -201,7 +201,7 @@ export default function ManagerDashboard() {
           },
           body: JSON.stringify(importedData)
         });
-        const responseData = await res.json();
+        const responseData = res.data || {};
         if (res.ok) {
           alert('Full database restored successfully!');
           window.location.reload(); // Reload to refresh all state
@@ -223,7 +223,7 @@ export default function ManagerDashboard() {
       const res = await apiFetch(`${config.api.baseURL}/api/backup`, {
         method: 'POST'
       });
-      const data = await res.json();
+      const data = res.data || {};
       if (res.ok) {
         alert('Local backup generated successfully on the server!');
         setLastBackup(data.timestamp);
@@ -243,7 +243,7 @@ export default function ManagerDashboard() {
     setIsLoadingHistory(true);
     try {
       const res = await apiFetch(`${config.api.baseURL}/api/orders/${orderId}/history`);
-      const data = await res.json();
+      const data = res.data || {};
       if (res.ok) setOrderHistory(data.data || []);
     } catch (err) {
       console.error(err);
@@ -403,6 +403,11 @@ export default function ManagerDashboard() {
                     const d = new Date(order.updatedAt);
                     actualDelivered = `${d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}, ${d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }).toLowerCase()}`;
                   }
+
+                  const geoAttachment = order.attachments?.find(a => a.photoLat && a.photoLng);
+                  const displayCheckIn = order.checkInTime || geoAttachment?.createdAt;
+                  const displayLat = order.locationLat || geoAttachment?.photoLat;
+                  const displayLng = order.locationLng || geoAttachment?.photoLng;
                   
                   return (
                     <tr key={order.id}>
@@ -415,9 +420,9 @@ export default function ManagerDashboard() {
                       <td>{order.sidePanel || '-'}</td>
                       <td>{order.orderBy || '-'}</td>
                       <td style={{ fontSize: '11px', lineHeight: '1.2' }}>
-                        {order.checkInTime && <div style={{ marginBottom: '2px' }}>{new Date(order.checkInTime).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' })}</div>}
-                        {order.locationLat && order.locationLng && <a href={`https://maps.google.com/?q=${order.locationLat},${order.locationLng}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)' }}>Map</a>}
-                        {(!order.checkInTime && !order.locationLat) && '-'}
+                        {displayCheckIn && <div style={{ marginBottom: '2px' }}>{new Date(displayCheckIn).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' })}</div>}
+                        {displayLat && displayLng && <a href={`https://maps.google.com/?q=${displayLat},${displayLng}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)' }}>Map</a>}
+                        {(!displayCheckIn && !displayLat) && '-'}
                       </td>
                       <td style={{ fontWeight: 500 }}>₹{order.totalPrice?.toLocaleString('en-IN') || 0}</td>
                       <td>{order.deliveryDate ? new Date(order.deliveryDate).toLocaleDateString('en-IN') : '-'}</td>

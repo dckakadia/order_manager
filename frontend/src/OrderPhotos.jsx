@@ -136,8 +136,8 @@ export default function OrderPhotos({ orderId }) {
     try {
       const res = await apiFetch(`${config.api.baseURL}/api/orders/${orderId}/attachments`);
       if (res.ok) {
-        const data = await res.json();
-        setPhotos(data.data || []);
+        const data = res.data;
+        setPhotos(data?.data || []);
       }
     } catch (e) {
       console.error(e);

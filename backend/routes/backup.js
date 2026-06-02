@@ -74,7 +74,7 @@ router.post('/', authMiddleware, requireRole(['ADMIN']), async (req, res) => {
   } catch (error) {
     console.error('Backup error:', error);
     if (req.auditLog) await req.auditLog('BACKUP_LOCAL', 'Backup', null, null, 'failure', error.message);
-    res.status(500).json({ success: false, error: 'An error occurred. Please try again.' });
+    res.status(500).json({ success: false, error: error.message || 'An error occurred. Please try again.' });
   }
 });
 

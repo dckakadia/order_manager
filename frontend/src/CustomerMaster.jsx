@@ -87,9 +87,9 @@ export default function CustomerMaster() {
     try {
       const checkRes = await apiFetch(`${config.api.baseURL}/api/customers/${id}/check-links`);
       if (!checkRes.ok) throw new Error('Failed to verify customer links.');
-      const checkData = await checkRes.json();
+      const checkData = checkRes.data;
       
-      if (checkData.count > 0) {
+      if (checkData?.count > 0) {
         alert(`Cannot delete. '${checkData.name}' is used in ${checkData.count} Sales Orders.`);
         return;
       }
@@ -101,7 +101,7 @@ export default function CustomerMaster() {
       });
       
       if (!res.ok) {
-        const errorData = await res.json();
+        const errorData = res.data || {};
         throw new Error(errorData.error || 'Delete failed');
       }
       fetchCustomers();

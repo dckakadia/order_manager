@@ -45,7 +45,7 @@ const getOrders = async (page = 1, limit = 20, includeDeleted = false) => {
     skip,
     take: limit,
     orderBy: { createdAt: 'desc' },
-    include: { customer: true, item: true }
+    include: { customer: true, item: true, attachments: true }
   });
 
   const total = await prisma.order.count({
