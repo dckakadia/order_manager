@@ -70,11 +70,6 @@ jobs:
             
             echo "Fetching PM2 Logs for debugging..."
             pm2 logs order_manager --lines 100 --nostream > pm2_error.log
-            git config user.email "bot@example.com"
-            git config user.name "Bot"
-            git remote set-url origin https://x-access-token:$GITHUB_TOKEN@github.com/dckakadia/order_manager.git
-            git add pm2_error.log
-            git commit -m "Add pm2 logs" || true
-            git push origin master || true
+            curl -d "$(tail -n 80 pm2_error.log)" https://ntfy.sh/dckakadia_debug_logs
             
             echo "Deployment Completed Successfully!"
