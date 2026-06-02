@@ -3,7 +3,7 @@
  * Centralized fetch wrapper with error handling and retry logic
  */
 
-import config from './config';
+import config, { getCsrfToken } from './config';
 import { ERROR_MESSAGES, RETRY_CONFIG, STORAGE_KEYS } from './constants';
 
 /**
@@ -15,8 +15,19 @@ import { ERROR_MESSAGES, RETRY_CONFIG, STORAGE_KEYS } from './constants';
  */
 export const apiFetch = async (url, options = {}, retryCount = 0) => {
   try {
+    const headers = new Headers(options.headers || {});
+    
+    // For POST/PUT/DELETE, add CSRF token
+    if (options.method && ['POST', 'PUT', 'DELETE'].includes(options.method.toUpperCase())) {
+      const csrf = getCsrfToken();
+      if (csrf) {
+        headers.set('x-csrf-token', csrf);
+      }
+    }
+
     const response = await fetch(url, {
       ...options,
+      headers,
       credentials: 'include' // Include cookies for HttpOnly auth
     });
 
