@@ -104,8 +104,8 @@ app.get('/api/system/update-page', (req, res) => {
     <body>
       <h1>Update Available</h1>
       <p>Please click the button below to download the latest version in your browser.</p>
-      <a href="\${intentUrl}" class="btn">Download Update Now</a>
-      <a href="\${apkUrl}" class="btn btn-alt">Alternative Download Link</a>
+      <a href="${intentUrl}" class="btn">Download Update Now</a>
+      <a href="${apkUrl}" class="btn btn-alt">Alternative Download Link</a>
     </body>
     </html>
   `);
@@ -165,7 +165,7 @@ app.use((req, res, next) => {
   }
 });
 
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3000;
 if (require.main === module) {
   server.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on port ${PORT}`);
