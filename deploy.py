@@ -132,7 +132,7 @@ def main():
         env = os.environ.copy()
         # Set JAVA_HOME specifically to Android Studio's bundled OpenJDK
         env['JAVA_HOME'] = r"C:\Program Files\Android\Android Studio\jbr"
-        subprocess.run('.\gradlew.bat assembleDebug', cwd=os.path.join('frontend', 'android'), env=env, shell=True, check=True)
+        subprocess.run(r'.\gradlew.bat assembleDebug', cwd=os.path.join('frontend', 'android'), env=env, shell=True, check=True)
         print("Successfully compiled app-debug.apk")
     except subprocess.CalledProcessError as e:
         print(f"Gradle compile failed: {e}")
