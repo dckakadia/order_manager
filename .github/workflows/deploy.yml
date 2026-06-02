@@ -65,4 +65,7 @@ jobs:
             echo "Restarting PM2 Service..."
             pm2 restart order_manager
             
+            echo "Fetching PM2 Logs for debugging..."
+            pm2 logs order_manager --lines 100 --nostream
+            
             echo "Deployment Completed Successfully!"
