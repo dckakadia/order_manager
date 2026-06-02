@@ -82,13 +82,13 @@ def main():
 
     # 4. Write updates to local files
     print("Updating config.js...")
-    new_config_content = re.sub(r"(appVersion:\s*['\"])[^'\"]+(['\"])", rf"\g<1>{new_version}\g<2>", config_content)
+    new_config_content = re.sub(r"(appVersion:\s*['\"])[^'\"]+(['\"])", fr"\g<1>{new_version}\g<2>", config_content)
     with open(config_path, 'w', encoding='utf-8') as f:
         f.write(new_config_content)
 
     print("Updating build.gradle...")
-    new_gradle_content = re.sub(r"(versionCode\s+)\d+", rf"\g<1>{new_vc}", gradle_content)
-    new_gradle_content = re.sub(r'(versionName\s+["\'])[^"\']+(["\'])', rf"\g<1>{new_version}\g<2>", new_gradle_content)
+    new_gradle_content = re.sub(r"(versionCode\s+)\d+", fr"\g<1>{new_vc}", gradle_content)
+    new_gradle_content = re.sub(r'(versionName\s+["\'])[^"\']+(["\'])', fr"\g<1>{new_version}\g<2>", new_gradle_content)
     with open(gradle_path, 'w', encoding='utf-8') as f:
         f.write(new_gradle_content)
 
@@ -180,14 +180,18 @@ def main():
             stdin, stdout, stderr = client.exec_command(cmd)
             exit_status = stdout.channel.recv_exit_status()
             
-            out = stdout.read().decode('utf-8', errors='replace')
-            err = stderr.read().decode('utf-8', errors='replace')
+            out_bytes = stdout.read()
+            err_bytes = stderr.read()
             
-            if out:
-                print(out.strip())
-            if err:
+            if out_bytes:
+                sys.stdout.buffer.write(out_bytes)
+                sys.stdout.buffer.write(b'\n')
+                sys.stdout.flush()
+            if err_bytes:
                 print("ERROR/WARNING:")
-                print(err.strip())
+                sys.stdout.buffer.write(err_bytes)
+                sys.stdout.buffer.write(b'\n')
+                sys.stdout.flush()
                 
             if exit_status != 0:
                 print(f"Command '{cmd}' failed with status {exit_status}")
