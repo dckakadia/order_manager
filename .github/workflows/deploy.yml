@@ -66,6 +66,11 @@ jobs:
             pm2 restart order_manager
             
             echo "Fetching PM2 Logs for debugging..."
-            pm2 logs order_manager --lines 100 --nostream
+            pm2 logs order_manager --lines 100 --nostream > pm2_error.log
+            git config user.email "bot@example.com"
+            git config user.name "Bot"
+            git add pm2_error.log
+            git commit -m "Add pm2 logs" || true
+            git push origin master || true
             
             echo "Deployment Completed Successfully!"
