@@ -2,16 +2,12 @@ import { useState, useEffect, useContext, useRef } from 'react';
 import { SocketContext } from './App';
 import config, { uploadWithProgress } from './config';
 import { apiFetch } from './apiUtils';
-import { STORAGE_KEYS, ERROR_MESSAGES, FILE_LIMITS } from './constants';
-import { MapPin, Share2, CheckCircle2, Pencil, Trash2, XCircle, X, ImagePlus, User, ChevronDown, Calendar, Search } from 'lucide-react';
-import { Geolocation } from '@capacitor/geolocation';
+import { STORAGE_KEYS, ERROR_MESSAGES } from './constants';
+import { MapPin, Share2, CheckCircle2, Pencil, Trash2, XCircle, X, User, ChevronDown, Calendar, Search } from 'lucide-react';
 import { Share } from '@capacitor/share';
 import { Filesystem, Directory } from '@capacitor/filesystem';
-import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import html2canvas from 'html2canvas';
 import OrderPhotos from './OrderPhotos';
-import PhotoModal from './PhotoModal';
-import { compressImage } from './imageUtils';
 
 const renderDeliveryDate = (dateString) => {
   if (!dateString) return <span style={{ padding: '0.4rem 0.75rem', background: '#f1f5f9', color: '#64748b', borderRadius: '6px', fontWeight: 'bold', fontSize: '0.95rem' }}>Not Set</span>;
@@ -61,8 +57,6 @@ export default function SalesForm() {
     customerName: '', phone: '', email: '', shippingAddress: '', taxNumber: '',
     baseModel: '', variant: '', deliveryDate: '', notes: '', faucetPosition: '', sidePanel: '', orderBy: 'Manish', manualPrice: ''
   });
-  const [locationPhotos, setLocationPhotos] = useState([]);
-  const [viewerIndex, setViewerIndex] = useState(null);
 
   const getVariantPrice = (modelId, variantName) => {
     if (!modelId || !variantName) return '';
@@ -220,113 +214,11 @@ export default function SalesForm() {
   const baseModels = items.filter(i => i.category === 'Base Model' || i.category === 'Model' || !i.category);
   const selectedModel = baseModels.find(m => m.id.toString() === formData.baseModel);
 
-  const handleAddLocationPhoto = async () => {
-    try {
-      const image = await Camera.getPhoto({
-        quality: 85,
-        allowEditing: false,
-        resultType: CameraResultType.Uri,
-        source: CameraSource.Prompt
-      });
+  const handleAddLocationPhoto = async () => {};
 
-      const previewUrl = image.webPath;
-      const tempId = `temp_${Date.now()}`;
-      
-      setLocationPhotos(prev => [...prev, {
-        id: tempId,
-        isCompressing: true,
-        previewUrl,
-        uploadProgress: 0,
-        isUploading: false
-      }]);
+  const handleRemoveLocationPhoto = (index) => {};
 
-      let coords = { lat: null, lng: null };
-      try {
-        const permissions = await Geolocation.checkPermissions();
-        if (permissions.location !== "granted") {
-          await Geolocation.requestPermissions();
-        }
-        const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: true });
-        coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-      } catch (geoErr) {
-        console.warn("GPS not available:", geoErr);
-      }
-
-      const response = await fetch(image.webPath);
-      let blob = await response.blob();
-      
-      // BUG FIX #20: Check ORIGINAL file size BEFORE compression
-      if (blob.size > FILE_LIMITS.MAX_ORIGINAL_SIZE) {
-        alert(`Photo is too large (${(blob.size / (1024 * 1024)).toFixed(2)}MB). Max ${(FILE_LIMITS.MAX_ORIGINAL_SIZE / (1024 * 1024)).toFixed(0)}MB allowed.`);
-        setLocationPhotos(prev => prev.filter(p => p.id !== tempId));
-        return;
-      }
-      
-      // Compress the image after size validation
-      blob = await compressImage(blob);
-      
-      if (blob.size > FILE_LIMITS.MAX_COMPRESSED_SIZE) {
-        alert('The photo could not be compressed below 1MB. Please choose a smaller photo.');
-        setLocationPhotos(prev => prev.filter(p => p.id !== tempId));
-        return;
-      }
-      
-      const timestamp = new Date().toISOString();
-
-      setLocationPhotos(prev => prev.map(p => p.id === tempId ? {
-        ...p,
-        isCompressing: false,
-        file: blob,
-        format: image.format || "jpg",
-        lat: coords.lat,
-        lng: coords.lng,
-        timestamp
-      } : p));
-
-    } catch (err) {
-      console.log("Photo cancelled or error:", err);
-    }
-  };
-
-  const handleRemoveLocationPhoto = (index) => {
-    // BUG FIX #21: Revoke blob URL to prevent memory leaks
-    const photo = locationPhotos[index];
-    if (photo.previewUrl && photo.previewUrl.startsWith('blob:')) {
-      URL.revokeObjectURL(photo.previewUrl);
-    }
-    setLocationPhotos(prev => prev.filter((_, i) => i !== index));
-  };
-
-  const uploadLocationPhotos = async (orderId) => {
-    let hasError = false;
-    for (let i = 0; i < locationPhotos.length; i++) {
-      const photo = locationPhotos[i];
-      setLocationPhotos(prev => prev.map((p, idx) => idx === i ? { ...p, isUploading: true, uploadProgress: 0 } : p));
-      
-      const formData = new FormData();
-      formData.append("photo", photo.file, `location_${Date.now()}.${photo.format}`);
-      if (photo.lat !== null) formData.append("lat", photo.lat);
-      if (photo.lng !== null) formData.append("lng", photo.lng);
-      formData.append("timestamp", photo.timestamp);
-      formData.append("photoType", "location_photo");
-
-      const uploadRes = await uploadWithProgress(
-        `${config.api.baseURL}/api/orders/${orderId}/attachments`,
-        formData,
-        (pct) => {
-          setLocationPhotos(prev => prev.map((p, idx) => idx === i ? { ...p, uploadProgress: pct } : p));
-        }
-      );
-      
-      if (!uploadRes.ok) {
-        hasError = true;
-        const errData = uploadRes.data || {};
-        const errMsg = errData.error || 'The file might be too large or the server rejected it.';
-        alert(`Location Photo Upload failed: ${errMsg}`);
-      }
-    }
-    return !hasError;
-  };
+  const uploadLocationPhotos = async (orderId) => { return true; };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -726,74 +618,6 @@ export default function SalesForm() {
           </div>
         </div>
 
-        <div className="glass-card" style={{ marginBottom: "1.5rem" }}>
-          <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            📸 Installation Location Photos
-          </h2>
-          <p style={{ fontSize: "13px", color: "var(--text-light)", marginBottom: "1rem" }}>
-            Take photos of the installation space. GPS is captured automatically.
-          </p>
-
-          <button type="button" onClick={handleAddLocationPhoto}
-            className="btn-camera-dashed"
-            style={{ marginBottom: "1rem" }}>
-            <ImagePlus size={24} /> 
-            <span>Add Location Photo</span>
-          </button>
-
-          {locationPhotos.length > 0 && (
-            <div style={{ display: "flex", gap: "12px", overflowX: "auto", paddingBottom: "4px" }}>
-              {locationPhotos.map((photo, index) => (
-                <div key={index} style={{ position: "relative", flexShrink: 0 }}>
-                  <img src={photo.previewUrl} alt="Location"
-                    onClick={() => { if(!photo.isUploading && !photo.isCompressing) setViewerIndex(index) }}
-                    style={{ width: "80px", height: "80px", objectFit: "cover",
-                      borderRadius: "12px", border: "1px solid var(--border)", cursor: "pointer" }} />
-                  {(photo.isUploading || photo.isCompressing) && (
-                    <div style={{
-                      position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-                      background: 'rgba(0,0,0,0.6)', borderRadius: '12px',
-                      display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', zIndex: 10
-                    }}>
-                      <span style={{ color: 'white', fontSize: '18px', fontWeight: 'bold', textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}>
-                        {photo.isCompressing ? 'Processing' : `${photo.uploadProgress || 0}%`}
-                      </span>
-                      {!photo.isCompressing && (
-                        <div style={{ width: '80%', height: '4px', background: 'rgba(255,255,255,0.3)', borderRadius: '2px', marginTop: '6px' }}>
-                          <div style={{ width: `${photo.uploadProgress || 0}%`, height: '100%', background: '#10b981', borderRadius: '2px', transition: 'width 0.2s' }}></div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  {(!photo.isUploading && !photo.isCompressing) && (
-                    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.3)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
-                       <span style={{ background: 'rgba(245, 158, 11, 0.9)', color: 'white', fontSize: '10px', fontWeight: 'bold', padding: '2px 6px', borderRadius: '4px' }}>Pending Submit</span>
-                    </div>
-                  )}
-                  {(!photo.isUploading && !photo.isCompressing) && (
-                    <button type="button" onClick={() => handleRemoveLocationPhoto(index)}
-                      style={{ position: "absolute", top: "-6px", right: "-6px",
-                        background: "var(--danger)", color: "white", border: "none",
-                        borderRadius: "50%", width: "20px", height: "20px",
-                        cursor: "pointer", display: "flex", alignItems: "center",
-                        justifyContent: "center", padding: 0 }}>
-                      <X size={12} />
-                    </button>
-                  )}
-                  {photo.lat && <div style={{ position: 'absolute', bottom: 4, left: 4, background: 'rgba(16, 185, 129, 0.9)', color: 'white', borderRadius: '12px', padding: '2px 4px', fontSize: '10px' }}><MapPin size={10} /></div>}
-                </div>
-              ))}
-            </div>
-          )}
-
-          {viewerIndex !== null && (
-            <PhotoModal 
-              photos={locationPhotos} 
-              initialIndex={viewerIndex} 
-              onClose={() => setViewerIndex(null)} 
-            />
-          )}
-        </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
           <button type="submit" form="orderForm" className="btn-submit" disabled={!selectedCustomerId || !formData.baseModel}>

@@ -192,7 +192,7 @@ export default function ItemMaster() {
   return (
     <div className="grid-2">
       {isAdmin && (
-        <div className="glass-card">
+        <div className="glass-card" style={{ maxHeight: '600px', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
             <h2 style={{ margin: 0 }}>{editingId ? 'Edit Option' : 'Add New Option'}</h2>
             {editingId && (
