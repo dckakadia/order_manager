@@ -119,9 +119,10 @@ def main():
     print_banner("Building Frontend & Syncing Capacitor")
     try:
         print("Building web assets...")
-        subprocess.run('npm run build', cwd='frontend', shell=True, check=True)
+        cmd_prefix = ".cmd" if os.name == "nt" else ""
+        subprocess.run(f'npm{cmd_prefix} run build', cwd='frontend', shell=True, check=True)
         print("Syncing web assets to android folder...")
-        subprocess.run('npx cap sync', cwd='frontend', shell=True, check=True)
+        subprocess.run(f'npx{cmd_prefix} cap sync', cwd='frontend', shell=True, check=True)
     except subprocess.CalledProcessError as e:
         print(f"Frontend build or capacitor sync failed: {e}")
         sys.exit(1)
@@ -141,8 +142,8 @@ def main():
     # 8. Copy generated APK to target paths
     print_banner("Copying Compiled APK")
     src_apk = os.path.join('frontend', 'android', 'app', 'build', 'outputs', 'apk', 'debug', 'app-debug.apk')
-    dest_root = 'OceanSpas-OrderManager.apk'
-    dest_backend = os.path.join('backend', 'uploads', 'releases', 'OceanSpas-OrderManager.apk')
+    dest_root = f'OceanSpas-OrderManager-v{new_version}.apk'
+    dest_backend = os.path.join('backend', 'uploads', 'releases', f'OceanSpas-OrderManager-v{new_version}.apk')
     
     try:
         print(f"Copying to root: {dest_root}")
@@ -202,7 +203,7 @@ def main():
         print("Opening SFTP connection...")
         sftp = client.open_sftp()
         
-        remote_apk_path = f"{remote_project_dir}/backend/uploads/releases/OceanSpas-OrderManager.apk"
+        remote_apk_path = f"{remote_project_dir}/backend/uploads/releases/OceanSpas-OrderManager-v{new_version}.apk"
         remote_release_path = f"{remote_project_dir}/backend/uploads/releases/release.json"
         
         print(f"Uploading APK to remote: {remote_apk_path} ...")
