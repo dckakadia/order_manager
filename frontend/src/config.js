@@ -26,43 +26,43 @@ export const apiFetch = async (url, options = {}) => {
   });
 };
 
-export const uploadWithProgress = (url, formData, onProgress) => {
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', url, true);
-    
+export const uploadWithProgress = async (url, formData, onProgress) => {
+  try {
+    const headers = new Headers();
     const csrf = getCsrfToken();
-    if (csrf) xhr.setRequestHeader('x-csrf-token', csrf);
-    
-    xhr.withCredentials = true;
+    if (csrf) headers.set('x-csrf-token', csrf);
 
-    xhr.upload.onprogress = (e) => {
-      if (e.lengthComputable) {
-        const percentComplete = Math.round((e.loaded / e.total) * 100);
-        if (onProgress) onProgress(percentComplete);
-      }
-    };
+    // Provide an immediate progress update for UI feedback
+    if (onProgress) onProgress(50);
 
-    xhr.onload = () => {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        try {
-          resolve({ ok: true, data: JSON.parse(xhr.responseText) });
-        } catch (e) {
-          resolve({ ok: true, data: xhr.responseText });
-        }
-      } else {
-        try {
-          resolve({ ok: false, data: JSON.parse(xhr.responseText) });
-        } catch (e) {
-          resolve({ ok: false, data: { error: xhr.statusText } });
-        }
-      }
-    };
+    const response = await fetch(url, {
+      method: 'POST',
+      body: formData,
+      headers: headers,
+      credentials: 'include'
+    });
 
-    xhr.onerror = () => resolve({ ok: false, data: { error: 'Network Error' } });
-    xhr.send(formData);
-  });
+    if (onProgress) onProgress(100);
+
+    let data;
+    try {
+      data = await response.json();
+    } catch (e) {
+      data = await response.text();
+    }
+
+    if (response.ok) {
+      return { ok: true, data };
+    } else {
+      return { ok: false, data: data || { error: response.statusText } };
+    }
+  } catch (error) {
+    console.error("Upload error:", error);
+    return { ok: false, data: { error: error.message || 'Upload failed due to network error' } };
+  }
 };
+
+
 
 const config = {
   // API Configuration
@@ -84,7 +84,7 @@ const config = {
   isProduction: import.meta.env.VITE_ENV === 'production',
 
   // Version
-  appVersion: '1.0.18'
+  appVersion: '1.0.19'
 };
 
 export default config;
