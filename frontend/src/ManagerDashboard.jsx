@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext } from 'react';
-import { DollarSign, Package, CheckCircle, Clock, Printer, History, X, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
+import { DollarSign, Package, CheckCircle, Clock, Printer, History, X, CheckCircle2, AlertCircle, RefreshCw, Settings } from 'lucide-react';
 import { SocketContext } from './App';
 import config from './config';
 import { apiFetch } from './apiUtils';
@@ -349,7 +349,33 @@ export default function ManagerDashboard() {
             <p style={{ color: 'var(--text-light)' }}>No orders in pipeline yet.</p>
           )}
         </div>
-    </div>
+      </div>
+
+      {/* Settings Card */}
+      {isAdmin && (
+        <div className="glass-card no-print" style={{ marginTop: '1rem' }}>
+          <h2 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Settings size={20} /> Settings
+          </h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
+            <button onClick={handleExportJson} className="btn btn-secondary" style={{ minHeight: '36px', padding: '0.5rem 1rem' }}>
+              Export Full Backup
+            </button>
+            <label className="btn btn-secondary" style={{ minHeight: '36px', padding: '0.5rem 1rem', cursor: 'pointer', margin: 0, display: 'inline-flex', alignItems: 'center' }}>
+              Restore from Backup
+              <input type="file" accept=".json" style={{ display: 'none' }} onChange={handleImportJson} />
+            </label>
+            <button onClick={handleBackup} disabled={isBackingUp} className="btn btn-success" style={{ minHeight: '36px', padding: '0.5rem 1rem', border: 'none' }}>
+              {isBackingUp ? 'Backing up…' : 'Run GDrive Backup'}
+            </button>
+            {lastBackup && !isBackingUp && (
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-light)' }}>
+                Last: {new Date(lastBackup).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' })}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Accountant Order Table Section */}
       <div className="glass-card accountant-print-section" style={{ gridColumn: '1 / -1', marginTop: '1rem' }}>
@@ -377,25 +403,6 @@ export default function ManagerDashboard() {
             <button onClick={handleExportCsv} className="btn btn-secondary" style={{ minHeight: '36px', padding: '0.5rem 1rem', background: '#f0fdf4', color: '#166534', borderColor: '#bbf7d0' }}>
               Export Excel / CSV
             </button>
-          {isAdmin && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(255,255,255,0.05)', padding: '0.25rem 0.5rem', borderRadius: '8px' }}>
-                <button onClick={handleExportJson} className="btn btn-secondary" style={{ minHeight: '36px', padding: '0.5rem 1rem' }}>
-                  Export Full Backup
-                </button>
-                <label className="btn btn-secondary" style={{ minHeight: '36px', padding: '0.5rem 1rem', cursor: 'pointer', margin: 0, display: 'inline-flex', alignItems: 'center' }}>
-                  Restore from Backup
-                  <input type="file" accept=".json" style={{ display: 'none' }} onChange={handleImportJson} />
-                </label>
-                <button onClick={handleBackup} disabled={isBackingUp} className="btn btn-success" style={{ minHeight: '36px', padding: '0.5rem 1rem', border: 'none' }}>
-                  {isBackingUp ? 'Backing up…' : 'Run GDrive Backup'}
-                </button>
-                {lastBackup && !isBackingUp && (
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>
-                    Last: {new Date(lastBackup).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' })}
-                  </span>
-                )}
-              </div>
-            )}
           </div>
         </div>
 
