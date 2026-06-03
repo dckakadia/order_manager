@@ -150,6 +150,18 @@ export default function ManagerDashboard() {
     const csvRows = [headers.join(',')];
     
     filteredTableOrders.forEach(order => {
+      const geoAttachment = order.attachments?.find(a => a.photoLat && a.photoLng);
+      const displayCheckIn = order.checkInTime || geoAttachment?.createdAt;
+      const displayLat = order.locationLat || geoAttachment?.photoLat;
+      const displayLng = order.locationLng || geoAttachment?.photoLng;
+      const shippingAddress = order.customer?.shippingAddress;
+
+      const locationLink = (displayLat && displayLng)
+        ? `https://maps.google.com/?q=${displayLat},${displayLng}`
+        : shippingAddress
+          ? `https://maps.google.com/?q=${encodeURIComponent(shippingAddress)}`
+          : 'None';
+
       const row = [
         order.id,
         `"${new Date(order.createdAt).toLocaleString('en-IN')}"`,
@@ -159,8 +171,8 @@ export default function ManagerDashboard() {
         `"${order.faucetPosition || 'None'}"`,
         `"${order.sidePanel || 'None'}"`,
         `"${order.orderBy || 'None'}"`,
-        `"${(order.locationLat && order.locationLng) ? `https://maps.google.com/?q=${order.locationLat},${order.locationLng}` : 'None'}"`,
-        `"${order.checkInTime ? new Date(order.checkInTime).toLocaleString('en-IN') : 'None'}"`,
+        `"${locationLink}"`,
+        `"${displayCheckIn ? new Date(displayCheckIn).toLocaleString('en-IN') : 'None'}"`,
         order.totalPrice || 0,
         order.deliveryDate ? `"${new Date(order.deliveryDate).toLocaleDateString('en-IN')}"` : '"Not Set"',
         order.status === 'Delivered' ? `"${new Date(order.updatedAt).toLocaleString('en-IN')}"` : '"N/A"',
@@ -408,6 +420,7 @@ export default function ManagerDashboard() {
                   const displayCheckIn = order.checkInTime || geoAttachment?.createdAt;
                   const displayLat = order.locationLat || geoAttachment?.photoLat;
                   const displayLng = order.locationLng || geoAttachment?.photoLng;
+                  const shippingAddress = order.customer?.shippingAddress;
                   
                   return (
                     <tr key={order.id}>
@@ -421,8 +434,13 @@ export default function ManagerDashboard() {
                       <td>{order.orderBy || '-'}</td>
                       <td style={{ fontSize: '11px', lineHeight: '1.2' }}>
                         {displayCheckIn && <div style={{ marginBottom: '2px' }}>{new Date(displayCheckIn).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' })}</div>}
-                        {displayLat && displayLng && <a href={`https://maps.google.com/?q=${displayLat},${displayLng}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)' }}>Map</a>}
-                        {(!displayCheckIn && !displayLat) && '-'}
+                        {displayLat && displayLng ? (
+                          <a href={`https://maps.google.com/?q=${displayLat},${displayLng}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', fontWeight: 'bold' }}>Map (GPS)</a>
+                        ) : shippingAddress ? (
+                          <a href={`https://maps.google.com/?q=${encodeURIComponent(shippingAddress)}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--secondary)' }}>Map (Address)</a>
+                        ) : (
+                          '-'
+                        )}
                       </td>
                       <td style={{ fontWeight: 500 }}>₹{order.totalPrice?.toLocaleString('en-IN') || 0}</td>
                       <td>{order.deliveryDate ? new Date(order.deliveryDate).toLocaleDateString('en-IN') : '-'}</td>

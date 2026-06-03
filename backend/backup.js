@@ -36,10 +36,14 @@ async function runRcloneBackup() {
   try {
     console.log('Starting Google Drive backup via rclone...');
     
-    // 1. Copy SQLite db file
-    const dbCmd = `rclone --config ${rcloneConfigPath} copy "${dbPath}" gdrive:backups/db`;
-    console.log(`Running: ${dbCmd}`);
-    await execPromise(dbCmd);
+    // 1. Copy SQLite db file (if exists)
+    if (fs.existsSync(dbPath)) {
+      const dbCmd = `rclone --config ${rcloneConfigPath} copy "${dbPath}" gdrive:backups/db`;
+      console.log(`Running: ${dbCmd}`);
+      await execPromise(dbCmd);
+    } else {
+      console.log('SQLite dev.db file does not exist, skipping SQLite database backup.');
+    }
     
     // 2. Copy uploads folder (attachment photos)
     const uploadsCmd = `rclone --config ${rcloneConfigPath} copy "${uploadsPath}" gdrive:backups/uploads`;
