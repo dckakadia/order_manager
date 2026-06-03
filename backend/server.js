@@ -196,8 +196,14 @@ app.use((err, req, res, next) => {
 });
 
 // Safety net for truly unexpected errors — log but don't exit
+// IMPORTANT: exit on EADDRINUSE so PM2 can cleanly restart
 process.on('uncaughtException', (err) => {
-  console.error('UNCAUGHT EXCEPTION (server kept alive):', err);
+  console.error('UNCAUGHT EXCEPTION:', err);
+  if (err.code === 'EADDRINUSE') {
+    console.error('Port already in use — exiting so PM2 can restart cleanly.');
+    process.exit(1);
+  }
+  // For other errors, keep alive
 });
 process.on('unhandledRejection', (reason) => {
   console.error('UNHANDLED REJECTION (server kept alive):', reason);
