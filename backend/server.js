@@ -209,8 +209,9 @@ process.on('unhandledRejection', (reason) => {
   console.error('UNHANDLED REJECTION (server kept alive):', reason);
 });
 
-// Hardcoded to 3000 to match frontend .env.production and user's expected URL
-const PORT = 3000;
+// Nginx listens on port 3000 externally and proxies to this Node server.
+// PORT env var in .env is set to 3001 — respect it, fallback to 3001.
+const PORT = process.env.PORT || 3001;
 if (require.main === module) {
   server.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on port ${PORT}`);
