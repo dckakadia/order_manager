@@ -48,11 +48,12 @@ export const uploadWithProgress = async (url, payload, onProgress) => {
 
     if (onProgress) onProgress(100);
 
+    const textData = await response.text();
     let data;
     try {
-      data = await response.json();
+      data = JSON.parse(textData);
     } catch (e) {
-      data = await response.text();
+      data = textData;
     }
 
     if (response.ok) {
