@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { Capacitor } from '@capacitor/core';
 import config, { apiFetch, uploadWithProgress } from './config';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { Geolocation } from '@capacitor/geolocation';
@@ -6,6 +7,8 @@ import { ImagePlus, X, MapPin, RefreshCw } from 'lucide-react';
 import PhotoModal from './PhotoModal';
 import { compressImage } from './imageUtils';
 import { STORAGE_KEYS } from './constants';
+
+const isNativePlatform = Capacitor.isNativePlatform();
 
 // Add a new component at the top to handle individual photo rendering
 function PhotoThumbnail({ photo, index, canDeletePhotos, handleDelete, onClick }) {
@@ -213,7 +216,7 @@ export default function OrderPhotos({ orderId }) {
     e.target.value = null;
   };
 
-  const handleAddPhoto = async () => {
+  const handleNativeAddPhoto = async () => {
     let tempId = null;
     try {
       const image = await Camera.getPhoto({
@@ -224,49 +227,37 @@ export default function OrderPhotos({ orderId }) {
       });
 
       if (image.webPath) {
-        // Capture GPS location automatically
         let coords = { lat: null, lng: null };
         try {
           const permissions = await Geolocation.checkPermissions();
-          if (permissions.location !== "granted") {
-            await Geolocation.requestPermissions();
-          }
+          if (permissions.location !== 'granted') await Geolocation.requestPermissions();
           const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: true });
           coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         } catch (geoErr) {
-          console.warn("GPS not available:", geoErr);
+          console.warn('GPS not available:', geoErr);
         }
 
         tempId = `temp_${Date.now()}`;
-        setPhotos(prev => [...prev, {
-          id: tempId,
-          isUploading: true,
-          progress: 5,
-          previewUrl: image.webPath,
-          photoType: 'location_photo',
-          photoLat: coords.lat,
-          photoLng: coords.lng
-        }]);
+        setPhotos(prev => [...prev, { id: tempId, isUploading: true, progress: 5, previewUrl: image.webPath, photoType: 'location_photo', photoLat: coords.lat, photoLng: coords.lng }]);
 
         const response = await fetch(image.webPath);
         let blob = await response.blob();
-        
         setPhotos(prev => prev.map(p => p.id === tempId ? { ...p, progress: 15 } : p));
         blob = await compressImage(blob);
-        
+
         if (blob.size > 1 * 1024 * 1024) {
           alert('The photo could not be compressed below 1MB. Please choose a smaller photo.');
           setPhotos(prev => prev.filter(p => p.id !== tempId));
           return;
         }
-        
+
         const base64data = await new Promise((resolve, reject) => {
           const reader = new FileReader();
           reader.onloadend = () => resolve(reader.result);
           reader.onerror = reject;
           reader.readAsDataURL(blob);
         });
-        
+
         const payload = JSON.stringify({
           imageBase64: base64data,
           fileName: `photo_${Date.now()}.${image.format || 'jpg'}`,
@@ -279,7 +270,7 @@ export default function OrderPhotos({ orderId }) {
           `${config.api.baseURL}/api/orders/${orderId}/attachments`,
           payload,
           (pct) => {
-            const realPct = 15 + Math.floor(pct * 0.85); // Compress is 15%, upload is 85%
+            const realPct = 15 + Math.floor(pct * 0.85);
             setPhotos(prev => prev.map(p => p.id === tempId ? { ...p, progress: realPct } : p));
           }
         );
@@ -287,21 +278,14 @@ export default function OrderPhotos({ orderId }) {
         if (uploadRes.ok) {
           loadPhotos();
         } else {
-            const errData = uploadRes.data || {};
-            const errMsg = errData.error || 'The file might be too large or the server rejected it.';
-            console.error("Upload failed", errData);
-            alert(`Upload failed: ${errMsg}`);
-            setPhotos(prev => prev.filter(p => p.id !== tempId));
+          const errData = uploadRes.data || {};
+          alert(`Upload failed: ${errData.error || 'Server rejected the file.'}`);
+          setPhotos(prev => prev.filter(p => p.id !== tempId));
         }
       }
     } catch (e) {
-      console.warn("Camera failed, using fallback input", e);
-      if (tempId) {
-        setPhotos(prev => prev.filter(p => p.id !== tempId));
-      }
-      if (fileInputRef.current) {
-        fileInputRef.current.click();
-      }
+      console.warn('Camera error:', e);
+      if (tempId) setPhotos(prev => prev.filter(p => p.id !== tempId));
     }
   };
 
@@ -362,18 +346,22 @@ export default function OrderPhotos({ orderId }) {
         <h4 style={{ margin: 0, fontSize: '13px', color: 'var(--text-light)' }}>Installation Location Photos</h4>
         <div style={{ display: 'flex', gap: '8px' }}>
           {canAddPhotos && (
-            <>
-              <button onClick={handleAddPhoto} style={{ padding: '4px 10px', fontSize: '11px', fontWeight: '600', border: 'none', background: 'var(--primary)', color: '#ffffff', borderRadius: '99px', display: 'flex', gap: '4px', alignItems: 'center', cursor: 'pointer' }}>
+            isNativePlatform ? (
+              <button onClick={handleNativeAddPhoto} style={{ padding: '4px 10px', fontSize: '11px', fontWeight: '600', border: 'none', background: 'var(--primary)', color: '#ffffff', borderRadius: '99px', display: 'flex', gap: '4px', alignItems: 'center', cursor: 'pointer' }}>
                 <ImagePlus size={12} /> Add Photo
               </button>
-              <input 
-                type="file" 
-                accept="image/*" 
-                ref={fileInputRef} 
-                style={{ display: 'none' }} 
-                onChange={handleFallbackFileSelect} 
-              />
-            </>
+            ) : (
+              <label style={{ padding: '4px 10px', fontSize: '11px', fontWeight: '600', border: 'none', background: 'var(--primary)', color: '#ffffff', borderRadius: '99px', display: 'flex', gap: '4px', alignItems: 'center', cursor: 'pointer' }}>
+                <ImagePlus size={12} /> Add Photo
+                <input
+                  type="file"
+                  accept="image/*"
+                  ref={fileInputRef}
+                  style={{ display: 'none' }}
+                  onChange={handleFallbackFileSelect}
+                />
+              </label>
+            )
           )}
         </div>
       </div>
