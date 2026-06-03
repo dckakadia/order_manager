@@ -154,11 +154,11 @@ export default function OrderPhotos({ orderId }) {
       const image = await Camera.getPhoto({
         quality: 80,
         allowEditing: false,
-        resultType: CameraResultType.DataUrl,
+        resultType: CameraResultType.Uri,
         source: CameraSource.Prompt
       });
 
-      if (image.dataUrl) {
+      if (image.webPath) {
         // Capture GPS location automatically
         let coords = { lat: null, lng: null };
         try {
@@ -177,13 +177,13 @@ export default function OrderPhotos({ orderId }) {
           id: tempId,
           isUploading: true,
           progress: 5,
-          previewUrl: image.dataUrl,
+          previewUrl: image.webPath,
           photoType: 'location_photo',
           photoLat: coords.lat,
           photoLng: coords.lng
         }]);
 
-        const response = await fetch(image.dataUrl);
+        const response = await fetch(image.webPath);
         let blob = await response.blob();
         
         setPhotos(prev => prev.map(p => p.id === tempId ? { ...p, progress: 15 } : p));
