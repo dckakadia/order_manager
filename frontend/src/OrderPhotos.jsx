@@ -5,6 +5,7 @@ import { Geolocation } from '@capacitor/geolocation';
 import { ImagePlus, X, MapPin, RefreshCw } from 'lucide-react';
 import PhotoModal from './PhotoModal';
 import { compressImage } from './imageUtils';
+import { STORAGE_KEYS } from './constants';
 
 // Add a new component at the top to handle individual photo rendering
 function PhotoThumbnail({ photo, index, canDeletePhotos, handleDelete, onClick }) {
@@ -127,10 +128,11 @@ export default function OrderPhotos({ orderId }) {
   const [photos, setPhotos] = useState([]);
   const [viewerIndex, setViewerIndex] = useState(null);
 
-  const role = localStorage.getItem('ocean_spas_role');
-  const username = localStorage.getItem('ocean_spas_username');
-  const canAddPhotos = role === 'ADMIN' || role === 'MANAGER' || username === 'manish';
-  const canDeletePhotos = canAddPhotos && username !== 'sunil';
+  const role = localStorage.getItem(STORAGE_KEYS.USER_ROLE);
+  const userId = localStorage.getItem(STORAGE_KEYS.USER_ID);
+  // Allow ADMIN, MANAGER, or specific user IDs to add photos
+  const canAddPhotos = role === 'ADMIN' || role === 'MANAGER' || role === 'SALES';
+  const canDeletePhotos = role === 'ADMIN';
 
   const loadPhotos = async () => {
     try {
