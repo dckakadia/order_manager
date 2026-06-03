@@ -150,6 +150,69 @@ export default function OrderPhotos({ orderId }) {
     loadPhotos();
   }, [orderId]);
 
+  const fileInputRef = React.useRef(null);
+
+  const handleFallbackFileSelect = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    let tempId = null;
+    try {
+      // Show loading thumbnail
+      tempId = Date.now();
+      const previewUrl = URL.createObjectURL(file);
+      setPhotos(prev => [...prev, { id: tempId, previewUrl, isUploading: true, progress: 0 }]);
+
+      // Get GPS
+      let coords = { lat: null, lng: null };
+      try {
+        const permissions = await Geolocation.checkPermissions();
+        if (permissions.location === 'granted' || permissions.location === 'prompt') {
+          const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: true });
+          coords.lat = pos.coords.latitude;
+          coords.lng = pos.coords.longitude;
+        }
+      } catch (e) {
+        console.warn("Could not get GPS:", e);
+      }
+
+      // Convert file to Base64
+      const base64data = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      const setUploadProgress = (pct) => {
+        setPhotos(prev => prev.map(p => p.id === tempId ? { ...p, progress: pct } : p));
+      };
+
+      const payload = JSON.stringify({
+        imageBase64: base64data,
+        fileName: `photo_${Date.now()}.${file.name.split('.').pop() || 'jpg'}`,
+        photoType: 'location_photo',
+        lat: coords.lat,
+        lng: coords.lng
+      });
+
+      const res = await uploadWithProgress(`${config.api.baseURL}/api/orders/${orderId}/attachments`, payload, setUploadProgress);
+      if (res.ok) {
+        setPhotos(prev => prev.filter(p => p.id !== tempId));
+        loadPhotos();
+      } else {
+        alert(res.data?.error || 'Upload failed');
+        setPhotos(prev => prev.filter(p => p.id !== tempId));
+      }
+    } catch (error) {
+      console.error(error);
+      setPhotos(prev => prev.filter(p => p.id !== tempId));
+      alert("Error uploading photo.");
+    }
+    // Reset input
+    e.target.value = null;
+  };
+
   const handleAddPhoto = async () => {
     let tempId = null;
     try {
@@ -232,10 +295,12 @@ export default function OrderPhotos({ orderId }) {
         }
       }
     } catch (e) {
-      console.error('User cancelled or error', e);
+      console.warn("Camera failed, using fallback input", e);
       if (tempId) {
         setPhotos(prev => prev.filter(p => p.id !== tempId));
-        alert(`An error occurred while adding the photo: ${e.message || 'Unknown error'}`);
+      }
+      if (fileInputRef.current) {
+        fileInputRef.current.click();
       }
     }
   };
@@ -297,9 +362,18 @@ export default function OrderPhotos({ orderId }) {
         <h4 style={{ margin: 0, fontSize: '13px', color: 'var(--text-light)' }}>Installation Location Photos</h4>
         <div style={{ display: 'flex', gap: '8px' }}>
           {canAddPhotos && (
-            <button onClick={handleAddPhoto} style={{ padding: '4px 10px', fontSize: '11px', fontWeight: '600', border: 'none', background: 'var(--primary)', color: '#ffffff', borderRadius: '99px', display: 'flex', gap: '4px', alignItems: 'center', cursor: 'pointer' }}>
-              <ImagePlus size={12} /> Add Photo
-            </button>
+            <>
+              <button onClick={handleAddPhoto} style={{ padding: '4px 10px', fontSize: '11px', fontWeight: '600', border: 'none', background: 'var(--primary)', color: '#ffffff', borderRadius: '99px', display: 'flex', gap: '4px', alignItems: 'center', cursor: 'pointer' }}>
+                <ImagePlus size={12} /> Add Photo
+              </button>
+              <input 
+                type="file" 
+                accept="image/*" 
+                ref={fileInputRef} 
+                style={{ display: 'none' }} 
+                onChange={handleFallbackFileSelect} 
+              />
+            </>
           )}
         </div>
       </div>
