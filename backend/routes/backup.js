@@ -7,7 +7,10 @@ const router = express.Router();
 const prisma = new PrismaClient();
 
 // Track live backup state so frontend can poll
-let backupState = { running: false, lastStatus: null, lastError: null, lastTimestamp: null };
+let backupState = {
+  running: false, lastStatus: null, lastError: null, lastTimestamp: null,
+  stage: null, overallPct: 0, stageLabel: null
+};
 
 router.get('/download', authMiddleware, requireRole(['ADMIN']), async (req, res) => {
   try {
@@ -70,23 +73,41 @@ router.post('/restore', authMiddleware, requireRole(['ADMIN']), async (req, res)
 });
 
 router.post('/', authMiddleware, requireRole(['ADMIN']), async (req, res) => {
-  // If already running, don't start another
+  // Prevent duplicate concurrent backups
   if (backupState.running) {
-    return res.json({ success: true, message: 'Backup already in progress. Check status.', running: true });
+    return res.json({ success: true, message: 'Backup already in progress.', running: true, progress: backupState });
   }
 
-  // Respond immediately — don't wait for rclone upload (avoids 504 Gateway Timeout)
-  backupState.running = true;
-  backupState.lastStatus = 'running';
-  backupState.lastError = null;
-  res.json({ success: true, message: 'Backup started in background. Check /api/backup/status for progress.', running: true });
+  const io = req.app.get('io');
 
-  // Run backup in background
-  backupService.performBackup()
+  // Reset state
+  backupState = {
+    running: true, lastStatus: 'running', lastError: null, lastTimestamp: null,
+    stage: 'Starting…', overallPct: 0, stageLabel: 'Preparing'
+  };
+
+  // Intercept socket events to also keep backupState in sync for HTTP polling
+  const wrappedIo = io ? {
+    emit: (event, data) => {
+      if (event === 'backup_progress') {
+        backupState.stage = data.stage;
+        backupState.overallPct = data.overallPct ?? backupState.overallPct;
+        backupState.stageLabel = data.stageLabel ?? backupState.stageLabel;
+      }
+      io.emit(event, data);
+    }
+  } : null;
+
+  // Respond immediately — avoids 504 Gateway Timeout
+  res.json({ success: true, message: 'Backup started.', running: true });
+
+  // Run in background
+  backupService.performBackup(wrappedIo)
     .then((timestamp) => {
       backupState.running = false;
       backupState.lastStatus = 'success';
       backupState.lastTimestamp = timestamp;
+      backupState.overallPct = 100;
       if (req.auditLog) req.auditLog('BACKUP_LOCAL', 'Backup', null, { timestamp }, 'success').catch(() => {});
       console.log('Background backup completed:', timestamp);
     })
@@ -94,6 +115,7 @@ router.post('/', authMiddleware, requireRole(['ADMIN']), async (req, res) => {
       backupState.running = false;
       backupState.lastStatus = 'failed';
       backupState.lastError = error.message || 'Backup failed';
+      backupState.overallPct = 0;
       if (req.auditLog) req.auditLog('BACKUP_LOCAL', 'Backup', null, null, 'failure', error.message).catch(() => {});
       console.error('Background backup failed:', error);
     });
@@ -105,7 +127,10 @@ router.get('/status', authMiddleware, requireRole(['ADMIN']), (req, res) => {
     running: backupState.running,
     lastStatus: backupState.lastStatus,
     lastError: backupState.lastError,
-    lastTimestamp: backupState.lastTimestamp || backupService.getLastBackupTime()
+    lastTimestamp: backupState.lastTimestamp || backupService.getLastBackupTime(),
+    stage: backupState.stage,
+    overallPct: backupState.overallPct,
+    stageLabel: backupState.stageLabel
   });
 });
 

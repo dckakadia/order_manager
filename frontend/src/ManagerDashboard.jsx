@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext } from 'react';
-import { DollarSign, Package, CheckCircle, Clock, Printer, History, X } from 'lucide-react';
+import { DollarSign, Package, CheckCircle, Clock, Printer, History, X, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
 import { SocketContext } from './App';
 import config from './config';
 import { apiFetch } from './apiUtils';
@@ -11,6 +11,7 @@ export default function ManagerDashboard() {
   const [toDate, setToDate] = useState('');
   const [lastBackup, setLastBackup] = useState(null);
   const [isBackingUp, setIsBackingUp] = useState(false);
+  const [backupProgress, setBackupProgress] = useState(null); // null | { stage, overallPct, ... }
   const [showDeleted, setShowDeleted] = useState(false);
   const [historyModalOrder, setHistoryModalOrder] = useState(null);
   const [orderHistory, setOrderHistory] = useState([]);
@@ -62,6 +63,22 @@ export default function ManagerDashboard() {
     fetchOrders();
     fetchBackupStatus();
   }, [showDeleted]);
+
+  // ─── Socket.IO listener for real-time backup progress ───────────────────────
+  useEffect(() => {
+    if (!socket || !isAdmin) return;
+    const handler = (data) => {
+      setBackupProgress(data);
+      if (data.status === 'success') {
+        setIsBackingUp(false);
+        if (data.timestamp) setLastBackup(data.timestamp);
+      } else if (data.status === 'failed') {
+        setIsBackingUp(false);
+      }
+    };
+    socket.on('backup_progress', handler);
+    return () => socket.off('backup_progress', handler);
+  }, [socket, isAdmin]);
 
   // BUG FIX #9: Subscribe to Socket.IO events with proper cleanup
   useEffect(() => {
@@ -234,38 +251,23 @@ export default function ManagerDashboard() {
   const handleBackup = async () => {
     if (!isAdmin) return;
     setIsBackingUp(true);
+    setBackupProgress({ stage: 'Starting…', overallPct: 0, stageLabel: 'Preparing' });
     try {
       const res = await apiFetch(`${config.api.baseURL}/api/backup`, { method: 'POST' });
       if (!res.ok) {
-        alert('Backup failed: ' + (res.data?.error || 'Unknown error'));
         setIsBackingUp(false);
-        return;
+        setBackupProgress({ status: 'failed', error: res.data?.error || 'Failed to start backup.' });
       }
-      // Backup started in background — poll status until done
-      const poll = setInterval(async () => {
-        try {
-          const statusRes = await apiFetch(`${config.api.baseURL}/api/backup/status`);
-          if (!statusRes.ok) return;
-          const s = statusRes.data;
-          if (!s.running) {
-            clearInterval(poll);
-            setIsBackingUp(false);
-            if (s.lastStatus === 'success') {
-              setLastBackup(s.lastTimestamp);
-              alert('Backup successfully uploaded to Google Drive!');
-            } else if (s.lastStatus === 'failed') {
-              alert('Backup failed: ' + (s.lastError || 'Unknown error'));
-            }
-          }
-        } catch (e) {
-          clearInterval(poll);
-          setIsBackingUp(false);
-        }
-      }, 3000);
+      // Progress will now come via Socket.IO backup_progress events
     } catch (err) {
-      alert('Backup failed: network error.');
       setIsBackingUp(false);
+      setBackupProgress({ status: 'failed', error: 'Network error. Could not start backup.' });
     }
+  };
+
+  const handleDismissBackup = () => {
+    setBackupProgress(null);
+    setIsBackingUp(false);
   };
 
   const openHistoryModal = async (orderId) => {
@@ -375,7 +377,7 @@ export default function ManagerDashboard() {
             <button onClick={handleExportCsv} className="btn btn-secondary" style={{ minHeight: '36px', padding: '0.5rem 1rem', background: '#f0fdf4', color: '#166534', borderColor: '#bbf7d0' }}>
               Export Excel / CSV
             </button>
-            {isAdmin && (
+          {isAdmin && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(255,255,255,0.05)', padding: '0.25rem 0.5rem', borderRadius: '8px' }}>
                 <button onClick={handleExportJson} className="btn btn-secondary" style={{ minHeight: '36px', padding: '0.5rem 1rem' }}>
                   Export Full Backup
@@ -385,18 +387,155 @@ export default function ManagerDashboard() {
                   <input type="file" accept=".json" style={{ display: 'none' }} onChange={handleImportJson} />
                 </label>
                 <button onClick={handleBackup} disabled={isBackingUp} className="btn btn-success" style={{ minHeight: '36px', padding: '0.5rem 1rem', border: 'none' }}>
-                  {isBackingUp ? 'Backing up...' : 'Run GDrive Backup'}
+                  {isBackingUp ? 'Backing up…' : 'Run GDrive Backup'}
                 </button>
-                {lastBackup && (
+                {lastBackup && !isBackingUp && (
                   <span style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>
-                    Last Backup: {new Date(lastBackup).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' })}
+                    Last: {new Date(lastBackup).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' })}
                   </span>
                 )}
               </div>
             )}
           </div>
         </div>
-        
+
+        {/* ─── Real-time Backup Progress Panel ─── */}
+        {backupProgress && (
+          <div className="no-print" style={{
+            margin: '1rem 0',
+            borderRadius: '12px',
+            overflow: 'hidden',
+            border: backupProgress.status === 'success'
+              ? '1px solid #6ee7b7'
+              : backupProgress.status === 'failed'
+                ? '1px solid #fca5a5'
+                : '1px solid rgba(99,102,241,0.3)',
+            background: backupProgress.status === 'success'
+              ? 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)'
+              : backupProgress.status === 'failed'
+                ? 'linear-gradient(135deg, #fff5f5 0%, #fee2e2 100%)'
+                : 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)'
+          }}>
+            {/* Header */}
+            <div style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              padding: '12px 16px',
+              background: backupProgress.status === 'success'
+                ? 'rgba(16,185,129,0.1)'
+                : backupProgress.status === 'failed'
+                  ? 'rgba(239,68,68,0.1)'
+                  : 'rgba(255,255,255,0.05)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {backupProgress.status === 'success' ? (
+                  <CheckCircle2 size={18} color="#10b981" />
+                ) : backupProgress.status === 'failed' ? (
+                  <AlertCircle size={18} color="#ef4444" />
+                ) : (
+                  <RefreshCw size={16} color="#a5b4fc" style={{ animation: 'spin 2s linear infinite' }} />
+                )}
+                <span style={{
+                  fontWeight: '700', fontSize: '13px',
+                  color: backupProgress.status === 'success' ? '#065f46'
+                    : backupProgress.status === 'failed' ? '#991b1b'
+                    : '#e0e7ff'
+                }}>
+                  {backupProgress.status === 'success' ? '✅ Google Drive Backup Complete'
+                    : backupProgress.status === 'failed' ? '❌ Backup Failed'
+                    : '☁️ Backing Up to Google Drive'}
+                </span>
+                {backupProgress.stageLabel && backupProgress.status !== 'success' && backupProgress.status !== 'failed' && (
+                  <span style={{ fontSize: '11px', color: '#a5b4fc', background: 'rgba(165,180,252,0.15)', padding: '2px 8px', borderRadius: '99px' }}>
+                    {backupProgress.stageLabel}
+                  </span>
+                )}
+              </div>
+              {(backupProgress.status === 'success' || backupProgress.status === 'failed') && (
+                <button onClick={handleDismissBackup} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '2px' }}>
+                  <X size={16} />
+                </button>
+              )}
+            </div>
+
+            <div style={{ padding: '12px 16px' }}>
+              {/* Success state */}
+              {backupProgress.status === 'success' && (
+                <div style={{ color: '#065f46', fontSize: '13px', display: 'flex', flexWrap: 'wrap', gap: '16px' }}>
+                  <span>✓ All files uploaded to Google Drive</span>
+                  {backupProgress.totalRecords != null && (
+                    <span>📋 {backupProgress.totalRecords.toLocaleString()} records backed up</span>
+                  )}
+                  {backupProgress.timestamp && (
+                    <span>🕐 {new Date(backupProgress.timestamp).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}</span>
+                  )}
+                </div>
+              )}
+
+              {/* Failure state */}
+              {backupProgress.status === 'failed' && (
+                <div>
+                  <div style={{ color: '#7f1d1d', fontSize: '13px', marginBottom: '10px' }}>
+                    {backupProgress.error || 'An unknown error occurred during backup.'}
+                  </div>
+                  <button
+                    onClick={handleBackup}
+                    style={{ background: '#ef4444', color: '#fff', border: 'none', borderRadius: '8px', padding: '6px 16px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}
+                  >
+                    ↻ Retry Backup
+                  </button>
+                </div>
+              )}
+
+              {/* In-progress state */}
+              {backupProgress.status !== 'success' && backupProgress.status !== 'failed' && (
+                <>
+                  {/* Stage label */}
+                  <div style={{ fontSize: '12px', color: '#c7d2fe', marginBottom: '8px', fontWeight: '500' }}>
+                    {backupProgress.stage || 'Initializing…'}
+                  </div>
+
+                  {/* Progress bar */}
+                  <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: '99px', height: '10px', overflow: 'hidden', marginBottom: '10px' }}>
+                    <div style={{
+                      height: '100%',
+                      width: `${backupProgress.overallPct || 0}%`,
+                      background: 'linear-gradient(90deg, #6366f1, #8b5cf6, #a78bfa)',
+                      borderRadius: '99px',
+                      transition: 'width 0.6s ease',
+                      boxShadow: '0 0 8px rgba(139,92,246,0.6)'
+                    }} />
+                  </div>
+
+                  {/* Stats row */}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', fontSize: '12px', color: '#a5b4fc' }}>
+                    <span style={{ fontWeight: '700', color: '#c7d2fe', fontSize: '15px' }}>
+                      {backupProgress.overallPct || 0}%
+                    </span>
+                    {backupProgress.totalFiles != null && (
+                      <span>📁 Files: <b style={{ color: '#e0e7ff' }}>{(backupProgress.processedFiles || 0).toLocaleString()} / {backupProgress.totalFiles.toLocaleString()}</b></span>
+                    )}
+                    {backupProgress.totalBytesLabel && (
+                      <span>💾 Size: <b style={{ color: '#e0e7ff' }}>{backupProgress.uploadedBytesLabel} / {backupProgress.totalBytesLabel}</b></span>
+                    )}
+                    {backupProgress.speedLabel && backupProgress.speedLabel !== 'undefined/s' && (
+                      <span>⚡ Speed: <b style={{ color: '#e0e7ff' }}>{backupProgress.speedLabel}</b></span>
+                    )}
+                    {backupProgress.etaSeconds != null && (
+                      <span>⏱ ETA: <b style={{ color: '#e0e7ff' }}>
+                        {backupProgress.etaSeconds >= 3600
+                          ? `${Math.floor(backupProgress.etaSeconds / 3600)}h ${Math.floor((backupProgress.etaSeconds % 3600) / 60)}m`
+                          : backupProgress.etaSeconds >= 60
+                            ? `${Math.floor(backupProgress.etaSeconds / 60)}m ${backupProgress.etaSeconds % 60}s`
+                            : `${backupProgress.etaSeconds}s`}
+                      </b></span>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Hidden print header */}
         <h1 className="print-only-header" style={{ display: 'none', textAlign: 'center', marginBottom: '20px' }}>Ocean Spas - Order Report</h1>
 
