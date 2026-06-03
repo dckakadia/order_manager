@@ -228,6 +228,7 @@ export default function OrderPhotos({ orderId }) {
             alert(`Upload failed: ${errMsg}`);
             setPhotos(prev => prev.filter(p => p.id !== tempId));
         }
+      }
     } catch (e) {
       console.error('User cancelled or error', e);
       if (tempId) {
