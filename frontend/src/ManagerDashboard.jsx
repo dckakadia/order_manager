@@ -47,8 +47,11 @@ export default function ManagerDashboard() {
     if (!isAdmin) return;
     try {
       const result = await apiFetch(`${config.api.baseURL}/api/backup/status`);
-      if (result.ok && result.data.lastBackup) {
-        setLastBackup(result.data.lastBackup);
+      if (result.ok) {
+        const d = result.data;
+        // Support both old (lastBackup) and new (lastTimestamp) response shapes
+        const ts = d.lastTimestamp || d.lastBackup;
+        if (ts) setLastBackup(ts);
       }
     } catch (err) {
       console.error('Fetch backup status error:', err);
@@ -232,19 +235,35 @@ export default function ManagerDashboard() {
     if (!isAdmin) return;
     setIsBackingUp(true);
     try {
-      const res = await apiFetch(`${config.api.baseURL}/api/backup`, {
-        method: 'POST'
-      });
-      const data = res.data || {};
-      if (res.ok) {
-        alert('Backup successfully uploaded to Google Drive!');
-        setLastBackup(data.timestamp);
-      } else {
-        alert('Backup failed: ' + data.error);
+      const res = await apiFetch(`${config.api.baseURL}/api/backup`, { method: 'POST' });
+      if (!res.ok) {
+        alert('Backup failed: ' + (res.data?.error || 'Unknown error'));
+        setIsBackingUp(false);
+        return;
       }
+      // Backup started in background — poll status until done
+      const poll = setInterval(async () => {
+        try {
+          const statusRes = await apiFetch(`${config.api.baseURL}/api/backup/status`);
+          if (!statusRes.ok) return;
+          const s = statusRes.data;
+          if (!s.running) {
+            clearInterval(poll);
+            setIsBackingUp(false);
+            if (s.lastStatus === 'success') {
+              setLastBackup(s.lastTimestamp);
+              alert('Backup successfully uploaded to Google Drive!');
+            } else if (s.lastStatus === 'failed') {
+              alert('Backup failed: ' + (s.lastError || 'Unknown error'));
+            }
+          }
+        } catch (e) {
+          clearInterval(poll);
+          setIsBackingUp(false);
+        }
+      }, 3000);
     } catch (err) {
-      alert('Backup failed.');
-    } finally {
+      alert('Backup failed: network error.');
       setIsBackingUp(false);
     }
   };

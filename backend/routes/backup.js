@@ -6,6 +6,9 @@ const backupService = require('../backup');
 const router = express.Router();
 const prisma = new PrismaClient();
 
+// Track live backup state so frontend can poll
+let backupState = { running: false, lastStatus: null, lastError: null, lastTimestamp: null };
+
 router.get('/download', authMiddleware, requireRole(['ADMIN']), async (req, res) => {
   try {
     const orders = await prisma.order.findMany();
@@ -67,21 +70,42 @@ router.post('/restore', authMiddleware, requireRole(['ADMIN']), async (req, res)
 });
 
 router.post('/', authMiddleware, requireRole(['ADMIN']), async (req, res) => {
-  try {
-    const timestamp = await backupService.performBackup();
-    if (req.auditLog) await req.auditLog('BACKUP_LOCAL', 'Backup', null, { timestamp }, 'success');
-    res.json({ success: true, timestamp });
-  } catch (error) {
-    console.error('Backup error:', error);
-    if (req.auditLog) await req.auditLog('BACKUP_LOCAL', 'Backup', null, null, 'failure', error.message);
-    res.status(500).json({ success: false, error: error.message || 'An error occurred. Please try again.' });
+  // If already running, don't start another
+  if (backupState.running) {
+    return res.json({ success: true, message: 'Backup already in progress. Check status.', running: true });
   }
+
+  // Respond immediately — don't wait for rclone upload (avoids 504 Gateway Timeout)
+  backupState.running = true;
+  backupState.lastStatus = 'running';
+  backupState.lastError = null;
+  res.json({ success: true, message: 'Backup started in background. Check /api/backup/status for progress.', running: true });
+
+  // Run backup in background
+  backupService.performBackup()
+    .then((timestamp) => {
+      backupState.running = false;
+      backupState.lastStatus = 'success';
+      backupState.lastTimestamp = timestamp;
+      if (req.auditLog) req.auditLog('BACKUP_LOCAL', 'Backup', null, { timestamp }, 'success').catch(() => {});
+      console.log('Background backup completed:', timestamp);
+    })
+    .catch((error) => {
+      backupState.running = false;
+      backupState.lastStatus = 'failed';
+      backupState.lastError = error.message || 'Backup failed';
+      if (req.auditLog) req.auditLog('BACKUP_LOCAL', 'Backup', null, null, 'failure', error.message).catch(() => {});
+      console.error('Background backup failed:', error);
+    });
 });
 
 router.get('/status', authMiddleware, requireRole(['ADMIN']), (req, res) => {
   res.json({ 
     success: true,
-    lastBackup: backupService.getLastBackupTime() 
+    running: backupState.running,
+    lastStatus: backupState.lastStatus,
+    lastError: backupState.lastError,
+    lastTimestamp: backupState.lastTimestamp || backupService.getLastBackupTime()
   });
 });
 
