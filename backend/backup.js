@@ -87,14 +87,30 @@ function formatBytes(bytes) {
 
 // ─── Rclone runner with live progress ────────────────────────────────────────
 // Runs a single rclone copy command and emits real-time stats via progressCallback.
-// stageWeight: 0-100 share of overall progress this stage occupies
-// stageOffset: overall progress offset where this stage starts
-function runRcloneWithProgress(args, progressCallback) {
+// heartbeatCallback: called every 3s even if rclone produces no output (scan phase)
+// timeoutMs: max time (ms) to wait before killing rclone and rejecting (default 15min)
+function runRcloneWithProgress(args, progressCallback, heartbeatCallback, timeoutMs = 15 * 60 * 1000) {
   return new Promise((resolve, reject) => {
     const proc = spawn('rclone', args, { stdio: ['ignore', 'pipe', 'pipe'] });
     let stderr = '';
     let lastStats = {};
     let multiLineBuffer = '';
+    let resolved = false;
+
+    // Heartbeat: fires every 3s during quiet scanning phase
+    const heartbeatTimer = setInterval(() => {
+      if (!resolved && heartbeatCallback) heartbeatCallback();
+    }, 3000);
+
+    // Hard timeout: kill rclone if it runs too long
+    const timeoutTimer = setTimeout(() => {
+      if (!resolved) {
+        resolved = true;
+        clearInterval(heartbeatTimer);
+        proc.kill('SIGTERM');
+        reject(new Error(`Rclone timed out after ${Math.round(timeoutMs / 60000)} minutes. Check server connectivity and Google Drive token.`));
+      }
+    }, timeoutMs);
 
     const processChunk = (chunk) => {
       multiLineBuffer += chunk.toString();
@@ -118,19 +134,31 @@ function runRcloneWithProgress(args, progressCallback) {
     proc.stderr.on('data', processChunk);
 
     proc.on('close', (code) => {
+      if (resolved) return;
+      resolved = true;
+      clearInterval(heartbeatTimer);
+      clearTimeout(timeoutTimer);
+
       if (code === 0) {
+        // rclone may exit immediately with no stats if nothing needed uploading — that's fine
         resolve(lastStats);
       } else {
         const errMsg = stderr || `rclone exited with code ${code}`;
         if (errMsg.includes('invalid_grant') || errMsg.includes('Invalid JWT Signature') || errMsg.includes('token: 400 Bad Request')) {
-          reject(new Error('Google Drive service account key is invalid or revoked. Please update backend/google-credentials.json on the Ubuntu server.'));
+          reject(new Error('Google Drive token is expired or revoked. Please re-run rclone config on the Ubuntu server to refresh the OAuth token.'));
+        } else if (errMsg.includes('ENOENT') || errMsg.includes('not found')) {
+          reject(new Error('rclone not found. Please ensure rclone is installed on the Ubuntu server (sudo apt install rclone).'));
         } else {
-          reject(new Error(`Rclone backup failed: ${errMsg.slice(0, 500)}`));
+          reject(new Error(`Rclone backup failed (exit ${code}): ${errMsg.slice(0, 600)}`));
         }
       }
     });
 
     proc.on('error', (err) => {
+      if (resolved) return;
+      resolved = true;
+      clearInterval(heartbeatTimer);
+      clearTimeout(timeoutTimer);
       reject(new Error(`Failed to start rclone: ${err.message}`));
     });
   });
@@ -159,53 +187,72 @@ async function runRcloneBackup(io) {
     io.emit('backup_progress', { stage, ...extra, ts: Date.now() });
   };
 
+  // Shared rclone base flags — used for all stages
+  const baseFlags = [
+    '--config', rcloneConfigPath,
+    '--stats', '2s', '--stats-one-line',
+    '--transfers', '8',   // parallel file transfers
+    '--checkers', '16',  // parallel file existence checks
+  ];
+
   // ── Stage 1: DB file (5% of total) ──────────────────────────────────────
   if (fs.existsSync(dbPath)) {
     emit('Backing up database file…', { overallPct: 2, stageLabel: 'Stage 1 / 3' });
-    await runRcloneWithProgress([
-      '--config', rcloneConfigPath,
-      '--stats', '1s', '--stats-one-line',
-      'copy', dbPath, 'gdrive:backups/db'
-    ], () => {
-      emit('Backing up database file…', { overallPct: 4, stageLabel: 'Stage 1 / 3' });
-    });
+    await runRcloneWithProgress(
+      [...baseFlags, 'copy', dbPath, 'gdrive:backups/db'],
+      () => { emit('Backing up database file…', { overallPct: 4, stageLabel: 'Stage 1 / 3' }); },
+      () => { emit('Backing up database file…', { overallPct: 3, stageLabel: 'Stage 1 / 3' }); },
+      5 * 60 * 1000 // 5min timeout for small DB
+    );
     emit('Database backed up ✓', { overallPct: 5, stageLabel: 'Stage 1 / 3' });
   }
 
   // ── Stage 2: Uploads folder (90% of total — the big one) ────────────────
-  emit('Scanning uploads folder…', { overallPct: 6, stageLabel: 'Stage 2 / 3' });
-  await runRcloneWithProgress([
-    '--config', rcloneConfigPath,
-    '--stats', '2s', '--stats-one-line',
-    'copy', uploadsPath, 'gdrive:backups/uploads'
-  ], (stats) => {
-    // Map rclone 0-100% into overall 6-93%
-    const scaledPct = 6 + Math.round((stats.percentage || 0) * 0.87);
-    emit('Uploading installation photos…', {
-      overallPct: scaledPct,
-      stageLabel: 'Stage 2 / 3',
-      processedFiles: stats.processedFiles,
-      totalFiles: stats.totalFiles,
-      uploadedBytes: stats.uploadedBytes,
-      totalBytes: stats.totalBytes,
-      uploadedBytesLabel: formatBytes(stats.uploadedBytes),
-      totalBytesLabel: formatBytes(stats.totalBytes),
-      speedLabel: formatBytes(stats.speedBytes) + '/s',
-      etaSeconds: stats.etaSeconds,
-      rclonePct: stats.percentage
-    });
-  });
+  emit('Scanning uploads folder… (this may take a minute)', { overallPct: 6, stageLabel: 'Stage 2 / 3' });
+  let scanHeartbeatPct = 6;
+  await runRcloneWithProgress(
+    [...baseFlags, 'copy', uploadsPath, 'gdrive:backups/uploads'],
+    (stats) => {
+      // Map rclone 0-100% into overall 6-93%
+      const scaledPct = 6 + Math.round((stats.percentage || 0) * 0.87);
+      scanHeartbeatPct = scaledPct;
+      emit('Uploading installation photos…', {
+        overallPct: scaledPct,
+        stageLabel: 'Stage 2 / 3',
+        processedFiles: stats.processedFiles,
+        totalFiles: stats.totalFiles,
+        uploadedBytes: stats.uploadedBytes,
+        totalBytes: stats.totalBytes,
+        uploadedBytesLabel: formatBytes(stats.uploadedBytes),
+        totalBytesLabel: formatBytes(stats.totalBytes),
+        speedLabel: formatBytes(stats.speedBytes) + '/s',
+        etaSeconds: stats.etaSeconds,
+        rclonePct: stats.percentage
+      });
+    },
+    // Heartbeat during long scan phase — keeps UI alive and percentage slowly ticks
+    () => {
+      // Gently nudge percentage during scan (max 30%) so user sees activity
+      if (scanHeartbeatPct < 30) {
+        scanHeartbeatPct = Math.min(scanHeartbeatPct + 1, 30);
+      }
+      emit('Scanning & uploading photos… (checking which files are new)', {
+        overallPct: scanHeartbeatPct,
+        stageLabel: 'Stage 2 / 3'
+      });
+    },
+    15 * 60 * 1000 // 15min timeout for large upload folder
+  );
   emit('Photos uploaded ✓', { overallPct: 94, stageLabel: 'Stage 2 / 3' });
 
   // ── Stage 3: JSON backups folder (5% of total) ───────────────────────────
   emit('Uploading JSON backups…', { overallPct: 95, stageLabel: 'Stage 3 / 3' });
-  await runRcloneWithProgress([
-    '--config', rcloneConfigPath,
-    '--stats', '1s', '--stats-one-line',
-    'copy', localBackupsPath, 'gdrive:backups/json'
-  ], () => {
-    emit('Uploading JSON backups…', { overallPct: 97, stageLabel: 'Stage 3 / 3' });
-  });
+  await runRcloneWithProgress(
+    [...baseFlags, 'copy', localBackupsPath, 'gdrive:backups/json'],
+    () => { emit('Uploading JSON backups…', { overallPct: 97, stageLabel: 'Stage 3 / 3' }); },
+    () => { emit('Uploading JSON backups…', { overallPct: 96, stageLabel: 'Stage 3 / 3' }); },
+    5 * 60 * 1000 // 5min timeout for small JSON files
+  );
   emit('JSON backups uploaded ✓', { overallPct: 99, stageLabel: 'Stage 3 / 3' });
 }
 
