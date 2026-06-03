@@ -79,6 +79,7 @@ export default function SalesForm() {
   const [isLoadingOrders, setIsLoadingOrders] = useState(false);
   const [itemsError, setItemsError] = useState('');
   const [customersError, setCustomersError] = useState('');
+  const [locationPhotos, setLocationPhotos] = useState([]);
   const socket = useContext(SocketContext);
   const role = localStorage.getItem(STORAGE_KEYS.USER_ROLE);
   const submitAbortController = useRef(null);
