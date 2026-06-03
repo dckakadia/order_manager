@@ -149,15 +149,16 @@ export default function OrderPhotos({ orderId }) {
   }, [orderId]);
 
   const handleAddPhoto = async () => {
+    let tempId = null;
     try {
       const image = await Camera.getPhoto({
         quality: 80,
         allowEditing: false,
-        resultType: CameraResultType.Uri,
+        resultType: CameraResultType.DataUrl,
         source: CameraSource.Prompt
       });
 
-      if (image.webPath) {
+      if (image.dataUrl) {
         // Capture GPS location automatically
         let coords = { lat: null, lng: null };
         try {
@@ -171,18 +172,18 @@ export default function OrderPhotos({ orderId }) {
           console.warn("GPS not available:", geoErr);
         }
 
-        const tempId = `temp_${Date.now()}`;
+        tempId = `temp_${Date.now()}`;
         setPhotos(prev => [...prev, {
           id: tempId,
           isUploading: true,
           progress: 5,
-          previewUrl: image.webPath,
+          previewUrl: image.dataUrl,
           photoType: 'location_photo',
           photoLat: coords.lat,
           photoLng: coords.lng
         }]);
 
-        const response = await fetch(image.webPath);
+        const response = await fetch(image.dataUrl);
         let blob = await response.blob();
         
         setPhotos(prev => prev.map(p => p.id === tempId ? { ...p, progress: 15 } : p));
@@ -221,6 +222,10 @@ export default function OrderPhotos({ orderId }) {
       }
     } catch (e) {
       console.error('User cancelled or error', e);
+      if (tempId) {
+        setPhotos(prev => prev.filter(p => p.id !== tempId));
+        alert(`An error occurred while adding the photo: ${e.message || 'Unknown error'}`);
+      }
     }
   };
 
