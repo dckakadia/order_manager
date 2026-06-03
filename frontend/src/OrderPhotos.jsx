@@ -351,16 +351,22 @@ export default function OrderPhotos({ orderId }) {
                 <ImagePlus size={12} /> Add Photo
               </button>
             ) : (
-              <label style={{ padding: '4px 10px', fontSize: '11px', fontWeight: '600', border: 'none', background: 'var(--primary)', color: '#ffffff', borderRadius: '99px', display: 'flex', gap: '4px', alignItems: 'center', cursor: 'pointer' }}>
-                <ImagePlus size={12} /> Add Photo
+              <>
+                <label
+                  htmlFor={`add-photo-input-${orderId}`}
+                  style={{ padding: '4px 10px', fontSize: '11px', fontWeight: '600', border: 'none', background: 'var(--primary)', color: '#ffffff', borderRadius: '99px', display: 'flex', gap: '4px', alignItems: 'center', cursor: 'pointer' }}
+                >
+                  <ImagePlus size={12} /> Add Photo
+                </label>
                 <input
+                  id={`add-photo-input-${orderId}`}
                   type="file"
                   accept="image/*"
                   ref={fileInputRef}
-                  style={{ display: 'none' }}
+                  style={{ position: 'absolute', opacity: 0, width: 0, height: 0, pointerEvents: 'none' }}
                   onChange={handleFallbackFileSelect}
                 />
-              </label>
+              </>
             )
           )}
         </div>
