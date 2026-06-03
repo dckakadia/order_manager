@@ -225,7 +225,7 @@ export default function ManagerDashboard() {
       });
       const data = res.data || {};
       if (res.ok) {
-        alert('Local backup generated successfully on the server!');
+        alert('Backup successfully uploaded to Google Drive!');
         setLastBackup(data.timestamp);
       } else {
         alert('Backup failed: ' + data.error);
@@ -354,7 +354,7 @@ export default function ManagerDashboard() {
                   <input type="file" accept=".json" style={{ display: 'none' }} onChange={handleImportJson} />
                 </label>
                 <button onClick={handleBackup} disabled={isBackingUp} className="btn btn-success" style={{ minHeight: '36px', padding: '0.5rem 1rem', border: 'none' }}>
-                  {isBackingUp ? 'Backing up...' : 'Run Local Backup'}
+                  {isBackingUp ? 'Backing up...' : 'Run GDrive Backup'}
                 </button>
                 {lastBackup && (
                   <span style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>
