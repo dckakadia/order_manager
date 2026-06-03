@@ -41,8 +41,8 @@ app.use(cors({
 }));
 
 app.use(cookieParser());
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ limit: '10mb', extended: true }));
+app.use(express.json({ limit: '25mb' }));
+app.use(express.urlencoded({ limit: '25mb', extended: true }));
 app.use(attachAuditLogger);
 
 // CSRF Protection Middleware for all state-changing routes except specific ones
@@ -177,6 +177,30 @@ app.use((req, res, next) => {
   } else {
     next();
   }
+});
+
+// Global error handler — catches PayloadTooLargeError and other Express errors
+// so they return a clean JSON response instead of crashing the process
+app.use((err, req, res, next) => {
+  if (err.type === 'entity.too.large' || err.status === 413) {
+    return res.status(413).json({
+      success: false,
+      error: 'File too large. Maximum upload size is 25MB.'
+    });
+  }
+  console.error('Unhandled Express error:', err);
+  res.status(err.status || 500).json({
+    success: false,
+    error: err.message || 'Internal server error'
+  });
+});
+
+// Safety net for truly unexpected errors — log but don't exit
+process.on('uncaughtException', (err) => {
+  console.error('UNCAUGHT EXCEPTION (server kept alive):', err);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('UNHANDLED REJECTION (server kept alive):', reason);
 });
 
 // Hardcoded to 3000 to match frontend .env.production and user's expected URL
