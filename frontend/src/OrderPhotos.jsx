@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import config, { apiFetch, uploadWithProgress } from './config';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { Geolocation } from '@capacitor/geolocation';
@@ -150,7 +150,7 @@ export default function OrderPhotos({ orderId }) {
     loadPhotos();
   }, [orderId]);
 
-  const fileInputRef = React.useRef(null);
+  const fileInputRef = useRef(null);
 
   const handleFallbackFileSelect = async (e) => {
     const file = e.target.files[0];
