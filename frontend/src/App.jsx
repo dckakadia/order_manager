@@ -118,7 +118,7 @@ function Navigation() {
             <>
               <Link to="/dashboard" className={`bottom-nav-item ${location.pathname === '/dashboard' ? 'active' : ''}`}>
                 <BarChart2 size={24} />
-                <span>Metrics</span>
+                <span>Admin</span>
               </Link>
               <Link to="/admin" className={`bottom-nav-item ${location.pathname === '/admin' ? 'active' : ''}`}>
                 <Settings size={24} />
