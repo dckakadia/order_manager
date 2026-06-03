@@ -84,8 +84,9 @@ app.get('/api/system/update-check', (req, res) => {
 // GET /api/system/update-page
 // This provides a fallback HTML page for users on v1.0.5 (or older) where window.location.href directly to an APK fails inside Capacitor.
 app.get('/api/system/update-page', (req, res) => {
-  const apkUrl = 'http://116.74.77.22:3000/api/uploads/releases/OceanSpas-OrderManager.apk';
-  const intentUrl = `intent://116.74.77.22:3000/api/uploads/releases/OceanSpas-OrderManager.apk#Intent;scheme=http;package=com.android.chrome;end`;
+  const v = Date.now();
+  const apkUrl = `http://116.74.77.22:3000/api/uploads/releases/OceanSpas-OrderManager.apk?v=${v}`;
+  const intentUrl = `intent://116.74.77.22:3000/api/uploads/releases/OceanSpas-OrderManager.apk?v=${v}#Intent;scheme=http;package=com.android.chrome;end`;
   
   res.send(`
     <!DOCTYPE html>
