@@ -195,15 +195,24 @@ export default function OrderPhotos({ orderId }) {
           return;
         }
         
-        const formData = new FormData();
-        formData.append('photo', blob, `photo_${Date.now()}.${image.format || 'jpg'}`);
-        formData.append('photoType', 'location_photo');
-        if (coords.lat !== null) formData.append("lat", coords.lat);
-        if (coords.lng !== null) formData.append("lng", coords.lng);
+        const base64data = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+        
+        const payload = JSON.stringify({
+          imageBase64: base64data,
+          fileName: `photo_${Date.now()}.${image.format || 'jpg'}`,
+          photoType: 'location_photo',
+          lat: coords.lat,
+          lng: coords.lng
+        });
 
         const uploadRes = await uploadWithProgress(
           `${config.api.baseURL}/api/orders/${orderId}/attachments`,
-          formData,
+          payload,
           (pct) => {
             const realPct = 15 + Math.floor(pct * 0.85); // Compress is 15%, upload is 85%
             setPhotos(prev => prev.map(p => p.id === tempId ? { ...p, progress: realPct } : p));
@@ -219,7 +228,6 @@ export default function OrderPhotos({ orderId }) {
             alert(`Upload failed: ${errMsg}`);
             setPhotos(prev => prev.filter(p => p.id !== tempId));
         }
-      }
     } catch (e) {
       console.error('User cancelled or error', e);
       if (tempId) {

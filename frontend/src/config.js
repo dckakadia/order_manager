@@ -26,18 +26,22 @@ export const apiFetch = async (url, options = {}) => {
   });
 };
 
-export const uploadWithProgress = async (url, formData, onProgress) => {
+export const uploadWithProgress = async (url, payload, onProgress) => {
   try {
     const headers = new Headers();
     const csrf = getCsrfToken();
     if (csrf) headers.set('x-csrf-token', csrf);
+
+    if (typeof payload === 'string') {
+      headers.set('Content-Type', 'application/json');
+    }
 
     // Provide an immediate progress update for UI feedback
     if (onProgress) onProgress(50);
 
     const response = await fetch(url, {
       method: 'POST',
-      body: formData,
+      body: payload,
       headers: headers,
       credentials: 'include'
     });
@@ -84,7 +88,7 @@ const config = {
   isProduction: import.meta.env.VITE_ENV === 'production',
 
   // Version
-  appVersion: '1.0.21'
+  appVersion: '1.0.22'
 };
 
 export default config;

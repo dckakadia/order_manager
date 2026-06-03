@@ -217,19 +217,39 @@ router.get('/:id/attachments', authMiddleware, [param('id').isInt()], async (req
 router.post('/:id/attachments', authMiddleware, upload.single('photo'), async (req, res) => {
   try {
     const orderId = parseInt(req.params.id);
-    if (!req.file) {
+    
+    let filename, destination, originalname, filepath;
+
+    if (req.body.imageBase64) {
+      // Handle Base64 Upload from JSON
+      const base64Data = req.body.imageBase64.replace(/^data:image\/\w+;base64,/, "");
+      const buffer = Buffer.from(base64Data, 'base64');
+      destination = path.join(__dirname, '../uploads/order_attachments');
+      if (!fs.existsSync(destination)) fs.mkdirSync(destination, { recursive: true });
+      originalname = req.body.fileName || `photo_${Date.now()}.jpg`;
+      const sanitizedName = originalname.replace(/[^a-zA-Z0-9.]/g, '_');
+      filename = `${orderId}_${Date.now()}_${sanitizedName}`;
+      filepath = path.join(destination, filename);
+      fs.writeFileSync(filepath, buffer);
+    } else if (req.file) {
+      // Handle standard multipart/form-data upload
+      destination = req.file.destination;
+      filename = req.file.filename;
+      originalname = req.file.originalname;
+      filepath = req.file.path;
+    } else {
       return res.status(400).json({ success: false, error: 'No photo file provided' });
     }
 
-    // Parse optional geo fields from form data
+    // Parse optional geo fields from form data or JSON body
     const photoLat = req.body.lat ? parseFloat(req.body.lat) : null;
     const photoLng = req.body.lng ? parseFloat(req.body.lng) : null;
     const photoType = req.body.photoType || "general";
 
     try {
-      const thumbFilename = `thumb_${req.file.filename}`;
-      const thumbPath = path.join(req.file.destination, thumbFilename);
-      await sharp(req.file.path)
+      const thumbFilename = `thumb_${filename}`;
+      const thumbPath = path.join(destination, thumbFilename);
+      await sharp(filepath)
         .resize(250, 250, { fit: 'cover' })
         .jpeg({ quality: 70 })
         .toFile(thumbPath);
@@ -240,8 +260,8 @@ router.post('/:id/attachments', authMiddleware, upload.single('photo'), async (r
     const attachment = await prisma.orderAttachment.create({
       data: {
         orderId,
-        fileName: req.file.originalname,
-        filePath: `/api/uploads/order_attachments/${req.file.filename}`,
+        fileName: originalname,
+        filePath: `/api/uploads/order_attachments/${filename}`,
         uploadedBy: req.user.id,
         photoLat,
         photoLng,
