@@ -290,8 +290,8 @@ router.delete('/:id/attachments/:attachmentId', authMiddleware, async (req, res)
       where: { id: attachmentId }
     });
     
-    if (!attachment) {
-      return res.status(404).json({ success: false, error: 'Attachment not found' });
+    if (!attachment || attachment.orderId !== parseInt(req.params.id)) {
+      return res.status(404).json({ success: false, error: 'Attachment not found for this order' });
     }
 
     // Delete from DB

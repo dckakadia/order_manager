@@ -73,7 +73,7 @@ const config = {
   // API Configuration
   api: {
     baseURL: import.meta.env.VITE_API_BASE || '',
-    socketURL: import.meta.env.VITE_SOCKET_URL || '',
+    socketURL: import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_BASE || '',
     timeout: 30000
   },
 

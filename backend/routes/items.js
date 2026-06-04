@@ -5,7 +5,9 @@ const itemService = require('../services/itemService');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const { PrismaClient } = require('@prisma/client');
 
+const prisma = new PrismaClient();
 const router = express.Router();
 
 const storage = multer.diskStorage({
@@ -128,9 +130,6 @@ router.put('/:id', authMiddleware, requireRole(['ADMIN']), upload.single('photo'
     return res.status(400).json({ success: false, errors: errors.array() });
   }
   try {
-    // Fetch old item to get old photo filename
-    const { PrismaClient } = require('@prisma/client');
-    const prisma = new PrismaClient();
     const oldItem = await prisma.item.findUnique({ where: { id: parseInt(req.params.id) } });
 
     if (req.file) {

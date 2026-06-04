@@ -98,8 +98,9 @@ app.get('/api/system/update-page', (req, res) => {
 
   const v = Date.now();
   const apkName = `OceanSpas-OrderManager-v${latestVersion}.apk`;
-  const apkUrl = `http://116.74.77.22:3000/api/uploads/releases/${apkName}?v=${v}`;
-  const intentUrl = `intent://116.74.77.22:3000/api/uploads/releases/${apkName}?v=${v}#Intent;scheme=http;package=com.android.chrome;end`;
+  const PUBLIC_API_URL = process.env.PUBLIC_API_URL || 'http://localhost:3001';
+  const apkUrl = `${PUBLIC_API_URL}/api/uploads/releases/${apkName}?v=${v}`;
+  const intentUrl = `intent://${PUBLIC_API_URL}/api/uploads/releases/${apkName}?v=${v}#Intent;scheme=http;package=com.android.chrome;end`;
   
   res.send(`
     <!DOCTYPE html>

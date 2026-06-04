@@ -54,6 +54,7 @@ router.post('/login', loginLimiter, [
     res.json({ 
       success: true, 
       token, 
+      id: user.id,
       role: user.role, 
       expiresIn: TOKEN_EXPIRY,
       message: 'Login successful'

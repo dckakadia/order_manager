@@ -18,8 +18,10 @@ router.get('/download', authMiddleware, requireRole(['ADMIN']), async (req, res)
     const customers = await prisma.customer.findMany();
     const items = await prisma.item.findMany();
     const users = await prisma.user.findMany();
+    const attachments = await prisma.orderAttachment.findMany();
+    const histories = await prisma.orderStatusHistory.findMany();
     if (req.auditLog) await req.auditLog('BACKUP_DOWNLOAD', 'Backup', null, { ordersCount: orders.length }, 'success');
-    res.json({ success: true, data: { orders, customers, items, users } });
+    res.json({ success: true, data: { orders, customers, items, users, attachments, histories } });
   } catch (error) {
     console.error('Backup download error:', error);
     if (req.auditLog) await req.auditLog('BACKUP_DOWNLOAD', 'Backup', null, null, 'failure', error.message);
@@ -29,7 +31,7 @@ router.get('/download', authMiddleware, requireRole(['ADMIN']), async (req, res)
 
 router.post('/restore', authMiddleware, requireRole(['ADMIN']), async (req, res) => {
   try {
-    const { orders, customers, items, users } = req.body;
+    const { orders, customers, items, users, attachments, histories } = req.body;
     
     if (!orders || !customers || !items || !users) {
       return res.status(400).json({ success: false, error: 'Invalid backup format' });
@@ -40,6 +42,8 @@ router.post('/restore', authMiddleware, requireRole(['ADMIN']), async (req, res)
     
     await prisma.$transaction(async (tx) => {
       // 1. Delete all existing records
+      await tx.orderAttachment.deleteMany();
+      await tx.orderStatusHistory.deleteMany();
       await tx.order.deleteMany();
       await tx.customer.deleteMany();
       await tx.item.deleteMany();
@@ -50,12 +54,17 @@ router.post('/restore', authMiddleware, requireRole(['ADMIN']), async (req, res)
       if (items.length) await tx.item.createMany({ data: items });
       if (customers.length) await tx.customer.createMany({ data: customers });
       if (orders.length) await tx.order.createMany({ data: orders });
+      if (attachments && attachments.length) await tx.orderAttachment.createMany({ data: attachments });
+      if (histories && histories.length) await tx.orderStatusHistory.createMany({ data: histories });
       
       // 3. Reset PostgreSQL sequence generators so future inserts work properly
       await tx.$executeRawUnsafe(`SELECT setval('"User_id_seq"', COALESCE((SELECT MAX(id)+1 FROM "User"), 1), false)`);
       await tx.$executeRawUnsafe(`SELECT setval('"Item_id_seq"', COALESCE((SELECT MAX(id)+1 FROM "Item"), 1), false)`);
       await tx.$executeRawUnsafe(`SELECT setval('"Customer_id_seq"', COALESCE((SELECT MAX(id)+1 FROM "Customer"), 1), false)`);
       await tx.$executeRawUnsafe(`SELECT setval('"Order_id_seq"', COALESCE((SELECT MAX(id)+1 FROM "Order"), 1), false)`);
+      await tx.$executeRawUnsafe(`SELECT setval('"OrderAttachment_id_seq"', COALESCE((SELECT MAX(id)+1 FROM "OrderAttachment"), 1), false)`);
+      await tx.$executeRawUnsafe(`SELECT setval('"OrderStatusHistory_id_seq"', COALESCE((SELECT MAX(id)+1 FROM "OrderStatusHistory"), 1), false)`);
+
     });
     
     if (req.auditLog) await req.auditLog('BACKUP_RESTORE', 'Backup', null, { ordersCount: orders.length }, 'success');
