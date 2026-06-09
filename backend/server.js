@@ -100,7 +100,9 @@ app.get('/api/system/update-page', (req, res) => {
   const apkName = `OceanSpas-OrderManager-v${latestVersion}.apk`;
   const PUBLIC_API_URL = process.env.PUBLIC_API_URL || 'http://localhost:3001';
   const apkUrl = `${PUBLIC_API_URL}/api/uploads/releases/${apkName}?v=${v}`;
-  const intentUrl = `intent://${PUBLIC_API_URL}/api/uploads/releases/${apkName}?v=${v}#Intent;scheme=http;package=com.android.chrome;end`;
+  // Build intent URL correctly by stripping protocol from PUBLIC_API_URL
+  const intentHost = PUBLIC_API_URL.replace(/^https?:\/\//, '').replace(/\/$/, '');
+  const intentUrl = `intent://${intentHost}/api/uploads/releases/${apkName}?v=${v}#Intent;scheme=http;package=com.android.chrome;end`;
   
   res.send(`
     <!DOCTYPE html>
