@@ -89,7 +89,7 @@ const config = {
   isProduction: import.meta.env.VITE_ENV === 'production',
 
   // Version
-  appVersion: '1.0.45'
+  appVersion: '1.0.46'
 };
 
 export default config;
