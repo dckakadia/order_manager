@@ -131,8 +131,11 @@ def main():
     print_banner("Compiling Android APK (assembleDebug)")
     try:
         env = os.environ.copy()
-        # Set JAVA_HOME specifically to Android Studio's bundled OpenJDK
-        env['JAVA_HOME'] = r"C:\Program Files\Android\Android Studio\jbr"
+        # Prefer an existing JAVA_HOME, otherwise fall back to a modern Temurin JDK
+        env_java = env.get('JAVA_HOME') or r"C:\Program Files\Eclipse Adoptium\jdk-21.0.11.10-hotspot"
+        env['JAVA_HOME'] = env_java
+        # Ensure PATH includes the JDK bin for this process
+        env['PATH'] = os.path.join(env['JAVA_HOME'], 'bin') + os.pathsep + env.get('PATH', '')
         subprocess.run(r'.\gradlew.bat assembleDebug', cwd=os.path.join('frontend', 'android'), env=env, shell=True, check=True)
         print("Successfully compiled app-debug.apk")
     except subprocess.CalledProcessError as e:
