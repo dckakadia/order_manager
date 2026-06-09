@@ -73,6 +73,12 @@ app.get('/api/system/update-check', (req, res) => {
     const releasePath = path.join(__dirname, 'uploads/releases/release.json');
     if (fs.existsSync(releasePath)) {
       const data = JSON.parse(fs.readFileSync(releasePath, 'utf8'));
+      if (data.latestVersion) {
+        const apkPath = path.join(__dirname, 'uploads', 'releases', `OceanSpas-OrderManager-v${data.latestVersion}.apk`);
+        if (!fs.existsSync(apkPath)) {
+          return res.json({ success: true, data: null });
+        }
+      }
       res.json({ success: true, data });
     } else {
       res.json({ success: true, data: null });
@@ -96,6 +102,11 @@ app.get('/api/version', (req, res) => {
     const latestVersion = data.latestVersion || data.version || null;
     if (!latestVersion) {
       return res.status(404).json({ success: false, error: 'Release version not available' });
+    }
+
+    const apkPath = path.join(__dirname, 'uploads', 'releases', `OceanSpas-OrderManager-v${latestVersion}.apk`);
+    if (!fs.existsSync(apkPath)) {
+      return res.status(404).json({ success: false, error: 'Release APK not available' });
     }
 
     const PUBLIC_API_URL = process.env.PUBLIC_API_URL || 'http://localhost:3001';
@@ -127,6 +138,10 @@ app.get('/api/system/update-page', (req, res) => {
 
   const v = Date.now();
   const apkName = `OceanSpas-OrderManager-v${latestVersion}.apk`;
+  const apkPath = path.join(__dirname, 'uploads', 'releases', apkName);
+  if (!fs.existsSync(apkPath)) {
+    return res.status(404).send('<h1>Update unavailable</h1><p>The requested APK is not available on the server.</p>');
+  }
   const PUBLIC_API_URL = process.env.PUBLIC_API_URL || 'http://localhost:3001';
   const apkUrl = `${PUBLIC_API_URL}/api/uploads/releases/${apkName}?v=${v}`;
   // Build intent URL correctly by stripping protocol from PUBLIC_API_URL

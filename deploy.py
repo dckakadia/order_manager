@@ -29,7 +29,8 @@ def bump_version(version, bump_type):
     return '.'.join(map(str, parts))
 
 def load_release_keystore_properties():
-    key_props_path = os.path.join('frontend', 'android', 'key.properties')
+    # The Android Gradle config reads key.properties from frontend/key.properties
+    key_props_path = os.path.join('frontend', 'key.properties')
     if os.path.exists(key_props_path):
         return key_props_path
 
@@ -40,7 +41,7 @@ def load_release_keystore_properties():
         'keyPassword': os.getenv('ANDROID_KEY_PASSWORD'),
     }
     if all(env_values.values()):
-        print('Creating frontend/android/key.properties from environment variables...')
+        print('Creating frontend/key.properties from environment variables...')
         with open(key_props_path, 'w', encoding='utf-8') as f:
             for key, value in env_values.items():
                 f.write(f"{key}={value}\n")
@@ -113,28 +114,14 @@ def main():
     with open(gradle_path, 'w', encoding='utf-8') as f:
         f.write(new_gradle_content)
 
-    print("Updating release.json...")
+    print("Reading release.json...")
     if os.path.exists(release_json_path):
         with open(release_json_path, 'r', encoding='utf-8') as f:
             release_data = json.load(f)
     else:
         release_data = {"latestVersion": current_version, "downloadUrl": "/api/system/update-page"}
-        
-    release_data['latestVersion'] = new_version
-    with open(release_json_path, 'w', encoding='utf-8') as f:
-        json.dump(release_data, f, indent=2)
 
-    # 5. Git Commit and Push
-    print_banner("Git Commit & Push")
-    try:
-        subprocess.run('git add -A', shell=True, check=True)
-        commit_msg = f"Build & Deploy v{new_version}"
-        subprocess.run(f'git commit -m "{commit_msg}"', shell=True, check=True)
-        subprocess.run('git push origin master', shell=True, check=True)
-        print("Successfully pushed changes to GitHub.")
-    except subprocess.CalledProcessError as e:
-        print(f"Git command failed: {e}")
-        sys.exit(1)
+    # 5. Build metadata is read now, but release.json and Git commit will happen after APK generation
 
     # 6. Local Frontend Build & Capacitor Sync
     print_banner("Building Frontend & Syncing Capacitor")
@@ -149,12 +136,19 @@ def main():
         sys.exit(1)
 
     # 7. Local Android APK Compilation
-    print_banner("Compiling Android APK (assembleRelease)")
     release_keystore = load_release_keystore_properties()
-    if not release_keystore:
-        print('Error: Release signing configuration not found.')
-        print('Create frontend/android/key.properties with your keystore values or set ANDROID_KEYSTORE_PATH, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD.')
-        sys.exit(1)
+    build_task = 'assembleRelease'
+    apk_subdir = 'release'
+    apk_name = 'app-release.apk'
+    if release_keystore:
+        print_banner("Compiling Android APK (assembleRelease)")
+    else:
+        print('Warning: Release signing configuration not found.')
+        print('Falling back to debug APK build. This only works if the installed app version is signed with the same Android debug key.')
+        build_task = 'assembleDebug'
+        apk_subdir = 'debug'
+        apk_name = 'app-debug.apk'
+        print_banner("Compiling Android APK (assembleDebug)")
 
     try:
         env = os.environ.copy()
@@ -163,15 +157,15 @@ def main():
         env['JAVA_HOME'] = env_java
         # Ensure PATH includes the JDK bin for this process
         env['PATH'] = os.path.join(env['JAVA_HOME'], 'bin') + os.pathsep + env.get('PATH', '')
-        subprocess.run(r'.\gradlew.bat assembleRelease', cwd=os.path.join('frontend', 'android'), env=env, shell=True, check=True)
-        print("Successfully compiled app-release.apk")
+        subprocess.run(r'.\gradlew.bat %s' % build_task, cwd=os.path.join('frontend', 'android'), env=env, shell=True, check=True)
+        print(f"Successfully compiled {apk_name}")
     except subprocess.CalledProcessError as e:
         print(f"Gradle compile failed: {e}")
         sys.exit(1)
 
     # 8. Copy generated APK to target paths
     print_banner("Copying Compiled APK")
-    src_apk = os.path.join('frontend', 'android', 'app', 'build', 'outputs', 'apk', 'release', 'app-release.apk')
+    src_apk = os.path.join('frontend', 'android', 'app', 'build', 'outputs', 'apk', apk_subdir, apk_name)
     dest_root = f'OceanSpas-OrderManager-v{new_version}.apk'
     dest_backend = os.path.join('backend', 'uploads', 'releases', f'OceanSpas-OrderManager-v{new_version}.apk')
     
@@ -184,7 +178,25 @@ def main():
         print(f"Copying APK files failed: {e}")
         sys.exit(1)
 
-    # 9. Remote Server Updates
+    # 9. Update release metadata now that the APK has been built successfully
+    print("Updating release.json...")
+    release_data['latestVersion'] = new_version
+    with open(release_json_path, 'w', encoding='utf-8') as f:
+        json.dump(release_data, f, indent=2)
+
+    # 10. Git Commit & Push
+    print_banner("Git Commit & Push")
+    try:
+        subprocess.run('git add -A', shell=True, check=True)
+        commit_msg = f"Build & Deploy v{new_version}"
+        subprocess.run(f'git commit -m "{commit_msg}"', shell=True, check=True)
+        subprocess.run('git push origin master', shell=True, check=True)
+        print("Successfully pushed changes to GitHub.")
+    except subprocess.CalledProcessError as e:
+        print(f"Git command failed: {e}")
+        sys.exit(1)
+
+    # 11. Remote Server Updates
     print_banner("Updating Ubuntu Server & Uploading APK")
     
     server_ip = '116.74.77.22'

@@ -1,0 +1,7 @@
+# Copy this file to frontend/key.properties and fill in your release keystore values.
+# Do not commit the real key.properties file.
+
+storeFile=../path/to/your/keystore.jks
+storePassword=yourKeystorePassword
+keyAlias=yourKeyAlias
+keyPassword=yourKeyPassword
