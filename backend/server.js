@@ -82,6 +82,35 @@ app.get('/api/system/update-check', (req, res) => {
   }
 });
 
+// GET /api/version
+app.get('/api/version', (req, res) => {
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const releasePath = path.join(__dirname, 'uploads/releases/release.json');
+    if (!fs.existsSync(releasePath)) {
+      return res.status(404).json({ success: false, error: 'Release metadata not found' });
+    }
+
+    const data = JSON.parse(fs.readFileSync(releasePath, 'utf8'));
+    const latestVersion = data.latestVersion || data.version || null;
+    if (!latestVersion) {
+      return res.status(404).json({ success: false, error: 'Release version not available' });
+    }
+
+    const PUBLIC_API_URL = process.env.PUBLIC_API_URL || 'http://localhost:3001';
+    const apkUrl = `${PUBLIC_API_URL}/api/uploads/releases/OceanSpas-OrderManager-v${latestVersion}.apk`;
+
+    res.json({
+      success: true,
+      version: latestVersion,
+      apk_url: apkUrl
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Failed to read release metadata' });
+  }
+});
+
 // GET /api/system/update-page
 // This provides a fallback HTML page for users on v1.0.5 (or older) where window.location.href directly to an APK fails inside Capacitor.
 app.get('/api/system/update-page', (req, res) => {
