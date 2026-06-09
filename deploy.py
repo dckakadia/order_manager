@@ -28,6 +28,27 @@ def bump_version(version, bump_type):
         
     return '.'.join(map(str, parts))
 
+def load_release_keystore_properties():
+    key_props_path = os.path.join('frontend', 'android', 'key.properties')
+    if os.path.exists(key_props_path):
+        return key_props_path
+
+    env_values = {
+        'storeFile': os.getenv('ANDROID_KEYSTORE_PATH'),
+        'storePassword': os.getenv('ANDROID_KEYSTORE_PASSWORD'),
+        'keyAlias': os.getenv('ANDROID_KEY_ALIAS'),
+        'keyPassword': os.getenv('ANDROID_KEY_PASSWORD'),
+    }
+    if all(env_values.values()):
+        print('Creating frontend/android/key.properties from environment variables...')
+        with open(key_props_path, 'w', encoding='utf-8') as f:
+            for key, value in env_values.items():
+                f.write(f"{key}={value}\n")
+        return key_props_path
+
+    return None
+
+
 def main():
     # 1. Parse arguments for bump type
     bump_type = 'patch'
@@ -128,7 +149,13 @@ def main():
         sys.exit(1)
 
     # 7. Local Android APK Compilation
-    print_banner("Compiling Android APK (assembleDebug)")
+    print_banner("Compiling Android APK (assembleRelease)")
+    release_keystore = load_release_keystore_properties()
+    if not release_keystore:
+        print('Error: Release signing configuration not found.')
+        print('Create frontend/android/key.properties with your keystore values or set ANDROID_KEYSTORE_PATH, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD.')
+        sys.exit(1)
+
     try:
         env = os.environ.copy()
         # Prefer an existing JAVA_HOME, otherwise fall back to a modern Temurin JDK
@@ -136,15 +163,15 @@ def main():
         env['JAVA_HOME'] = env_java
         # Ensure PATH includes the JDK bin for this process
         env['PATH'] = os.path.join(env['JAVA_HOME'], 'bin') + os.pathsep + env.get('PATH', '')
-        subprocess.run(r'.\gradlew.bat assembleDebug', cwd=os.path.join('frontend', 'android'), env=env, shell=True, check=True)
-        print("Successfully compiled app-debug.apk")
+        subprocess.run(r'.\gradlew.bat assembleRelease', cwd=os.path.join('frontend', 'android'), env=env, shell=True, check=True)
+        print("Successfully compiled app-release.apk")
     except subprocess.CalledProcessError as e:
         print(f"Gradle compile failed: {e}")
         sys.exit(1)
 
     # 8. Copy generated APK to target paths
     print_banner("Copying Compiled APK")
-    src_apk = os.path.join('frontend', 'android', 'app', 'build', 'outputs', 'apk', 'debug', 'app-debug.apk')
+    src_apk = os.path.join('frontend', 'android', 'app', 'build', 'outputs', 'apk', 'release', 'app-release.apk')
     dest_root = f'OceanSpas-OrderManager-v{new_version}.apk'
     dest_backend = os.path.join('backend', 'uploads', 'releases', f'OceanSpas-OrderManager-v{new_version}.apk')
     
