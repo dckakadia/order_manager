@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
-import { ClipboardList, Users, Activity, BarChart2, Settings, LogOut } from 'lucide-react';
+import { ClipboardList, Users, Activity, BarChart2, Settings, LogOut, Box } from 'lucide-react';
 import { io } from 'socket.io-client';
 import { createContext, useEffect, useState } from 'react';
 import { Browser } from '@capacitor/browser';
@@ -12,6 +12,7 @@ import ManagerDashboard from './ManagerDashboard';
 import ItemMaster from './ItemMaster';
 import CustomerMaster from './CustomerMaster';
 import Login from './Login';
+import DeliveredOrders from './DeliveredOrders';
 
 export const SocketContext = createContext();
 
@@ -113,6 +114,11 @@ function Navigation() {
             <Activity size={24} />
             <span>Live Orders</span>
           </Link>
+
+          <Link to="/delivered" className={`bottom-nav-item ${location.pathname === '/delivered' ? 'active' : ''}`}>
+            <Box size={24} />
+            <span>Delivered</span>
+          </Link>
           
           {role === 'ADMIN' && (
             <>
@@ -209,6 +215,7 @@ function App() {
             <Route path="/customers" element={<ProtectedRoute allowedRoles={['SALES', 'ADMIN']}><CustomerMaster /></ProtectedRoute>} />
             
             <Route path="/status" element={<ProtectedRoute allowedRoles={['MANAGER', 'ADMIN']}><LiveOrderStatus /></ProtectedRoute>} />
+            <Route path="/delivered" element={<ProtectedRoute allowedRoles={['MANAGER', 'ADMIN']}><DeliveredOrders /></ProtectedRoute>} />
             <Route path="/dashboard" element={<ProtectedRoute allowedRoles={['MANAGER', 'ADMIN']}><ManagerDashboard /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute allowedRoles={['ADMIN']}><ItemMaster /></ProtectedRoute>} />
           </Routes>

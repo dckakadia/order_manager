@@ -37,11 +37,20 @@ const createOrder = async (data, userId) => {
   });
 };
 
-const getOrders = async (page = 1, limit = 20, includeDeleted = false) => {
+const getOrders = async (page = 1, limit = 20, includeDeleted = false, filters = {}) => {
   const skip = (page - 1) * limit;
 
+  const whereClause = includeDeleted ? {} : { deletedAt: null };
+  
+  if (filters.status) {
+    whereClause.status = filters.status;
+  }
+  if (filters.excludeStatus) {
+    whereClause.status = { not: filters.excludeStatus };
+  }
+
   const orders = await prisma.order.findMany({
-    where: includeDeleted ? {} : { deletedAt: null },
+    where: whereClause,
     skip,
     take: limit,
     orderBy: { createdAt: 'desc' },
@@ -49,7 +58,7 @@ const getOrders = async (page = 1, limit = 20, includeDeleted = false) => {
   });
 
   const total = await prisma.order.count({
-    where: includeDeleted ? {} : { deletedAt: null }
+    where: whereClause
   });
 
   return { orders, total, page, limit, pages: Math.ceil(total / limit) };

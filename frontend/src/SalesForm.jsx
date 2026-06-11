@@ -320,9 +320,11 @@ export default function SalesForm() {
         directory: Directory.Cache
       });
       
+      const shareText = `Ocean Spas Order #${order.id}\n\nCustomer: ${order.customerName}\nModel: ${order.baseModel} ${order.variant ? `(${order.variant})` : ''}\nTotal Price: ₹${Number(order.totalPrice || 0).toLocaleString('en-IN')}\nNotes: ${order.notes || 'None'}`;
+      
       await Share.share({
         title: `Ocean Spas Order #${order.id}`,
-        text: `Here are the details for Order #${order.id}.`,
+        text: shareText,
         url: savedFile.uri,
         dialogTitle: 'Share Order Receipt'
       });
@@ -729,7 +731,7 @@ export default function SalesForm() {
                       <tr><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0', fontWeight: 'bold' }}>Side Panel</td><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0' }}>{order.sidePanel || 'Not Specified'}</td></tr>
                       <tr><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0', fontWeight: 'bold' }}>Delivery</td><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0' }}>{order.deliveryDate ? new Date(order.deliveryDate).toLocaleDateString('en-IN') : 'Not Set'}</td></tr>
                       <tr><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0', fontWeight: 'bold' }}>Order By</td><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0' }}>{order.orderBy}</td></tr>
-                      <tr><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0', fontWeight: 'bold' }}>Notes</td><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0' }}>{order.notes || 'None'}</td></tr>
+                      <tr><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0', fontWeight: 'bold', verticalAlign: 'top' }}>Notes</td><td style={{ padding: '12px 8px', borderBottom: '1px solid #e2e8f0', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{order.notes || 'None'}</td></tr>
                       <tr><td style={{ padding: '16px 8px', fontWeight: 'bold', fontSize: '20px' }}>Total Price</td><td style={{ padding: '16px 8px', fontWeight: 'bold', fontSize: '22px', color: '#10b981' }}>₹{Number(order.totalPrice || 0).toLocaleString('en-IN')}</td></tr>
                     </tbody>
                   </table>

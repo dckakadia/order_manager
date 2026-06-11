@@ -68,8 +68,12 @@ router.get('/', authMiddleware, async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = Math.min(parseInt(req.query.limit) || 20, 1000);
     const includeDeleted = req.query.includeDeleted === 'true';
+    const filters = {
+      status: req.query.status,
+      excludeStatus: req.query.excludeStatus
+    };
 
-    const result = await orderService.getOrders(page, limit, includeDeleted);
+    const result = await orderService.getOrders(page, limit, includeDeleted, filters);
 
     const flatOrders = result.orders.map(o => ({
       ...o,

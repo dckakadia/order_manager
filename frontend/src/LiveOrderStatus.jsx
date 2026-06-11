@@ -84,7 +84,7 @@ export default function LiveOrderStatus() {
   const fetchOrders = async () => {
     setIsLoadingOrders(true);
     try {
-      const result = await apiFetch(`${config.api.baseURL}/api/orders?page=${page}&limit=20`);
+      const result = await apiFetch(`${config.api.baseURL}/api/orders?page=${page}&limit=20&excludeStatus=Delivered`);
       if (!result.ok) {
         console.error('Failed to load orders:', result.error);
         setError('Unable to load orders. Please try again.');
