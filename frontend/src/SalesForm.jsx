@@ -87,7 +87,7 @@ export default function SalesForm() {
   const refreshOrders = async () => {
     setIsLoadingOrders(true);
     try {
-      const result = await apiFetch(`${config.api.baseURL}/api/orders?page=${page}&limit=20`);
+      const result = await apiFetch(`${config.api.baseURL}/api/orders?page=${page}&limit=20&excludeStatus=Delivered`);
       if (!result.ok) {
         console.error('Failed to load orders:', result.error);
         return;
@@ -151,7 +151,11 @@ export default function SalesForm() {
     };
     
     const handleOrderStatusUpdated = (updatedOrder) => {
-      setOrders(prev => prev.map(o => o.id === updatedOrder.id ? updatedOrder : o));
+      if (updatedOrder.status === 'Delivered') {
+        setOrders(prev => prev.filter(o => o.id !== updatedOrder.id));
+      } else {
+        setOrders(prev => prev.map(o => o.id === updatedOrder.id ? updatedOrder : o));
+      }
     };
     
     const handleOrderDeleted = (id) => {
