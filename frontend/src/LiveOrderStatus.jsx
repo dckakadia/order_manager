@@ -295,13 +295,15 @@ export default function LiveOrderStatus() {
                         Reverse ←
                       </button>
                     )}
-                    <button
-                      onClick={() => advanceStatus(order.id, order.status)}
-                      className={`btn ${getBadgeClass(order.status)}`}
-                      style={{ padding: '0.5rem 1rem', fontSize: '0.875rem', minHeight: '36px', border: '1px solid currentColor' }}
-                    >
-                      Advance <ArrowRight size={14} />
-                    </button>
+                    {(role === 'ADMIN' || role === 'MANAGER') && (
+                      <button
+                        onClick={() => advanceStatus(order.id, order.status)}
+                        className={`btn ${getBadgeClass(order.status)}`}
+                        style={{ padding: '0.5rem 1rem', fontSize: '0.875rem', minHeight: '36px', border: '1px solid currentColor' }}
+                      >
+                        Advance <ArrowRight size={14} />
+                      </button>
+                    )}
                   </div>
                 ) : (
                   <span style={{ color: order.status === 'Cancelled' ? 'var(--danger)' : 'var(--secondary)', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.25rem', fontWeight: 600 }}>

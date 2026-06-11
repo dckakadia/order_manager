@@ -215,7 +215,7 @@ export default function DeliveredOrders() {
                   <CheckCircle2 size={14} /> Completed
                 </span>
               </div>
-              {role !== 'ADMIN' && (
+              {role === 'MANAGER' && (
                 <button onClick={() => handleShareOrder(order)} style={{ background: 'transparent', border: '1.5px solid #e0e5f0', borderRadius: '99px', padding: '6px 12px', color: 'var(--text)', fontSize: '12px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
                   <Share2 size={14} /> Share
                 </button>

@@ -214,8 +214,8 @@ function App() {
             <Route path="/sales" element={<ProtectedRoute allowedRoles={['SALES', 'ADMIN']}><SalesForm /></ProtectedRoute>} />
             <Route path="/customers" element={<ProtectedRoute allowedRoles={['SALES', 'ADMIN']}><CustomerMaster /></ProtectedRoute>} />
             
-            <Route path="/status" element={<ProtectedRoute allowedRoles={['MANAGER', 'ADMIN']}><LiveOrderStatus /></ProtectedRoute>} />
-            <Route path="/delivered" element={<ProtectedRoute allowedRoles={['MANAGER', 'ADMIN']}><DeliveredOrders /></ProtectedRoute>} />
+            <Route path="/status" element={<ProtectedRoute allowedRoles={['MANAGER', 'ADMIN', 'SALES']}><LiveOrderStatus /></ProtectedRoute>} />
+            <Route path="/delivered" element={<ProtectedRoute allowedRoles={['MANAGER', 'ADMIN', 'SALES']}><DeliveredOrders /></ProtectedRoute>} />
             <Route path="/dashboard" element={<ProtectedRoute allowedRoles={['MANAGER', 'ADMIN']}><ManagerDashboard /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute allowedRoles={['ADMIN']}><ItemMaster /></ProtectedRoute>} />
           </Routes>
