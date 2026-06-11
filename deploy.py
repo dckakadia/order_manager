@@ -215,7 +215,7 @@ def main():
             f"cd {remote_project_dir} && git restore backend/package-lock.json frontend/package-lock.json backend/uploads/releases/release.json",
             f"cd {remote_project_dir} && git pull",
             f"cd {remote_project_dir}/frontend && npm run build",
-            "pm2 restart order_manager"
+            "pm2 restart order-manager"
         ]
         
         for cmd in remote_cmds:
