@@ -2,6 +2,6 @@
 <resources>
     <string name="app_name">Order Manager</string>
     <string name="title_activity_main">Order Manager</string>
-    <string name="package_name">com.oceanspas.ordermanager</string>
-    <string name="custom_url_scheme">com.oceanspas.ordermanager</string>
+    <string name="package_name">com.mivoxspas.ordermanager</string>
+    <string name="custom_url_scheme">com.mivoxspas.ordermanager</string>
 </resources>

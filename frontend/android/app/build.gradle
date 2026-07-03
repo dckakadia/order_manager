@@ -1,10 +1,10 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace = "com.oceanspas.ordermanager"
+    namespace = "com.mivoxspas.ordermanager"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.oceanspas.ordermanager"
+        applicationId "com.mivoxspas.ordermanager"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 50

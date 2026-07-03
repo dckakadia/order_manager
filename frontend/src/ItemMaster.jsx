@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Plus, Trash2, Edit2, X, Upload } from 'lucide-react';
 import config, { uploadWithProgress } from './config';
-import { apiFetch, clearAuthStorage } from './apiUtils';
-import { STORAGE_KEYS, ERROR_MESSAGES } from './constants';
+import { apiFetch, clearAuthStorage, canEditPage, canDeletePage } from './apiUtils';
+import { ERROR_MESSAGES } from './constants';
 import ItemPhoto from './ItemPhoto';
 import PhotoModal from './PhotoModal';
 import { compressImage } from './imageUtils';
@@ -157,8 +157,8 @@ export default function ItemMaster() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const role = localStorage.getItem(STORAGE_KEYS.USER_ROLE);
-  const isAdmin = role === 'ADMIN';
+  const canEdit = canEditPage('items');
+  const canDelete = canDeletePage('items');
 
   const handleDelete = async (id) => {
     try {
@@ -191,7 +191,7 @@ export default function ItemMaster() {
 
   return (
     <div className="grid-2">
-      {isAdmin && (
+      {canEdit && (
         <div className="glass-card" style={{ maxHeight: '600px', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
             <h2 style={{ margin: 0 }}>{editingId ? 'Edit Option' : 'Add New Option'}</h2>
@@ -292,14 +292,18 @@ export default function ItemMaster() {
                 </div>
               </div>
               </div>
-              {isAdmin && (
+              {(canEdit || canDelete) && (
                 <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
-                  <button onClick={() => handleEditClick(item)} className="option-delete-btn" style={{ color: 'var(--primary)', background: '#eff6ff', borderColor: '#bfdbfe' }} aria-label="Edit">
-                    <Edit2 size={18} />
-                  </button>
-                  <button onClick={() => handleDelete(item.id)} className="option-delete-btn" aria-label="Delete">
-                    <Trash2 size={18} />
-                  </button>
+                  {canEdit && (
+                    <button onClick={() => handleEditClick(item)} className="option-delete-btn" style={{ color: 'var(--primary)', background: '#eff6ff', borderColor: '#bfdbfe' }} aria-label="Edit">
+                      <Edit2 size={18} />
+                    </button>
+                  )}
+                  {canDelete && (
+                    <button onClick={() => handleDelete(item.id)} className="option-delete-btn" aria-label="Delete">
+                      <Trash2 size={18} />
+                    </button>
+                  )}
                 </div>
               )}
             </div>

@@ -1,11 +1,13 @@
 const express = require('express');
 const { body, validationResult, param } = require('express-validator');
-const { authMiddleware, requireRole } = require('../middleware/authUtils');
+const { authMiddleware } = require('../middleware/authUtils');
+const { requirePagePermission } = require('../middleware/pagePermission');
 const customerService = require('../services/customerService');
 
 const router = express.Router();
 
-router.get('/', authMiddleware, async (req, res) => {
+// Customer list is also needed by the Sales page to build a new order, not just the Customers page.
+router.get('/', authMiddleware, requirePagePermission(['customers', 'sales'], 'view'), async (req, res) => {
   try {
     const customers = await customerService.getActiveCustomers();
     res.json({ success: true, data: customers });
@@ -15,7 +17,7 @@ router.get('/', authMiddleware, async (req, res) => {
   }
 });
 
-router.post('/', authMiddleware, [
+router.post('/', authMiddleware, requirePagePermission('customers', 'edit'), [
   body('name').trim().isLength({ min: 2 }).withMessage('Name must be at least 2 characters long'),
   body('phone').optional().trim(),
   body('email').optional({ checkFalsy: true }).isEmail().withMessage('Valid email is required'),
@@ -40,7 +42,7 @@ router.post('/', authMiddleware, [
   }
 });
 
-router.get('/:id/check-links', authMiddleware, requireRole(['ADMIN']), [param('id').isInt()], async (req, res) => {
+router.get('/:id/check-links', authMiddleware, requirePagePermission('customers', 'delete'), [param('id').isInt()], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ success: false, errors: errors.array() });
@@ -54,7 +56,7 @@ router.get('/:id/check-links', authMiddleware, requireRole(['ADMIN']), [param('i
   }
 });
 
-router.delete('/:id', authMiddleware, requireRole(['ADMIN']), [param('id').isInt()], async (req, res) => {
+router.delete('/:id', authMiddleware, requirePagePermission('customers', 'delete'), [param('id').isInt()], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ success: false, errors: errors.array() });
@@ -75,7 +77,7 @@ router.delete('/:id', authMiddleware, requireRole(['ADMIN']), [param('id').isInt
   }
 });
 
-router.put('/:id', authMiddleware, requireRole(['ADMIN']), [
+router.put('/:id', authMiddleware, requirePagePermission('customers', 'edit'), [
   param('id').isInt(),
   body('name').trim().isLength({ min: 2 }).withMessage('Name must be at least 2 characters long'),
   body('phone').optional().trim(),

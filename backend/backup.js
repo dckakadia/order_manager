@@ -282,7 +282,7 @@ async function performBackup(io) {
     const dateStr = String(now.getDate()).padStart(2, '0') + '-' +
                     String(now.getMonth() + 1).padStart(2, '0') + '-' +
                     now.getFullYear();
-    const fileName = `OceanSpas_Backup_${dateStr}.json`;
+    const fileName = `MivoxSpas_Backup_${dateStr}.json`;
     const filePath = path.join(BACKUPS_DIR, fileName);
 
     fs.writeFileSync(filePath, JSON.stringify(backupData, null, 2));

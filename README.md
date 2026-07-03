@@ -1,4 +1,4 @@
-# Ocean Spas - Order Manager
+# Mivox Spas - Order Manager
 
 A comprehensive full-stack application for managing spa orders, tracking production pipeline stages, and generating metric reports.
 
@@ -71,7 +71,7 @@ A comprehensive full-stack application for managing spa orders, tracking product
 1. Ensure Nginx is configured to proxy `/api` requests to port `3001` and handle WebSocket upgrades.
 2. Start the backend process using PM2:
    ```bash
-   pm2 start server.js --name "ocean-spas-api"
+   pm2 start server.js --name "mivox-spas-api"
    pm2 save
    ```
 

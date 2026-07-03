@@ -158,7 +158,7 @@ if (req.user.role !== "ADMIN") {
 ```javascript
 // INCONSISTENT
 Login.jsx: localStorage.setItem(config.storage.userRole, data.role); // Uses config key
-SalesForm.jsx: const role = localStorage.getItem('ocean_spas_role'); // Hard-coded key!
+SalesForm.jsx: const role = localStorage.getItem('mivox_spas_role'); // Hard-coded key!
 cookieAuth.js: res.cookie('user_role', role); // Different key name
 ```
 
@@ -173,10 +173,10 @@ cookieAuth.js: res.cookie('user_role', role); // Different key name
 ```javascript
 // frontend/src/constants.js
 export const STORAGE_KEYS = {
-  AUTH_TOKEN: "ocean_spas_auth_token",
-  USER_ROLE: "ocean_spas_user_role",
-  USER_ID: "ocean_spas_user_id",
-  SELECTED_CUSTOMER: "ocean_spas_selected_customer",
+  AUTH_TOKEN: "mivox_spas_auth_token",
+  USER_ROLE: "mivox_spas_user_role",
+  USER_ID: "mivox_spas_user_id",
+  SELECTED_CUSTOMER: "mivox_spas_selected_customer",
 };
 
 // Usage in all files
@@ -187,7 +187,7 @@ const role = localStorage.getItem(STORAGE_KEYS.USER_ROLE);
 **Files to Fix**:
 
 - [ ] frontend/src/Login.jsx (L25-26)
-- [ ] frontend/src/SalesForm.jsx (L81, search for 'ocean_spas_role')
+- [ ] frontend/src/SalesForm.jsx (L81, search for 'mivox_spas_role')
 - [ ] frontend/src/LiveOrderStatus.jsx (L71)
 - [ ] frontend/src/ManagerDashboard.jsx (L18)
 - [ ] frontend/src/CustomerMaster.jsx (search for localStorage)

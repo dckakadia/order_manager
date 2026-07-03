@@ -4,6 +4,7 @@ dev.db
 dev.db-journal
 dist/
 .DS_Store
-backend/google-credentials.json* . a p k  
- 
+backend/google-credentials.json* . a p k
+
 *.apk
+backend/firebase-service-account.json

@@ -1,7 +1,7 @@
 import { useState, useEffect, useContext } from 'react';
 import { SocketContext } from './App';
 import config from './config';
-import { apiFetch } from './apiUtils';
+import { apiFetch, canEditPage, canDeletePage } from './apiUtils';
 import { STORAGE_KEYS, ERROR_MESSAGES } from './constants';
 import { ArrowRight, Box, CheckCircle2, Pencil, Trash2, XCircle, X } from 'lucide-react';
 import OrderPhotos from './OrderPhotos';
@@ -72,7 +72,9 @@ export default function LiveOrderStatus() {
   const [modalPhoto, setModalPhoto] = useState(null);
   const socket = useContext(SocketContext);
   const role = localStorage.getItem(STORAGE_KEYS.USER_ROLE);
-  
+  const canEdit = canEditPage('status');
+  const canDelete = canDeletePage('status');
+
   const sortOrders = (ordersList) => {
     return [...ordersList].sort((a, b) => {
       if (!a.deliveryDate) return 1;
@@ -264,10 +266,10 @@ export default function LiveOrderStatus() {
                 <span className="order-model">{order.baseModel} {order.variant && `(${order.variant})`}</span>
               </div>
               <div style={{ fontSize: '13px', color: 'var(--text)', marginBottom: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <div><strong>Faucet Position:</strong> {order.faucetPosition || 'Not Specified'}</div>
-                <div><strong>Side Panel:</strong> {order.sidePanel || 'Not Specified'}</div>
-                <div><strong>Order By:</strong> {order.orderBy || 'Not Specified'}</div>
-                <div><strong>Notes:</strong> {order.notes || '—'}</div>
+                <div><span style={{ fontWeight: 'normal' }}>Faucet Position:</span> <strong>{order.faucetPosition || 'Not Specified'}</strong></div>
+                <div><span style={{ fontWeight: 'normal' }}>Side Panel:</span> <strong>{order.sidePanel || 'Not Specified'}</strong></div>
+                <div><span style={{ fontWeight: 'normal' }}>Notes:</span> <strong>{order.notes || '—'}</strong></div>
+                <div><span style={{ fontWeight: 'normal' }}>Order By:</span> <strong>{order.orderBy || 'Not Specified'}</strong></div>
               </div>
               {(order.checkInTime || (order.locationLat && order.locationLng)) && (
                 <div style={{ fontSize: '13px', color: 'var(--text)', marginBottom: '8px', display: 'flex', flexDirection: 'column', gap: '4px', paddingTop: '4px', borderTop: '1px dashed var(--border)' }}>
@@ -286,7 +288,7 @@ export default function LiveOrderStatus() {
                 </div>
                 {!isDelivered && order.status !== 'Cancelled' ? (
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    {role === 'ADMIN' && order.status !== 'Order Form Received' && (
+                    {canEdit && order.status !== 'Order Form Received' && (
                       <button
                         onClick={() => reverseStatus(order.id, order.status)}
                         className="btn btn-secondary"
@@ -295,7 +297,7 @@ export default function LiveOrderStatus() {
                         Reverse ←
                       </button>
                     )}
-                    {(role === 'ADMIN' || role === 'MANAGER') && (
+                    {canEdit && (
                       <button
                         onClick={() => advanceStatus(order.id, order.status)}
                         className={`btn ${getBadgeClass(order.status)}`}
@@ -313,19 +315,23 @@ export default function LiveOrderStatus() {
                 )}
               </div>
               
-              {role === 'ADMIN' && (
+              {(canEdit || canDelete) && (
                 <div style={{ display: 'flex', gap: '8px', marginTop: '12px', paddingTop: '12px', borderTop: '1px dashed var(--border)' }}>
-                  <button onClick={() => setEditingOrder(order)} className="btn btn-secondary" style={{ flex: 1, padding: '0.4rem', fontSize: '12px', minHeight: '32px' }}>
-                    <Pencil size={14} /> Edit
-                  </button>
-                  {order.status !== 'Cancelled' && (
+                  {canEdit && (
+                    <button onClick={() => setEditingOrder(order)} className="btn btn-secondary" style={{ flex: 1, padding: '0.4rem', fontSize: '12px', minHeight: '32px' }}>
+                      <Pencil size={14} /> Edit
+                    </button>
+                  )}
+                  {order.status !== 'Cancelled' && role === 'ADMIN' && (
                     <button onClick={() => handleCancel(order.id)} className="btn btn-secondary" style={{ flex: 1, padding: '0.4rem', fontSize: '12px', minHeight: '32px', color: '#b91c1c' }}>
                       <XCircle size={14} /> Cancel
                     </button>
                   )}
-                  <button onClick={() => handleDelete(order.id)} className="btn btn-secondary" style={{ flex: 1, padding: '0.4rem', fontSize: '12px', minHeight: '32px', color: '#b91c1c', borderColor: '#fee2e2', background: '#fff5f5' }}>
-                    <Trash2 size={14} /> Delete
-                  </button>
+                  {canDelete && (
+                    <button onClick={() => handleDelete(order.id)} className="btn btn-secondary" style={{ flex: 1, padding: '0.4rem', fontSize: '12px', minHeight: '32px', color: '#b91c1c', borderColor: '#fee2e2', background: '#fff5f5' }}>
+                      <Trash2 size={14} /> Delete
+                    </button>
+                  )}
                 </div>
               )}
             </div>

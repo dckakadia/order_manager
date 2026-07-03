@@ -1,6 +1,7 @@
 const express = require('express');
 const { body, validationResult, param } = require('express-validator');
-const { authMiddleware, requireRole } = require('../middleware/authUtils');
+const { authMiddleware } = require('../middleware/authUtils');
+const { requirePagePermission } = require('../middleware/pagePermission');
 const itemService = require('../services/itemService');
 const multer = require('multer');
 const path = require('path');
@@ -38,7 +39,8 @@ const upload = multer({
   }
 });
 
-router.get('/', authMiddleware, async (req, res) => {
+// Items list is also needed by the Sales page to build a new order, not just the Items admin page.
+router.get('/', authMiddleware, requirePagePermission(['items', 'sales'], 'view'), async (req, res) => {
   try {
     const items = await itemService.getActiveItems();
     res.json({ success: true, data: items });
@@ -48,7 +50,7 @@ router.get('/', authMiddleware, async (req, res) => {
   }
 });
 
-router.post('/', authMiddleware, requireRole(['ADMIN']), upload.single('photo'), [
+router.post('/', authMiddleware, requirePagePermission('items', 'edit'), upload.single('photo'), [
   body('name').trim().isLength({ min: 2 }).withMessage('Name must be at least 2 characters long'),
   body('price').isFloat({ min: 0 }).withMessage('Price must be a positive number'),
 ], async (req, res) => {
@@ -77,7 +79,7 @@ router.post('/', authMiddleware, requireRole(['ADMIN']), upload.single('photo'),
   }
 });
 
-router.get('/:id/check-links', authMiddleware, requireRole(['ADMIN']), [param('id').isInt()], async (req, res) => {
+router.get('/:id/check-links', authMiddleware, requirePagePermission('items', 'delete'), [param('id').isInt()], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ success: false, errors: errors.array() });
@@ -91,7 +93,7 @@ router.get('/:id/check-links', authMiddleware, requireRole(['ADMIN']), [param('i
   }
 });
 
-router.delete('/:id', authMiddleware, requireRole(['ADMIN']), [param('id').isInt()], async (req, res) => {
+router.delete('/:id', authMiddleware, requirePagePermission('items', 'delete'), [param('id').isInt()], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ success: false, errors: errors.array() });
@@ -119,7 +121,7 @@ router.delete('/:id', authMiddleware, requireRole(['ADMIN']), [param('id').isInt
   }
 });
 
-router.put('/:id', authMiddleware, requireRole(['ADMIN']), upload.single('photo'), [
+router.put('/:id', authMiddleware, requirePagePermission('items', 'edit'), upload.single('photo'), [
   param('id').isInt(),
   body('name').trim().isLength({ min: 2 }).withMessage('Name must be at least 2 characters long'),
   body('price').isFloat({ min: 0 }).withMessage('Price must be a positive number'),

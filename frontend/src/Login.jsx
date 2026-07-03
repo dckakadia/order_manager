@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import config from './config';
 import { apiFetch, setAuthStorage } from './apiUtils';
 import { STORAGE_KEYS, USER_ROLES, ROUTES, ERROR_MESSAGES } from './constants';
+import { initPushNotifications } from './pushNotifications';
 
 export default function Login() {
   const [username, setUsername] = useState('');
@@ -31,12 +32,24 @@ export default function Login() {
       if (data.success) {
         // Use centralized storage utility with proper keys
         setAuthStorage(data.token, data.role, data.id || '');
+        initPushNotifications();
+
+        // Fetch page permissions before navigating so the nav renders correctly on first
+        // landing — App.jsx's mount-only effect won't re-run on this client-side route change.
+        try {
+          const permsResult = await apiFetch(`${config.api.baseURL}/api/users/me/permissions`);
+          if (permsResult.ok) {
+            localStorage.setItem(STORAGE_KEYS.USER_PERMISSIONS, JSON.stringify(permsResult.data));
+          }
+        } catch (err) {
+          console.error('Permissions fetch error:', err);
+        }
 
         // Navigate based on role
         const roleRoutes = {
           [USER_ROLES.MANAGER]: ROUTES.STATUS,
           [USER_ROLES.SALES]: ROUTES.SALES,
-          [USER_ROLES.ADMIN]: ROUTES.ADMIN
+          [USER_ROLES.ADMIN]: ROUTES.SALES
         };
         
         const route = roleRoutes[data.role] || ROUTES.SALES;
@@ -54,7 +67,7 @@ export default function Login() {
 
   return (
     <div className="glass-card" style={{ maxWidth: '400px', margin: '4rem auto', padding: '2rem' }}>
-      <h2 style={{ textAlign: 'center', marginBottom: '2rem' }}>🌊 Ocean Spas Login</h2>
+      <h2 style={{ textAlign: 'center', marginBottom: '2rem' }}>🌊 Mivox Spas Login</h2>
       {error && (
         <div className="badge badge-start" style={{ display: 'block', textAlign: 'center', marginBottom: '1rem', padding: '0.75rem' }}>
           {error}

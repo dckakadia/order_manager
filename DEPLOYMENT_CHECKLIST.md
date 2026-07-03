@@ -127,7 +127,7 @@ import { apiFetch } from "./apiUtils";
 Replace any:
 
 ```javascript
-localStorage.getItem('ocean_spas_role')  →  localStorage.getItem(STORAGE_KEYS.USER_ROLE)
+localStorage.getItem('mivox_spas_role')  →  localStorage.getItem(STORAGE_KEYS.USER_ROLE)
 localStorage.getItem('user_role')        →  localStorage.getItem(STORAGE_KEYS.USER_ROLE)
 localStorage.setItem('...')              →  Use proper STORAGE_KEYS constant
 ```

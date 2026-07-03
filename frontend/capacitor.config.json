@@ -1,5 +1,5 @@
 {
-  "appId": "com.oceanspas.ordermanager",
+  "appId": "com.mivoxspas.ordermanager",
   "appName": "Order Manager",
   "webDir": "dist",
   "server": {

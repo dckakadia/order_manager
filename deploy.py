@@ -166,8 +166,8 @@ def main():
     # 8. Copy generated APK to target paths
     print_banner("Copying Compiled APK")
     src_apk = os.path.join('frontend', 'android', 'app', 'build', 'outputs', 'apk', apk_subdir, apk_name)
-    dest_root = f'OceanSpas-OrderManager-v{new_version}.apk'
-    dest_backend = os.path.join('backend', 'uploads', 'releases', f'OceanSpas-OrderManager-v{new_version}.apk')
+    dest_root = f'MivoxSpas-OrderManager-v{new_version}.apk'
+    dest_backend = os.path.join('backend', 'uploads', 'releases', f'MivoxSpas-OrderManager-v{new_version}.apk')
     
     try:
         print(f"Copying to root: {dest_root}")
@@ -245,7 +245,7 @@ def main():
         print("Opening SFTP connection...")
         sftp = client.open_sftp()
         
-        remote_apk_path = f"{remote_project_dir}/backend/uploads/releases/OceanSpas-OrderManager-v{new_version}.apk"
+        remote_apk_path = f"{remote_project_dir}/backend/uploads/releases/MivoxSpas-OrderManager-v{new_version}.apk"
         remote_release_path = f"{remote_project_dir}/backend/uploads/releases/release.json"
         
         print(f"Uploading APK to remote: {remote_apk_path} ...")

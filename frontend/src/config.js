@@ -79,8 +79,8 @@ const config = {
 
   // Storage Keys
   storage: {
-    userRole: 'ocean_spas_role',
-    userId: 'ocean_spas_user_id'
+    userRole: 'mivox_spas_role',
+    userId: 'mivox_spas_user_id'
   },
 
   // Environment

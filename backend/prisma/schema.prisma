@@ -85,6 +85,57 @@ model User {
   updatedAt DateTime @updatedAt
   statusChanges OrderStatusHistory[]
   attachments   OrderAttachment[]
+  deviceTokens  DeviceToken[]
+  pagePermissions UserPagePermission[]
+  notifications   Notification[]
+}
+
+// Per-user, per-page view/edit/delete rights. 'users' page is never stored here —
+// access to user management is hardcoded ADMIN-only, not customizable.
+model UserPagePermission {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  page      String   // sales | customers | status | delivered | report | dashboard | items
+  canView   Boolean  @default(false)
+  canEdit   Boolean  @default(false)
+  canDelete Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, page])
+  @@index([userId])
+}
+
+// Registered FCM device tokens for push notifications
+model DeviceToken {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  platform  String   @default("android")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// In-app notification history — persisted independently of push delivery so a user
+// still has a record of order events even without a registered device token or with
+// push notifications denied/unconfigured (see pushService.js for the FCM side).
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String   // 'new_order' | 'status_updated'
+  title     String
+  body      String
+  orderId   Int?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([userId, isRead])
 }
 
 // PHASE 3: Audit logging for compliance and security

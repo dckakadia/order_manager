@@ -1,7 +1,7 @@
 import { useState, useEffect, useContext, useRef } from 'react';
 import { SocketContext } from './App';
 import config, { uploadWithProgress } from './config';
-import { apiFetch } from './apiUtils';
+import { apiFetch, canEditPage, canDeletePage } from './apiUtils';
 import { STORAGE_KEYS, ERROR_MESSAGES } from './constants';
 import { MapPin, Share2, CheckCircle2, Pencil, Trash2, XCircle, X, User, ChevronDown, Calendar, Search } from 'lucide-react';
 import { Share } from '@capacitor/share';
@@ -82,6 +82,8 @@ export default function SalesForm() {
   const [locationPhotos, setLocationPhotos] = useState([]);
   const socket = useContext(SocketContext);
   const role = localStorage.getItem(STORAGE_KEYS.USER_ROLE);
+  const canEdit = canEditPage('sales');
+  const canDelete = canDeletePage('sales');
   const submitAbortController = useRef(null);
 
   const refreshOrders = async () => {
@@ -324,10 +326,10 @@ export default function SalesForm() {
         directory: Directory.Cache
       });
       
-      const shareText = `Ocean Spas Order #${order.id}\n\nCustomer: ${order.customerName}\nModel: ${order.baseModel} ${order.variant ? `(${order.variant})` : ''}\nTotal Price: ₹${Number(order.totalPrice || 0).toLocaleString('en-IN')}\nNotes: ${order.notes || 'None'}`;
+      const shareText = `Mivox Spas Order #${order.id}\n\nCustomer: ${order.customerName}\nModel: ${order.baseModel} ${order.variant ? `(${order.variant})` : ''}\nTotal Price: ₹${Number(order.totalPrice || 0).toLocaleString('en-IN')}\nNotes: ${order.notes || 'None'}`;
       
       await Share.share({
-        title: `Ocean Spas Order #${order.id}`,
+        title: `Mivox Spas Order #${order.id}`,
         text: shareText,
         url: savedFile.uri,
         dialogTitle: 'Share Order Receipt'
@@ -335,9 +337,9 @@ export default function SalesForm() {
     } catch (err) {
       console.error('Share error:', err);
       // Fallback
-      const text = `Ocean Spas Order #${order.id}\n\nCustomer: ${order.customerName}\nModel: ${order.baseModel} ${order.variant ? `(${order.variant})` : ''}\nTotal Price: ₹${Number(order.totalPrice || 0).toLocaleString('en-IN')}\nNotes: ${order.notes || 'None'}`;
+      const text = `Mivox Spas Order #${order.id}\n\nCustomer: ${order.customerName}\nModel: ${order.baseModel} ${order.variant ? `(${order.variant})` : ''}\nTotal Price: ₹${Number(order.totalPrice || 0).toLocaleString('en-IN')}\nNotes: ${order.notes || 'None'}`;
       if (navigator.share) {
-        navigator.share({ title: `Ocean Spas Order #${order.id}`, text }).catch(() => {});
+        navigator.share({ title: `Mivox Spas Order #${order.id}`, text }).catch(() => {});
       } else {
         window.open(`mailto:?subject=Order ${order.id} Details&body=${encodeURIComponent(text)}`);
       }
@@ -627,8 +629,8 @@ export default function SalesForm() {
 
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
-          <button type="submit" form="orderForm" className="btn-submit" disabled={!selectedCustomerId || !formData.baseModel}>
-            Submit Order Now
+          <button type="submit" form="orderForm" className="btn-submit" disabled={!canEdit || !selectedCustomerId || !formData.baseModel}>
+            {canEdit ? 'Submit Order Now' : 'You do not have permission to create orders'}
           </button>
         </div>
       </div>
@@ -713,7 +715,7 @@ export default function SalesForm() {
                     )}
                   </div>
                   
-                  {role !== 'ADMIN' && (
+                  {!canEdit && (
                     <button onClick={() => handleShareOrder(order)} style={{ background: 'transparent', border: '1.5px solid #e0e5f0', borderRadius: '99px', padding: '6px 12px', color: 'var(--text)', fontSize: '12px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
                       <Share2 size={14} /> Share
                     </button>
@@ -722,7 +724,7 @@ export default function SalesForm() {
                 
                 <div id={`receipt-capture-${order.id}`} style={{ position: 'absolute', top: '-9999px', left: '-9999px', background: '#fff', padding: '30px', width: '500px', fontFamily: 'sans-serif', borderRadius: '12px', zIndex: -1 }}>
                   <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-                    <h2 style={{ color: '#0f172a', margin: '0 0 8px 0', fontSize: '24px' }}>OCEAN SPAS</h2>
+                    <h2 style={{ color: '#0f172a', margin: '0 0 8px 0', fontSize: '24px' }}>MIVOX SPAS</h2>
                     <p style={{ color: '#64748b', margin: 0 }}>Order Receipt #{order.id}</p>
                   </div>
                   <table style={{ width: '100%', borderCollapse: 'collapse', color: '#1e293b' }}>
@@ -740,11 +742,11 @@ export default function SalesForm() {
                     </tbody>
                   </table>
                   <div style={{ textAlign: 'center', marginTop: '30px', color: '#64748b', fontSize: '12px' }}>
-                    Thank you for choosing Ocean Spas!
+                    Thank you for choosing Mivox Spas!
                   </div>
                 </div>
 
-                {role === 'ADMIN' && (
+                {canEdit && (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '12px', paddingTop: '12px', borderTop: '1px dashed var(--border)' }}>
                     <button onClick={() => handleShareOrder(order)} className="btn btn-secondary" style={{ flex: '1 1 calc(50% - 4px)', padding: '0.4rem', fontSize: '12px', minHeight: '32px', borderRadius: '99px' }}>
                       <Share2 size={14} /> Share
@@ -752,14 +754,16 @@ export default function SalesForm() {
                     <button onClick={() => setEditingOrder(order)} className="btn btn-secondary" style={{ flex: '1 1 calc(50% - 4px)', padding: '0.4rem', fontSize: '12px', minHeight: '32px', borderRadius: '99px' }}>
                       <Pencil size={14} /> Edit
                     </button>
-                    {order.status !== 'Cancelled' && (
+                    {order.status !== 'Cancelled' && role === 'ADMIN' && (
                       <button onClick={() => handleCancel(order.id)} className="btn btn-secondary" style={{ flex: '1 1 calc(50% - 4px)', padding: '0.4rem', fontSize: '12px', minHeight: '32px', color: '#e03131', borderRadius: '99px' }}>
                         <XCircle size={14} /> Cancel
                       </button>
                     )}
-                    <button onClick={() => handleDelete(order.id)} className="btn btn-secondary" style={{ flex: '1 1 calc(50% - 4px)', padding: '0.4rem', fontSize: '12px', minHeight: '32px', color: '#e03131', borderColor: '#fee2e2', background: '#fff5f5', borderRadius: '99px' }}>
-                      <Trash2 size={14} /> Delete
-                    </button>
+                    {canDelete && (
+                      <button onClick={() => handleDelete(order.id)} className="btn btn-secondary" style={{ flex: '1 1 calc(50% - 4px)', padding: '0.4rem', fontSize: '12px', minHeight: '32px', color: '#e03131', borderColor: '#fee2e2', background: '#fff5f5', borderRadius: '99px' }}>
+                        <Trash2 size={14} /> Delete
+                      </button>
+                    )}
                   </div>
                 )}
               </div>

@@ -239,9 +239,89 @@ tr:last-child td {
   gap: 1.5rem;
 }
 
+/* Grid items default to a min-width of their content's min-content size, which lets a
+   wide child (e.g. a table) blow out the track and cause page-wide horizontal scroll
+   on narrow (APK) viewports instead of scrolling internally. Force items to respect
+   the track width so any overflow is contained by the child's own overflow-x rules. */
+.grid-2 > * {
+  min-width: 0;
+}
+
 @media (min-width: 768px) {
   .grid-2 {
     grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Report page stat tiles — 2-up on a phone screen so the 4 headline numbers read as a
+   compact dashboard instead of a long stack of nearly-empty full-width cards. */
+.stat-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .stat-cards-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.5rem;
+  }
+}
+
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  min-width: 0;
+}
+
+@media (min-width: 640px) {
+  .stat-card {
+    gap: 1rem;
+    padding: 1.5rem;
+  }
+}
+
+.stat-card-icon {
+  display: flex;
+  flex-shrink: 0;
+  padding: 0.65rem;
+  border-radius: 12px;
+}
+
+@media (min-width: 640px) {
+  .stat-card-icon {
+    padding: 1rem;
+  }
+}
+
+.stat-card-text {
+  min-width: 0;
+}
+
+.stat-card-label {
+  margin: 0;
+  color: var(--text-light);
+  font-size: 0.75rem;
+  line-height: 1.3;
+}
+
+@media (min-width: 640px) {
+  .stat-card-label {
+    font-size: 0.875rem;
+  }
+}
+
+.stat-card-value {
+  margin: 0.25rem 0 0;
+  font-size: 1.15rem;
+  white-space: nowrap;
+}
+
+@media (min-width: 640px) {
+  .stat-card-value {
+    font-size: 1.5rem;
   }
 }
 
@@ -468,6 +548,92 @@ tr:last-child td {
 .accountant-table tfoot td {
   padding: 12px 10px;
   font-size: 14px;
+}
+
+/* This table is intentionally wide (14 columns) and relies on the surrounding
+   .table-container's horizontal scroll on phone screens — pinning the "Order #"
+   column keeps row identity visible while swiping through the rest on an APK
+   screen instead of losing track of which order a value belongs to. */
+.accountant-table th:first-child,
+.accountant-table td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.06);
+}
+
+.accountant-table td:first-child {
+  background-color: #ffffff;
+}
+
+.accountant-table tbody tr:nth-child(even) td:first-child {
+  background-color: #f8fafc;
+}
+
+@media print {
+  .accountant-table th:first-child,
+  .accountant-table td:first-child {
+    position: static;
+    box-shadow: none;
+  }
+}
+
+/* Permission grid (User Management) — deliberately not .accountant-table: that one
+   needs its 800px min-width + horizontal scroll for wide report data, but this grid
+   only has 4 short columns and must fit a phone screen without scrolling. */
+.permission-table {
+  width: 100%;
+  min-width: 0;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.permission-table th,
+.permission-table td {
+  border: 1px solid var(--border);
+  white-space: normal;
+}
+
+.permission-table th {
+  background-color: #f1f5f9;
+  color: #1e293b;
+  font-weight: 700;
+  font-size: 12px;
+  padding: 8px 6px;
+}
+
+.permission-table th:first-child,
+.permission-table td:first-child {
+  width: 40%;
+  text-align: left;
+  padding: 10px 8px;
+  color: #334155;
+}
+
+.permission-table th:not(:first-child),
+.permission-table td:not(:first-child) {
+  width: 20%;
+  text-align: center;
+  padding: 0;
+}
+
+.permission-table tbody tr:nth-child(even) {
+  background-color: #f8fafc;
+}
+
+.permission-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.permission-cell input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
 }
 
 /* Print Styles */

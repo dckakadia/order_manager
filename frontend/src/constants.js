@@ -5,11 +5,18 @@
 
 // Storage Keys - Used for localStorage
 export const STORAGE_KEYS = {
-  AUTH_TOKEN: 'ocean_spas_auth_token',
-  USER_ROLE: 'ocean_spas_user_role',
-  USER_ID: 'ocean_spas_user_id',
-  SELECTED_CUSTOMER: 'ocean_spas_selected_customer'
+  AUTH_TOKEN: 'mivox_spas_auth_token',
+  USER_ROLE: 'mivox_spas_user_role',
+  USER_ID: 'mivox_spas_user_id',
+  SELECTED_CUSTOMER: 'mivox_spas_selected_customer',
+  DEVICE_PUSH_TOKEN: 'mivox_spas_device_push_token',
+  DISMISSED_UPDATE_VERSION: 'mivox_spas_dismissed_update_version',
+  USER_PERMISSIONS: 'mivox_spas_user_permissions'
 };
+
+// Pages managed by the per-user permission system. 'users' (the admin panel itself)
+// is intentionally excluded — access to it is hardcoded ADMIN-only, not customizable.
+export const PAGES = ['sales', 'customers', 'status', 'delivered', 'report', 'dashboard', 'items'];
 
 // Error Messages
 export const ERROR_MESSAGES = {
@@ -49,9 +56,7 @@ export const USER_ROLES = {
 export const ROUTES = {
   LOGIN: '/login',
   SALES: '/sales',
-  STATUS: '/status',
-  ADMIN: '/admin',
-  CUSTOMERS: '/customers'
+  STATUS: '/status'
 };
 
 // API Endpoints (for reference)
@@ -77,6 +82,7 @@ export const RETRY_CONFIG = {
 
 export default {
   STORAGE_KEYS,
+  PAGES,
   ERROR_MESSAGES,
   FILE_LIMITS,
   PAGINATION,

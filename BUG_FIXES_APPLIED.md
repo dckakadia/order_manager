@@ -1,4 +1,4 @@
-# Ocean Spas - Bug Fixes Summary
+# Mivox Spas - Bug Fixes Summary
 
 ## Phase 1: CRITICAL SECURITY FIXES ✅ COMPLETED
 
@@ -22,7 +22,7 @@
 
 - **Files Modified:** `backend/server.js`, `backend/.env`
 - **Changes:**
-  - Removed fallback hardcoded secret: `'super_secret_ocean_spas_key'`
+  - Removed fallback hardcoded secret: `'super_secret_mivox_spas_key'`
   - Added validation: JWT_SECRET must be in .env and min 32 characters
   - Application will exit if JWT_SECRET not properly configured
   - Added to `.env` with placeholder
@@ -37,7 +37,7 @@
 - **Changes:**
   - Changed from `cors: { origin: '*' }` to restricted origins
   - Origins now read from `ALLOWED_ORIGINS` env variable
-  - Default: `"http://localhost:5173,http://localhost:3000,https://oceanspas.com"`
+  - Default: `"http://localhost:5173,http://localhost:3000,https://mivoxspas.com"`
   - Added `credentials: true` for secure cookie support
 - **Severity Reduced:** CRITICAL → RESOLVED
 - **Testing:** Update ALLOWED_ORIGINS in .env for production
@@ -147,7 +147,7 @@
 ```env
 DATABASE_URL="postgresql://ordermanager:ChangeMe123!@localhost:5432/ordermanager?schema=public"
 JWT_SECRET="your-super-secret-jwt-key-change-this-in-production-min-32-characters"
-ALLOWED_ORIGINS="http://localhost:5173,http://localhost:3000,https://oceanspas.com"
+ALLOWED_ORIGINS="http://localhost:5173,http://localhost:3000,https://mivoxspas.com"
 PORT=3000
 FRONTEND_URL="http://localhost:5173"
 NODE_ENV="development"

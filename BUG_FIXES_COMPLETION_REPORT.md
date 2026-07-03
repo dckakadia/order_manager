@@ -35,10 +35,10 @@ Centralized constants replacing all hardcoded values:
 
 ```javascript
 STORAGE_KEYS {
-  AUTH_TOKEN: 'ocean_spas_auth_token',
-  USER_ROLE: 'ocean_spas_user_role',
-  USER_ID: 'ocean_spas_user_id',
-  SELECTED_CUSTOMER: 'ocean_spas_selected_customer'
+  AUTH_TOKEN: 'mivox_spas_auth_token',
+  USER_ROLE: 'mivox_spas_user_role',
+  USER_ID: 'mivox_spas_user_id',
+  SELECTED_CUSTOMER: 'mivox_spas_selected_customer'
 }
 
 ERROR_MESSAGES {

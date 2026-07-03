@@ -201,7 +201,7 @@ Updated imports across all frontend components:
 
 ### Storage Key Consistency
 
-- ❌ Old: `localStorage.getItem('ocean_spas_role')`
+- ❌ Old: `localStorage.getItem('mivox_spas_role')`
 - ✅ New: `localStorage.getItem(STORAGE_KEYS.USER_ROLE)`
 
 **All Components Fixed**:

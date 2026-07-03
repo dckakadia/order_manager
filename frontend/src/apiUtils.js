@@ -134,11 +134,44 @@ export const hasRole = (requiredRoles) => {
   return rolesArray.includes(role);
 };
 
+/**
+ * Get the current user's cached per-page permissions (fetched at app mount).
+ */
+export const getPermissions = () => {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEYS.USER_PERMISSIONS) || '{}');
+  } catch {
+    return {};
+  }
+};
+
+/**
+ * Per-page permission checks. ADMIN always passes, mirroring the backend safety net.
+ */
+export const canViewPage = (page) => {
+  if (localStorage.getItem(STORAGE_KEYS.USER_ROLE) === 'ADMIN') return true;
+  return !!getPermissions()[page]?.canView;
+};
+
+export const canEditPage = (page) => {
+  if (localStorage.getItem(STORAGE_KEYS.USER_ROLE) === 'ADMIN') return true;
+  return !!getPermissions()[page]?.canEdit;
+};
+
+export const canDeletePage = (page) => {
+  if (localStorage.getItem(STORAGE_KEYS.USER_ROLE) === 'ADMIN') return true;
+  return !!getPermissions()[page]?.canDelete;
+};
+
 export default {
   apiFetch,
   clearAuthStorage,
   setAuthStorage,
   getAuthStorage,
   isAuthenticated,
-  hasRole
+  hasRole,
+  getPermissions,
+  canViewPage,
+  canEditPage,
+  canDeletePage
 };

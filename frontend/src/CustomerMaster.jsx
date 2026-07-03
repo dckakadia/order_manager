@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Plus, Trash2, Edit2, X } from 'lucide-react';
 import config from './config';
-import { apiFetch, clearAuthStorage } from './apiUtils';
-import { STORAGE_KEYS, ERROR_MESSAGES } from './constants';
+import { apiFetch, clearAuthStorage, canEditPage, canDeletePage } from './apiUtils';
+import { ERROR_MESSAGES } from './constants';
 
 export default function CustomerMaster() {
   const [customers, setCustomers] = useState([]);
@@ -13,8 +13,6 @@ export default function CustomerMaster() {
   const [successMsg, setSuccessMsg] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-
-  const role = localStorage.getItem(STORAGE_KEYS.USER_ROLE);
 
   const fetchCustomers = async () => {
     setIsLoading(true);
@@ -110,10 +108,9 @@ export default function CustomerMaster() {
     }
   };
 
-  // BUG FIX #7: Only show delete and add forms to ADMIN
-  const canDelete = role === 'ADMIN';
-  const isAdmin = role === 'ADMIN';
-  const canAdd = ['ADMIN', 'SALES'].includes(role);
+  const canEdit = canEditPage('customers');
+  const canDelete = canDeletePage('customers');
+  const canAdd = canEdit;
 
   return (
     <div className="grid-2">
@@ -166,14 +163,18 @@ export default function CustomerMaster() {
                 <div className="option-name">{customer.name}</div>
                 <div className="option-price">{customer.phone || 'No phone'}</div>
               </div>
-              {isAdmin && (
+              {(canEdit || canDelete) && (
                 <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
-                  <button onClick={() => handleEditClick(customer)} className="option-delete-btn" style={{ color: 'var(--primary)', background: '#eff6ff', borderColor: '#bfdbfe' }} aria-label="Edit">
-                    <Edit2 size={18} />
-                  </button>
-                  <button onClick={() => handleDelete(customer.id)} className="option-delete-btn" aria-label="Delete">
-                    <Trash2 size={18} />
-                  </button>
+                  {canEdit && (
+                    <button onClick={() => handleEditClick(customer)} className="option-delete-btn" style={{ color: 'var(--primary)', background: '#eff6ff', borderColor: '#bfdbfe' }} aria-label="Edit">
+                      <Edit2 size={18} />
+                    </button>
+                  )}
+                  {canDelete && (
+                    <button onClick={() => handleDelete(customer.id)} className="option-delete-btn" aria-label="Delete">
+                      <Trash2 size={18} />
+                    </button>
+                  )}
                 </div>
               )}
             </div>

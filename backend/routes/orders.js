@@ -1,12 +1,15 @@
 const express = require('express');
 const { body, validationResult, param } = require('express-validator');
-const { authMiddleware, requireRole } = require('../middleware/authUtils');
+const { authMiddleware } = require('../middleware/authUtils');
+const { requirePagePermission } = require('../middleware/pagePermission');
 const orderService = require('../services/orderService');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { PrismaClient } = require('@prisma/client');
 const sharp = require('sharp');
+const pushService = require('../services/pushService');
+const notificationService = require('../services/notificationService');
 
 const prisma = new PrismaClient();
 const router = express.Router();
@@ -30,7 +33,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 
-router.post('/', authMiddleware, [
+router.post('/', authMiddleware, requirePagePermission('sales', 'edit'), [
   body('customerId').isInt().withMessage('Valid customer ID required'),
   body('baseModel').trim().isLength({ min: 1 }).withMessage('Base model required'),
   body('totalPrice').isFloat({ min: 0 }).withMessage('Invalid price')
@@ -53,8 +56,12 @@ router.post('/', authMiddleware, [
         itemPhoto: order.item?.photo_filename
       };
       io.emit('new_order', flatOrder);
+      pushService.sendOrderNotification({ type: 'new_order', order: flatOrder, actingUserId: req.user.id })
+        .catch(err => console.error('Push notify failed:', err));
+      notificationService.recordOrderNotifications({ type: 'new_order', order: flatOrder, actingUserId: req.user.id, io })
+        .catch(err => console.error('Record notification failed:', err));
     }
-    
+
     res.json({ success: true, data: order });
   } catch (error) {
     console.error('Create order error:', error);
@@ -63,7 +70,7 @@ router.post('/', authMiddleware, [
   }
 });
 
-router.get('/', authMiddleware, async (req, res) => {
+router.get('/', authMiddleware, requirePagePermission(['sales', 'status', 'delivered', 'report'], 'view'), async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = Math.min(parseInt(req.query.limit) || 20, 1000);
@@ -98,7 +105,7 @@ router.get('/', authMiddleware, async (req, res) => {
   }
 });
 
-router.get('/:id/history', authMiddleware, [param('id').isInt()], async (req, res) => {
+router.get('/:id/history', authMiddleware, requirePagePermission(['sales', 'status', 'delivered', 'report'], 'view'), [param('id').isInt()], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ success: false, errors: errors.array() });
@@ -112,7 +119,7 @@ router.get('/:id/history', authMiddleware, [param('id').isInt()], async (req, re
   }
 });
 
-router.put('/:id/status', authMiddleware, requireRole(['ADMIN', 'MANAGER']), [param('id').isInt()], async (req, res) => {
+router.put('/:id/status', authMiddleware, requirePagePermission(['sales', 'status', 'delivered'], 'edit'), [param('id').isInt()], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ success: false, errors: errors.array() });
@@ -138,6 +145,10 @@ router.put('/:id/status', authMiddleware, requireRole(['ADMIN', 'MANAGER']), [pa
         itemPhoto: order.item?.photo_filename
       };
       io.emit('order_status_updated', flatOrder);
+      pushService.sendOrderNotification({ type: 'status_updated', order: flatOrder, actingUserId: req.user.id })
+        .catch(err => console.error('Push notify failed:', err));
+      notificationService.recordOrderNotifications({ type: 'status_updated', order: flatOrder, actingUserId: req.user.id, io })
+        .catch(err => console.error('Record notification failed:', err));
     }
 
     res.json({ success: true, data: order });
@@ -148,7 +159,7 @@ router.put('/:id/status', authMiddleware, requireRole(['ADMIN', 'MANAGER']), [pa
   }
 });
 
-router.delete('/:id', authMiddleware, requireRole(['ADMIN']), [param('id').isInt()], async (req, res) => {
+router.delete('/:id', authMiddleware, requirePagePermission(['sales', 'status', 'delivered'], 'delete'), [param('id').isInt()], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ success: false, errors: errors.array() });
@@ -172,7 +183,7 @@ router.delete('/:id', authMiddleware, requireRole(['ADMIN']), [param('id').isInt
   }
 });
 
-router.put('/:id', authMiddleware, requireRole(['ADMIN']), [param('id').isInt()], async (req, res) => {
+router.put('/:id', authMiddleware, requirePagePermission(['sales', 'status', 'delivered'], 'edit'), [param('id').isInt()], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ success: false, errors: errors.array() });

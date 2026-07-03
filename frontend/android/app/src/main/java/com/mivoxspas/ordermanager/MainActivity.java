@@ -1,4 +1,4 @@
-package com.oceanspas.ordermanager;
+package com.mivoxspas.ordermanager;
 
 import com.getcapacitor.BridgeActivity;
 
