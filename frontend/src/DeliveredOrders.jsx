@@ -100,6 +100,21 @@ export default function DeliveredOrders() {
     }
   };
 
+  const reverseStatus = async (id) => {
+    if (!window.confirm('Move this order back to "Order Dispatched"? It will reappear on Live Orders.')) return;
+    try {
+      const res = await apiFetch(`${config.api.baseURL}/api/orders/${id}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'Order Dispatched' })
+      });
+      if (!res.ok) throw new Error('Status update failed');
+    } catch {
+      setError('Failed to reverse order status. Please try again.');
+      setTimeout(() => setError(''), 3000);
+    }
+  };
+
   const handleCancel = async (id) => {
     if (!window.confirm('Cancel this order?')) return;
     try {
@@ -250,6 +265,9 @@ export default function DeliveredOrders() {
 
             {canEdit && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '12px', paddingTop: '12px', borderTop: '1px dashed var(--border)' }}>
+                <button onClick={() => reverseStatus(order.id)} className="btn btn-secondary" style={{ flex: '1 1 calc(50% - 4px)', padding: '0.4rem', fontSize: '12px', minHeight: '32px', borderRadius: '99px' }}>
+                  Reverse ←
+                </button>
                 <button onClick={() => handleShareOrder(order)} className="btn btn-secondary" style={{ flex: '1 1 calc(50% - 4px)', padding: '0.4rem', fontSize: '12px', minHeight: '32px', borderRadius: '99px' }}>
                   <Share2 size={14} /> Share
                 </button>
