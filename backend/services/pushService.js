@@ -53,21 +53,22 @@ async function removeStaleTokens(tokens) {
   await prisma.deviceToken.deleteMany({ where: { token: { in: tokens } } });
 }
 
-function buildNotification(type, order) {
+function buildNotification(type, order, actingUsername) {
+  const actor = actingUsername || 'a user';
   if (type === 'new_order') {
     return {
       title: 'New Order',
-      body: `${order.customerName || 'A customer'} — ${order.baseModel || 'New order'} created`
+      body: `${order.customerName || 'A customer'} — ${order.baseModel || 'New order'} created by ${actor}`
     };
   }
   return {
     title: 'Order Status Updated',
-    body: `Order #${order.id} is now "${order.status}"`
+    body: `Order #${order.id} is now "${order.status}" — updated by ${actor}`
   };
 }
 
 // Sends a push notification to every registered device except the acting user's own.
-async function sendOrderNotification({ type, order, actingUserId }) {
+async function sendOrderNotification({ type, order, actingUserId, actingUsername }) {
   try {
     const messaging = ensureInitialized();
     if (!messaging) return;
@@ -79,7 +80,7 @@ async function sendOrderNotification({ type, order, actingUserId }) {
     if (!recipients.length) return;
 
     const tokens = recipients.map(r => r.token);
-    const { title, body } = buildNotification(type, order);
+    const { title, body } = buildNotification(type, order, actingUsername);
 
     const response = await messaging.sendEachForMulticast({
       tokens,

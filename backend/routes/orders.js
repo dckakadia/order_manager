@@ -56,9 +56,9 @@ router.post('/', authMiddleware, requirePagePermission('sales', 'edit'), [
         itemPhoto: order.item?.photo_filename
       };
       io.emit('new_order', flatOrder);
-      pushService.sendOrderNotification({ type: 'new_order', order: flatOrder, actingUserId: req.user.id })
+      pushService.sendOrderNotification({ type: 'new_order', order: flatOrder, actingUserId: req.user.id, actingUsername: req.user.username })
         .catch(err => console.error('Push notify failed:', err));
-      notificationService.recordOrderNotifications({ type: 'new_order', order: flatOrder, actingUserId: req.user.id, io })
+      notificationService.recordOrderNotifications({ type: 'new_order', order: flatOrder, actingUserId: req.user.id, actingUsername: req.user.username, io })
         .catch(err => console.error('Record notification failed:', err));
     }
 
@@ -145,9 +145,9 @@ router.put('/:id/status', authMiddleware, requirePagePermission(['sales', 'statu
         itemPhoto: order.item?.photo_filename
       };
       io.emit('order_status_updated', flatOrder);
-      pushService.sendOrderNotification({ type: 'status_updated', order: flatOrder, actingUserId: req.user.id })
+      pushService.sendOrderNotification({ type: 'status_updated', order: flatOrder, actingUserId: req.user.id, actingUsername: req.user.username })
         .catch(err => console.error('Push notify failed:', err));
-      notificationService.recordOrderNotifications({ type: 'status_updated', order: flatOrder, actingUserId: req.user.id, io })
+      notificationService.recordOrderNotifications({ type: 'status_updated', order: flatOrder, actingUserId: req.user.id, actingUsername: req.user.username, io })
         .catch(err => console.error('Record notification failed:', err));
     }
 

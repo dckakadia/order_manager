@@ -11,7 +11,7 @@ const prisma = new PrismaClient();
 // actor, since a push is an interruption you don't need for your own action) — this is
 // what backs the in-app history, so it works even for users without a registered device
 // token or with push notifications denied.
-async function recordOrderNotifications({ type, order, actingUserId, io }) {
+async function recordOrderNotifications({ type, order, actingUserId, actingUsername, io }) {
   try {
     const allUsers = await prisma.user.findMany({
       where: { isActive: true },
@@ -19,7 +19,7 @@ async function recordOrderNotifications({ type, order, actingUserId, io }) {
     });
     if (!allUsers.length) return;
 
-    const { title, body } = buildNotification(type, order);
+    const { title, body } = buildNotification(type, order, actingUsername);
     const createdAt = new Date();
 
     await prisma.notification.createMany({
