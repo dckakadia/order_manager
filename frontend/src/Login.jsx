@@ -39,7 +39,7 @@ export default function Login() {
         try {
           const permsResult = await apiFetch(`${config.api.baseURL}/api/users/me/permissions`);
           if (permsResult.ok) {
-            localStorage.setItem(STORAGE_KEYS.USER_PERMISSIONS, JSON.stringify(permsResult.data));
+            localStorage.setItem(STORAGE_KEYS.USER_PERMISSIONS, JSON.stringify(permsResult.data.data));
           }
         } catch (err) {
           console.error('Permissions fetch error:', err);

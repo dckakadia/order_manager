@@ -217,7 +217,7 @@ function App() {
       apiFetch(`${config.api.baseURL}/api/users/me/permissions`)
         .then(result => {
           if (result.ok) {
-            localStorage.setItem(STORAGE_KEYS.USER_PERMISSIONS, JSON.stringify(result.data));
+            localStorage.setItem(STORAGE_KEYS.USER_PERMISSIONS, JSON.stringify(result.data.data));
           }
         })
         .catch(error => console.error('Permissions fetch error:', error));
