@@ -100,26 +100,26 @@ function Navigation() {
 
   return (
     <>
-      <header className="app-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+      <header className="app-header">
+        <div className="app-header-brand">
           <div className="logo-icon">🌊</div>
-          <h1 className="app-name" style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', margin: 0 }}>
+          <h1 className="app-name">
             Mivox Spas
-            <span style={{ fontSize: '11px', fontWeight: 'normal', opacity: 0.7, background: 'rgba(255,255,255,0.15)', padding: '2px 6px', borderRadius: '4px', letterSpacing: '0.5px' }}>
+            <span className="version-badge">
               v{config.appVersion}
             </span>
           </h1>
         </div>
         {role && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div className="app-header-actions">
             <NotificationBell />
             <button
               onClick={handleLogout}
-              style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: 'white', padding: '0.4rem 0.6rem', borderRadius: '6px', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+              className="signout-btn"
               title={socketConnected ? 'Connected' : 'Offline'}
             >
               <LogOut size={16} />
-              Sign Out
+              <span className="signout-label">Sign Out</span>
             </button>
           </div>
         )}

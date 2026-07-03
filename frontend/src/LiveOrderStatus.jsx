@@ -20,13 +20,13 @@ const STAGES = [
 const renderDeliveryDate = (dateString) => {
   // BUG FIX #23: Add null safety and invalid date handling
   if (!dateString || dateString === '' || dateString === 'null') {
-    return <span style={{ padding: '0.4rem 0.75rem', background: '#f1f5f9', color: '#64748b', borderRadius: '6px', fontWeight: 'bold', fontSize: '0.95rem' }}>Not Set</span>;
+    return <span style={{ padding: '0.35rem 0.6rem', background: '#f1f5f9', color: '#64748b', borderRadius: '6px', fontWeight: 'bold', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>Not Set</span>;
   }
   
   const dDate = new Date(dateString);
   // Check if date is valid
   if (isNaN(dDate.getTime())) {
-    return <span style={{ padding: '0.4rem 0.75rem', background: '#f1f5f9', color: '#64748b', borderRadius: '6px', fontWeight: 'bold', fontSize: '0.95rem' }}>Invalid Date</span>;
+    return <span style={{ padding: '0.35rem 0.6rem', background: '#f1f5f9', color: '#64748b', borderRadius: '6px', fontWeight: 'bold', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>Invalid Date</span>;
   }
   
   const today = new Date();
@@ -52,10 +52,10 @@ const renderDeliveryDate = (dateString) => {
   
   return (
     <div style={{
-      background: bgColor, color, border, 
-      padding: '0.4rem 0.75rem', borderRadius: '6px', 
-      fontWeight: 'bold', fontSize: '0.95rem',
-      display: 'inline-block'
+      background: bgColor, color, border,
+      padding: '0.35rem 0.6rem', borderRadius: '6px',
+      fontWeight: 'bold', fontSize: '0.8rem',
+      display: 'inline-block', whiteSpace: 'nowrap'
     }}>
       {label}{dDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
     </div>
@@ -238,10 +238,10 @@ export default function LiveOrderStatus() {
 
   return (
     <div className="glass-card">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-        <h2>Live Order Board</h2>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--secondary)' }}>
-          <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--secondary)', animation: 'pulse 2s infinite' }}></div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', marginBottom: '2rem' }}>
+        <h2 style={{ marginBottom: 0 }}>Live Order Board</h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--secondary)', whiteSpace: 'nowrap', fontSize: '0.9rem' }}>
+          <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--secondary)', animation: 'pulse 2s infinite', flexShrink: 0 }}></div>
           Live Sync Active
         </div>
       </div>
@@ -265,7 +265,7 @@ export default function LiveOrderStatus() {
                 <ItemPhoto photoFilename={order.itemPhoto} onClick={() => setModalPhoto(order.itemPhoto)} />
                 <span className="order-model">{order.baseModel} {order.variant && `(${order.variant})`}</span>
               </div>
-              <div style={{ fontSize: '13px', color: 'var(--text)', marginBottom: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <div style={{ fontSize: '13px', color: 'var(--text)', marginBottom: '8px', display: 'flex', flexDirection: 'column', gap: '4px', overflowWrap: 'break-word' }}>
                 <div><span style={{ fontWeight: 'normal' }}>Faucet Position:</span> <strong>{order.faucetPosition || 'Not Specified'}</strong></div>
                 <div><span style={{ fontWeight: 'normal' }}>Side Panel:</span> <strong>{order.sidePanel || 'Not Specified'}</strong></div>
                 <div><span style={{ fontWeight: 'normal' }}>Notes:</span> <strong>{order.notes || '—'}</strong></div>
@@ -282,12 +282,12 @@ export default function LiveOrderStatus() {
               
               <OrderPhotos orderId={order.id} />
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', paddingTop: '12px', borderTop: '1px solid var(--border)' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', marginTop: '12px', paddingTop: '12px', borderTop: '1px solid var(--border)' }}>
                 <div className="order-date">
                   {renderDeliveryDate(order.deliveryDate)}
                 </div>
                 {!isDelivered && order.status !== 'Cancelled' ? (
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginLeft: 'auto' }}>
                     {canEdit && order.status !== 'Order Form Received' && (
                       <button
                         onClick={() => reverseStatus(order.id, order.status)}

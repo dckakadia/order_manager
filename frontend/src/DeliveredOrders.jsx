@@ -202,7 +202,7 @@ export default function DeliveredOrders() {
               <ItemPhoto photoFilename={order.itemPhoto} onClick={() => setModalPhoto(order.itemPhoto)} />
               <span className="order-model">{order.baseModel} {order.variant && `(${order.variant})`}</span>
             </div>
-            <div style={{ fontSize: '13px', color: 'var(--text)', marginBottom: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <div style={{ fontSize: '13px', color: 'var(--text)', marginBottom: '8px', display: 'flex', flexDirection: 'column', gap: '4px', overflowWrap: 'break-word' }}>
               <div><strong>Faucet Position:</strong> {order.faucetPosition || 'Not Specified'}</div>
               <div><strong>Side Panel:</strong> {order.sidePanel || 'Not Specified'}</div>
               <div><strong>Order By:</strong> {order.orderBy || 'Not Specified'}</div>
@@ -211,7 +211,7 @@ export default function DeliveredOrders() {
             
             <OrderPhotos orderId={order.id} />
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', paddingTop: '12px', borderTop: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', marginTop: '12px', paddingTop: '12px', borderTop: '1px solid var(--border)' }}>
               <div className="order-date">
                 <span style={{ color: 'var(--secondary)', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.25rem', fontWeight: 600 }}>
                   <CheckCircle2 size={14} /> Completed

@@ -73,6 +73,10 @@ h1, h2, h3, h4 {
 h1 { font-size: 2.5rem; }
 h2 { font-size: 1.75rem; }
 
+@media (max-width: 380px) {
+  h2 { font-size: 1.3rem; }
+}
+
 /* Buttons */
 .btn {
   display: inline-flex;
@@ -338,10 +342,11 @@ tr:last-child td {
   z-index: 50;
   background: var(--primary);
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  height: 56px;
+  min-height: 56px;
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  padding: 0 16px;
+  padding: 8px 16px;
   gap: 10px;
   margin: -1rem -1rem 1.5rem -1rem;
 }
@@ -352,13 +357,69 @@ tr:last-child td {
   }
 }
 
-.app-header .logo-icon { font-size: 22px; }
-.app-header .app-name  { 
+.app-header-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.app-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.app-header .logo-icon { font-size: 22px; flex-shrink: 0; }
+.app-header .app-name  {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
   font-family: 'DM Serif Display', serif;
-  font-size: 20px; 
-  color: #ffffff; 
-  margin-bottom: 0; 
+  font-size: 20px;
+  color: #ffffff;
+  margin-bottom: 0;
   letter-spacing: 0.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.app-header .version-badge {
+  font-size: 11px;
+  font-weight: normal;
+  opacity: 0.7;
+  background: rgba(255, 255, 255, 0.15);
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+
+.signout-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  padding: 0.4rem 0.6rem;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/* Narrow / low-end phones: "Mivox Spas" + version pill + bell + Sign Out
+   all competing for one 56px row is what was wrapping to two lines and
+   ballooning the sticky header's height. Shrink the title and drop the
+   Sign Out label (icon remains, still tappable) rather than let it wrap. */
+@media (max-width: 380px) {
+  .app-header .app-name { font-size: 16px; }
+  .app-header .version-badge { display: none; }
+  .signout-label { display: none; }
+  .signout-btn { padding: 0.5rem; }
 }
 
 .bottom-nav {
@@ -373,6 +434,10 @@ tr:last-child td {
   justify-content: space-around;
   align-items: center;
   padding: 0 8px;
+  /* Safety net: if a role's tab count ever doesn't fit a narrow screen, scroll
+     to reach the rest instead of silently pushing tabs off-screen with no way
+     to tap them (space-around degrades to left-aligned overflow gracefully). */
+  overflow-x: auto;
 }
 
 .bottom-nav-item {
